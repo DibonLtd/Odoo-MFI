@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.env
+.vscode/
+.idea/
+# User lists carry Keycloak ids and emails: keep them out of the repository.
+tools/*.csv
+!tools/sso_users.example.csv

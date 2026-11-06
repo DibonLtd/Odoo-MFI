@@ -1,0 +1,3 @@
+sub,email,name,groups
+00000000-0000-0000-0000-000000000001,loan.officer@example.com,Example Loan Officer,base.group_user
+00000000-0000-0000-0000-000000000002,credit.manager@example.com,Example Credit Manager,base.group_user
