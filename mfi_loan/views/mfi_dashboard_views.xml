@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_dashboard_view_form" model="ir.ui.view">
+        <field name="name">mfi.dashboard.form</field>
+        <field name="model">mfi.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Dashboard" create="0" edit="0" delete="0">
+                <sheet>
+                    <field name="currency_id" invisible="1"/>
+                    <div class="oe_title">
+                        <h1>Portfolio snapshot</h1>
+                        <span class="text-muted">As at <field name="as_of" class="d-inline"/>. Figures update as repayments are recorded; reopen to refresh.</span>
+                    </div>
+                    <group>
+                        <group string="Portfolio">
+                            <field name="active_count" string="Active loans"/>
+                            <field name="active_outstanding" string="Outstanding"/>
+                            <field name="arrears_count" string="In arrears"/>
+                            <field name="arrears_missed"/>
+                            <field name="overdue_count" string="Overdue (past maturity)"/>
+                            <field name="overdue_outstanding" string="To recover"/>
+                        </group>
+                        <group string="Portfolio at risk">
+                            <field name="par_1"/>
+                            <field name="par_7"/>
+                            <field name="par_30"/>
+                            <field name="collection_rate_30"/>
+                        </group>
+                        <group string="Today">
+                            <field name="collected_today"/>
+                            <field name="collected_today_count" string="Payments"/>
+                            <field name="due_today"/>
+                            <field name="collected_vs_due_today"/>
+                        </group>
+                        <group string="This month">
+                            <field name="disbursed_month"/>
+                            <field name="disbursed_month_count" string="Loans disbursed"/>
+                            <field name="collected_month"/>
+                            <field name="clients" string="Clients"/>
+                            <field name="clients_new_month"/>
+                        </group>
+                        <group string="Awaiting action">
+                            <field name="pending_information" string="Need information"/>
+                            <field name="pending_approval" string="To approve"/>
+                            <field name="to_disburse" string="To disburse"/>
+                        </group>
+                    </group>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button name="action_open_active" type="object" string="Active loans" class="btn-secondary"/>
+                        <button name="action_open_arrears" type="object" string="Arrears" class="btn-secondary"/>
+                        <button name="action_open_collections" type="object" string="Collections" class="btn-secondary"/>
+                        <button name="action_open_approvals" type="object" string="Approval queue" class="btn-secondary"/>
+                    </div>
+                    <separator string="Arrears ageing"/>
+                    <field name="ageing_html" nolabel="1"/>
+                    <separator string="Needs attention: largest overdue and in-arrears balances"/>
+                    <field name="attention_html" nolabel="1"/>
+                    <separator string="Approval queue: oldest submissions first"/>
+                    <field name="approvals_html" nolabel="1"/>
+                    <p class="text-muted">
+                        In arrears = missed one or more daily instalments but still within the loan term.
+                        Overdue = past the maturity date with a balance. PAR n = outstanding on loans n or
+                        more days late, as a share of all outstanding. Charts: Loans and Repayments,
+                        graph view.
+                    </p>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mfi_dashboard" model="ir.actions.server">
+        <field name="name">Dashboard</field>
+        <field name="model_id" ref="model_mfi_dashboard"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open()</field>
+    </record>
+
+    <!-- Charts behind the dashboard -->
+    <record id="mfi_payment_view_graph" model="ir.ui.view">
+        <field name="name">mfi.payment.graph</field>
+        <field name="model">mfi.payment</field>
+        <field name="arch" type="xml">
+            <graph string="Collected" type="line">
+                <field name="date" interval="day"/>
+                <field name="amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+</odoo>

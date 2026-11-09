@@ -311,6 +311,70 @@
         </field>
     </record>
 
+    <!-- Report lists, with the portal's columns -->
+    <record id="mfi_loan_view_list_portfolio" model="ir.ui.view">
+        <field name="name">mfi.loan.list.portfolio</field>
+        <field name="model">mfi.loan</field>
+        <field name="priority">60</field>
+        <field name="arch" type="xml">
+            <list string="Active portfolio" create="0">
+                <field name="name" string="Loan S/N"/>
+                <field name="partner_id" string="Client"/>
+                <field name="partner_phone"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="principal" sum="Total"/>
+                <field name="disbursed_date" string="Disbursed"/>
+                <field name="maturity_date" string="Maturity"/>
+                <field name="amount_paid" string="Paid" sum="Total"/>
+                <field name="penalty_due" string="Penalty due" sum="Total"/>
+                <field name="outstanding" sum="Total"/>
+                <field name="days_past_due" string="Days past due"/>
+                <field name="health" string="Status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="mfi_loan_view_list_arrears" model="ir.ui.view">
+        <field name="name">mfi.loan.list.arrears</field>
+        <field name="model">mfi.loan</field>
+        <field name="priority">60</field>
+        <field name="arch" type="xml">
+            <list string="Arrears &amp; overdue ageing" create="0" default_order="days_past_due desc">
+                <field name="name" string="Loan S/N"/>
+                <field name="partner_id" string="Client"/>
+                <field name="partner_phone"/>
+                <field name="maturity_date" string="Maturity"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="arrears_amount" string="Arrears" sum="Total"/>
+                <field name="penalty_due" string="Penalty" sum="Total"/>
+                <field name="outstanding" sum="Total"/>
+                <field name="days_past_due" string="DPD"/>
+                <field name="ageing_bucket"/>
+                <field name="health" string="Status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="mfi_loan_view_list_disbursements" model="ir.ui.view">
+        <field name="name">mfi.loan.list.disbursements</field>
+        <field name="model">mfi.loan</field>
+        <field name="priority">60</field>
+        <field name="arch" type="xml">
+            <list string="Disbursements" create="0" default_order="disbursed_date desc">
+                <field name="name" string="Loan S/N"/>
+                <field name="partner_id" string="Client"/>
+                <field name="disbursed_date" string="Date"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="principal" sum="Total"/>
+                <field name="total_charges" sum="Total"/>
+                <field name="net_disbursement" string="Net paid out" sum="Total"/>
+                <field name="term_days" string="Days"/>
+                <field name="disbursement_method" string="Method"/>
+                <field name="disbursement_ref" string="Reference"/>
+            </list>
+        </field>
+    </record>
+
     <record id="action_mfi_loan" model="ir.actions.act_window">
         <field name="name">Loans</field>
         <field name="res_model">mfi.loan</field>

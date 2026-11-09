@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Logging a contact -->
+    <record id="mfi_collection_note_view_form" model="ir.ui.view">
+        <field name="name">mfi.collection.note.form</field>
+        <field name="model">mfi.collection.note</field>
+        <field name="arch" type="xml">
+            <form string="Contact">
+                <header>
+                    <button name="action_kept" type="object" string="Kept" class="btn-success"
+                            invisible="kind != 'promise' or promise_status != 'open'"/>
+                    <button name="action_broken" type="object" string="Broken" class="btn-danger"
+                            invisible="kind != 'promise' or promise_status != 'open'"/>
+                    <field name="promise_status" widget="statusbar" invisible="kind != 'promise'"/>
+                </header>
+                <group>
+                    <field name="loan_id" readonly="id" options="{'no_create': True}"/>
+                    <field name="kind" widget="radio" options="{'horizontal': true}" readonly="id"/>
+                    <field name="note" readonly="id" placeholder="What was said or agreed"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="promise_date" invisible="kind != 'promise'" required="kind == 'promise'" readonly="id"/>
+                    <field name="promise_amount" invisible="kind != 'promise'" readonly="id"/>
+                    <field name="user_id" invisible="not id"/>
+                    <field name="create_date" string="Logged" invisible="not id"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record id="mfi_collection_note_view_list" model="ir.ui.view">
+        <field name="name">mfi.collection.note.list</field>
+        <field name="model">mfi.collection.note</field>
+        <field name="arch" type="xml">
+            <list string="Promises to pay" create="0" default_order="promise_date asc"
+                  decoration-success="promise_status == 'kept'" decoration-muted="promise_status == 'broken'">
+                <field name="create_date" string="Logged"/>
+                <field name="partner_id"/>
+                <field name="loan_id"/>
+                <field name="kind"/>
+                <field name="note"/>
+                <field name="promise_date"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="promise_amount" sum="Total"/>
+                <field name="promise_status" widget="badge"/>
+                <field name="user_id"/>
+                <button name="action_kept" type="object" string="Kept"
+                        invisible="kind != 'promise' or promise_status != 'open'"/>
+                <button name="action_broken" type="object" string="Broken"
+                        invisible="kind != 'promise' or promise_status != 'open'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="mfi_collection_note_view_search" model="ir.ui.view">
+        <field name="name">mfi.collection.note.search</field>
+        <field name="model">mfi.collection.note</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="partner_id"/>
+                <field name="loan_id"/>
+                <filter name="open_promises" string="Open promises"
+                        domain="[('kind', '=', 'promise'), ('promise_status', '=', 'open')]"/>
+                <filter name="promises" string="All promises" domain="[('kind', '=', 'promise')]"/>
+                <separator/>
+                <filter name="mine" string="Mine" domain="[('user_id', '=', uid)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mfi_collections_promises" model="ir.actions.act_window">
+        <field name="name">Promises to pay</field>
+        <field name="res_model">mfi.collection.note</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_open_promises': 1}</field>
+    </record>
+
+    <!-- The late-loans worklist -->
+    <record id="mfi_loan_view_list_collections" model="ir.ui.view">
+        <field name="name">mfi.loan.list.collections</field>
+        <field name="model">mfi.loan</field>
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <list string="Late loans" create="0" default_order="days_past_due desc"
+                  decoration-danger="health == 'overdue'" decoration-warning="health == 'arrears'">
+                <field name="partner_id"/>
+                <field name="partner_phone_masked"/>
+                <field name="guarantor_name" string="Guarantor" optional="show"/>
+                <field name="guarantor_phone_masked" optional="show"/>
+                <field name="name"/>
+                <field name="days_past_due" string="Days late"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="arrears_amount" string="Arrears" sum="Total"/>
+                <field name="outstanding" sum="Total"/>
+                <field name="last_contact_kind" string="Last contact"/>
+                <field name="last_contact_date" string="On" widget="date"/>
+                <field name="last_contact_note" string="Note" optional="show"/>
+                <field name="open_promise_date" optional="show"/>
+                <field name="health" widget="badge" decoration-warning="health == 'arrears'"
+                       decoration-danger="health == 'overdue'"/>
+                <button name="action_unlock_phone" type="object" string="Unlock" icon="fa-unlock"/>
+                <button name="action_log_contact" type="object" string="Log" icon="fa-pencil"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mfi_collections_late" model="ir.actions.act_window">
+        <field name="name">Late loans</field>
+        <field name="res_model">mfi.loan</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'active'), ('health', 'in', ('arrears', 'overdue'))]</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('mfi_loan_view_list_collections')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('mfi_loan_view_form')})]"/>
+    </record>
+
+    <!-- Due today -->
+    <record id="mfi_installment_view_list_due" model="ir.ui.view">
+        <field name="name">mfi.loan.installment.list.due</field>
+        <field name="model">mfi.loan.installment</field>
+        <field name="arch" type="xml">
+            <list string="Due today" create="0" decoration-success="amount_paid &gt;= amount_due">
+                <field name="partner_id"/>
+                <field name="loan_id"/>
+                <field name="seq"/>
+                <field name="due_date"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="amount_due" sum="Total"/>
+                <field name="amount_paid" sum="Total"/>
+                <field name="amount_open"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mfi_collections_due_today" model="ir.actions.act_window">
+        <field name="name">Due today</field>
+        <field name="res_model">mfi.loan.installment</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="mfi_installment_view_list_due"/>
+        <field name="domain">[('due_date', '=', context_today().strftime('%Y-%m-%d')), ('loan_id.state', '=', 'active')]</field>
+    </record>
+
+    <record id="action_mfi_collections_collected" model="ir.actions.act_window">
+        <field name="name">Collected</field>
+        <field name="res_model">mfi.payment</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_allocated': 1, 'search_default_this_month': 1}</field>
+    </record>
+</odoo>

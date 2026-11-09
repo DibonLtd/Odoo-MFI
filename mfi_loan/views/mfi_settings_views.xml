@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_mfi" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.mfi</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Microfinance" string="Microfinance" name="mfi_loan">
+                    <block title="Company" name="mfi_company">
+                        <setting string="Tagline">
+                            <field name="mfi_tagline"/>
+                        </setting>
+                        <setting string="Company email address" help="Loan agreements are sent from this address">
+                            <field name="mfi_company_email"/>
+                        </setting>
+                        <setting string="Phone">
+                            <field name="mfi_company_phone"/>
+                        </setting>
+                    </block>
+                    <block title="Repayment channels" name="mfi_repayment"
+                           help="Where clients pay in. Shown on loan agreements and reminder messages.">
+                        <setting string="M-Pesa paybill number">
+                            <field name="mfi_repay_paybill"/>
+                        </setting>
+                        <setting string="Paybill account number" help="What clients enter as the account, e.g. Loan S/N">
+                            <field name="mfi_repay_account_format"/>
+                        </setting>
+                        <setting string="Bank">
+                            <div class="content-group">
+                                <div><label for="mfi_repay_bank_name" string="Bank name"/><field name="mfi_repay_bank_name"/></div>
+                                <div><label for="mfi_repay_bank_account_name" string="Account name"/><field name="mfi_repay_bank_account_name"/></div>
+                                <div><label for="mfi_repay_bank_account_number" string="Account number"/><field name="mfi_repay_bank_account_number"/></div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Disbursement channels" name="mfi_payout" help="Where loans are paid out from.">
+                        <setting string="M-Pesa paybill / shortcode">
+                            <field name="mfi_payout_paybill"/>
+                        </setting>
+                        <setting string="Bank">
+                            <div class="content-group">
+                                <div><label for="mfi_payout_bank_name" string="Bank name"/><field name="mfi_payout_bank_name"/></div>
+                                <div><label for="mfi_payout_bank_account_name" string="Account name"/><field name="mfi_payout_bank_account_name"/></div>
+                                <div><label for="mfi_payout_bank_account_number" string="Account number"/><field name="mfi_payout_bank_account_number"/></div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Repayment rules" name="mfi_rules">
+                        <setting string="Collect membership and application fee upfront on the first loan"
+                                 help="Non-refundable, paid at application. When off, they are deducted at disbursement like the other charges.">
+                            <field name="mfi_first_loan_fees_upfront"/>
+                        </setting>
+                        <setting string="Loan types, rates and fees"
+                                 help="Rate, default interest, minimum interest days and limits are set per loan type.">
+                            <button name="%(mfi_loan.action_mfi_product)d" type="action" string="Loan types" class="btn-link" icon="oi-arrow-right"/>
+                            <button name="%(mfi_loan.action_mfi_fee)d" type="action" string="Fees" class="btn-link" icon="oi-arrow-right"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_mfi_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'mfi_loan', 'bin_size': False}</field>
+    </record>
+</odoo>

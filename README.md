@@ -86,10 +86,37 @@ finance@, officer@, collections@, auditor@roancapital.co.ke) with the
 portal's published demo password, and sample loans in every state. Never
 install with demo data in a live database.
 
-**Not in the prototype yet:** collections notes and promises to pay, the
-dashboard and the portal's five reports (beyond the list, pivot and graph
-views), the company settings (paybill and bank accounts for the agreement),
-and an audit of who revealed a client's ID number.
+**Screens** (the portal's navigation):
+
+- *Dashboard*: active loans and outstanding; in arrears and missed
+  instalments; overdue and to recover; PAR 1, 7 and 30; collected against
+  due today; disbursed and collected this month; awaiting action; clients
+  and new this month; 30-day collection rate; ageing buckets; the largest
+  late balances; the approval queue. Worked out when opened.
+- *Clients*: onboarding as the portal asks: individual or business; ID or
+  registration number (format checked, never twice), phone (used to match
+  M-Pesa), email, KRA PIN (format checked); addresses, business, bank;
+  financials (daily income, stock, 6-month M-Pesa and bank cash flow,
+  loans elsewhere); a business's director / contact person; next of kin;
+  documents. Numbered RC-C-00001.
+- *Recovery*: repayments; unmatched payments; collections: late loans
+  (masked phones, an Unlock that is recorded on the loan, the reminder SMS,
+  a contact log of calls, visits and promises to pay), promises to pay
+  (kept or broken), due today, collected.
+- *Insights*: the six reports (active portfolio, arrears and overdue
+  ageing, disbursements, collections, income summary, clients onboarded),
+  each a list to export to Excel or CSV, and the income summary on screen.
+- *Administration* (Super Admin): Settings (company, repayment and payout
+  channels, fees upfront on a first loan; Odoo administrators only), loan
+  types, fees, users and roles.
+
+Loans are numbered RC-L-000001.
+
+**Not in the prototype yet:** sending the reminder SMS or the agreement by
+email or WhatsApp (the text is ready to copy); session limits and required
+two-factor (Odoo settings, or OCA `auth_session_timeout` in `server-auth`);
+an audit of who revealed a client's ID number; one audit log screen across
+all records (each record's history is in its chatter).
 
 **Tests:** `mfi_loan/tests`, run by Odoo.sh on development and staging builds.
 

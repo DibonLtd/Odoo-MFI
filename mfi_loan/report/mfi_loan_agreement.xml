@@ -44,6 +44,21 @@
                             </tbody>
                         </table>
                         <p>Amount paid out after deductions: <strong><span t-field="loan.net_disbursement"/></strong></p>
+                        <t t-set="company" t-value="loan.company_id"/>
+                        <h4>How to repay</h4>
+                        <p>
+                            One instalment of <span t-field="loan.installment"/> every day from the day after
+                            disbursement. Late instalments attract default interest of
+                            <t t-out="'%g' % (loan.penalty_rate * 100)"/>% per day.
+                        </p>
+                        <ul>
+                            <li t-if="company.mfi_repay_paybill">M-Pesa: Paybill <strong t-out="company.mfi_repay_paybill"/>,
+                                account <strong t-out="loan.name"/></li>
+                            <li t-if="company.mfi_repay_bank_account_number">Bank: <t t-out="company.mfi_repay_bank_name"/>,
+                                <t t-out="company.mfi_repay_bank_account_name"/>, account
+                                <t t-out="company.mfi_repay_bank_account_number"/>, reference <t t-out="loan.name"/></li>
+                        </ul>
+                        <p>Guarantor: <span t-field="loan.guarantor_name"/>, ID <span t-field="loan.guarantor_id_number"/></p>
                         <div class="row mt-5">
                             <div class="col-6">Borrower: ____________________ Date: ________</div>
                             <div class="col-6">For the lender: ____________________ Date: ________</div>

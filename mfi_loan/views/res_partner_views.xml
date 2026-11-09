@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- On the ordinary contact form: only a link to the client's loans. -->
     <record id="res_partner_view_form_mfi" model="ir.ui.view">
         <field name="name">res.partner.form.mfi</field>
         <field name="model">res.partner</field>
@@ -10,41 +11,188 @@
                         invisible="not is_mfi_client" groups="mfi_loan.group_mfi_user">
                     <field name="mfi_loan_count" widget="statinfo" string="Loans"/>
                 </button>
+                <field name="is_mfi_client" invisible="1"/>
             </xpath>
-            <xpath expr="//notebook" position="inside">
-                <page string="Microfinance" name="mfi" groups="mfi_loan.group_mfi_user">
+        </field>
+    </record>
+
+    <!-- The client file, as the portal's onboarding steps. -->
+    <record id="mfi_client_view_form" model="ir.ui.view">
+        <field name="name">res.partner.form.mfi.client</field>
+        <field name="model">res.partner</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <form string="Client">
+                <header>
+                    <button name="action_new_mfi_loan" type="object" string="New application" class="oe_highlight"
+                            invisible="not id or mfi_blacklisted"
+                            groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_loan_officer"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_mfi_loans" type="object" class="oe_stat_button" icon="fa-money">
+                            <field name="mfi_loan_count" widget="statinfo" string="Loans"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Blacklisted" bg_color="text-bg-danger" invisible="not mfi_blacklisted"/>
+                    <field name="is_mfi_client" invisible="1"/>
+                    <field name="is_company" invisible="1"/>
+                    <field name="mfi_client_type" widget="radio" options="{'horizontal': true}"/>
+                    <div class="oe_title">
+                        <label for="name" string="Full name" invisible="mfi_client_type == 'business'"/>
+                        <label for="name" string="Business name" invisible="mfi_client_type != 'business'"/>
+                        <h1><field name="name" required="1"/></h1>
+                        <field name="mfi_client_no" class="text-muted"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="mfi_documents_complete or not id">
+                        <strong>Missing documents:</strong> <field name="mfi_documents_missing" class="d-inline"/>
+                    </div>
+                    <field name="mfi_documents_complete" invisible="1"/>
                     <group>
                         <group>
-                            <field name="is_mfi_client"/>
-                            <field name="mfi_client_type" invisible="not is_mfi_client"/>
-                            <field name="mfi_id_number" invisible="not is_mfi_client"/>
+                            <field name="mfi_id_number" string="ID / registration number" required="1"
+                                   help="Individual: national ID. Business: registration number."/>
+                            <field name="phone" widget="phone" required="1" placeholder="0712 345 678"
+                                   help="Used to match M-Pesa payments"/>
+                            <field name="email" widget="email" required="1"/>
+                            <field name="mfi_alt_phone" widget="phone" placeholder="0722 000 000"/>
+                            <field name="mfi_kra_pin" placeholder="A123456789B"/>
                         </group>
-                        <group invisible="not is_mfi_client">
-                            <field name="mfi_blacklisted"/>
-                            <field name="mfi_blacklist_reason" invisible="not mfi_blacklisted"
-                                   required="mfi_blacklisted"/>
-                            <field name="mfi_documents_complete"/>
-                            <field name="mfi_documents_missing" invisible="mfi_documents_complete"/>
+                        <group>
+                            <field name="mfi_business_type" placeholder="e.g. Mama mboga, Hardware"/>
+                            <field name="mfi_business_location"/>
+                            <field name="mfi_bank_account_name"/>
+                            <field name="mfi_bank_account_number"/>
                         </group>
                     </group>
-                    <field name="mfi_document_ids" invisible="not is_mfi_client">
-                        <list editable="bottom">
-                            <field name="kind"/>
-                            <field name="file" filename="file_name" widget="binary"/>
-                            <field name="file_name" column_invisible="True"/>
-                            <field name="note"/>
-                        </list>
-                    </field>
-                </page>
-            </xpath>
+                    <notebook>
+                        <page string="Addresses" name="applicant" invisible="mfi_client_type == 'business'">
+                            <group>
+                                <field name="mfi_residential_address"/>
+                                <field name="mfi_permanent_address"/>
+                                <field name="mfi_rural_home"/>
+                            </group>
+                        </page>
+                        <page string="Director / contact person" name="business" invisible="mfi_client_type != 'business'">
+                            <group>
+                                <field name="mfi_contact_name" string="Full name" required="mfi_client_type == 'business'"/>
+                                <field name="mfi_contact_id_number" string="ID number"/>
+                                <field name="mfi_contact_phone" string="Phone" widget="phone"/>
+                                <field name="mfi_contact_designation"/>
+                            </group>
+                        </page>
+                        <page string="Financials" name="financials">
+                            <group>
+                                <group string="Business capacity">
+                                    <field name="mfi_daily_income"/>
+                                    <field name="mfi_stock_value"/>
+                                    <field name="mfi_stock_turnover"/>
+                                </group>
+                                <group string="Cash flow and borrowing">
+                                    <field name="mfi_mpesa_cashflow_6m"/>
+                                    <field name="mfi_bank_cashflow_6m"/>
+                                    <field name="mfi_current_loans_count"/>
+                                    <field name="mfi_current_loans_value"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Next of kin" name="next_of_kin" invisible="mfi_client_type == 'business'">
+                            <field name="mfi_next_of_kin_ids">
+                                <list editable="bottom">
+                                    <field name="full_name"/>
+                                    <field name="relationship"/>
+                                    <field name="id_number"/>
+                                    <field name="phone" widget="phone"/>
+                                    <field name="alt_phone" optional="hide"/>
+                                    <field name="email" optional="hide"/>
+                                    <field name="residential_address" optional="show"/>
+                                    <field name="permanent_address" optional="hide"/>
+                                    <field name="business_type" optional="hide"/>
+                                    <field name="business_location" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Documents" name="documents">
+                            <field name="mfi_document_ids">
+                                <list editable="bottom">
+                                    <field name="kind"/>
+                                    <field name="file" filename="file_name" widget="binary"/>
+                                    <field name="file_name" column_invisible="True"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Status" name="status">
+                            <group>
+                                <field name="mfi_blacklisted"/>
+                                <field name="mfi_blacklist_reason" invisible="not mfi_blacklisted"
+                                       required="mfi_blacklisted"/>
+                                <field name="mfi_loans_taken"/>
+                                <field name="mfi_total_borrowed"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="mfi_client_view_list" model="ir.ui.view">
+        <field name="name">res.partner.list.mfi.client</field>
+        <field name="model">res.partner</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <list string="Clients" decoration-danger="mfi_blacklisted">
+                <field name="mfi_client_no"/>
+                <field name="name"/>
+                <field name="mfi_client_type" optional="show"/>
+                <field name="mfi_id_number" string="ID" optional="show"/>
+                <field name="phone"/>
+                <field name="mfi_business_type" string="Business" optional="show"/>
+                <field name="mfi_business_location" string="Location" optional="show"/>
+                <field name="create_date" string="Joined" optional="show"/>
+                <field name="mfi_loans_taken" string="Loans" optional="show"/>
+                <field name="mfi_total_borrowed" string="Borrowed" optional="show"/>
+                <field name="mfi_documents_complete" string="Documents" optional="hide"/>
+                <field name="mfi_blacklisted" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="mfi_client_view_search" model="ir.ui.view">
+        <field name="name">res.partner.search.mfi.client</field>
+        <field name="model">res.partner</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <search string="Clients">
+                <field name="name" filter_domain="['|', '|', ('name', 'ilike', self), ('mfi_client_no', 'ilike', self), ('phone', 'ilike', self)]"/>
+                <field name="mfi_business_type"/>
+                <filter name="individual" string="Individuals" domain="[('mfi_client_type', '=', 'individual')]"/>
+                <filter name="business" string="Businesses" domain="[('mfi_client_type', '=', 'business')]"/>
+                <separator/>
+                <filter name="blacklisted" string="Blacklisted" domain="[('mfi_blacklisted', '=', True)]"/>
+            </search>
         </field>
     </record>
 
     <record id="action_mfi_client" model="ir.actions.act_window">
         <field name="name">Clients</field>
         <field name="res_model">res.partner</field>
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">list,form</field>
         <field name="domain">[('is_mfi_client', '=', True)]</field>
+        <field name="context">{'default_is_mfi_client': True, 'default_mfi_client_type': 'individual'}</field>
+        <field name="search_view_id" ref="mfi_client_view_search"/>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('mfi_client_view_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('mfi_client_view_form')})]"/>
+    </record>
+
+    <record id="action_mfi_client_new" model="ir.actions.act_window">
+        <field name="name">Onboard client</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="mfi_client_view_form"/>
         <field name="context">{'default_is_mfi_client': True, 'default_mfi_client_type': 'individual'}</field>
     </record>
 </odoo>

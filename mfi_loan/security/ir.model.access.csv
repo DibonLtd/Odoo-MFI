@@ -37,3 +37,16 @@ access_mfi_settle_wizard,mfi.loan.settle.wizard,model_mfi_loan_settle_wizard,gro
 access_mfi_writeoff_wizard,mfi.loan.writeoff.wizard,model_mfi_loan_writeoff_wizard,group_mfi_user,1,1,1,1
 access_mfi_payment_match_wizard,mfi.payment.match.wizard,model_mfi_payment_match_wizard,group_mfi_user,1,1,1,1
 access_mfi_payment_reverse_wizard,mfi.payment.reverse.wizard,model_mfi_payment_reverse_wizard,group_mfi_user,1,1,1,1
+access_mfi_next_of_kin_user,mfi.next.of.kin user,model_mfi_next_of_kin,group_mfi_user,1,0,0,0
+access_mfi_next_of_kin_officer,mfi.next.of.kin officer,model_mfi_next_of_kin,group_mfi_loan_officer,1,1,1,1
+access_mfi_next_of_kin_cm,mfi.next.of.kin credit manager,model_mfi_next_of_kin,group_mfi_credit_manager,1,1,1,1
+access_mfi_next_of_kin_ho,mfi.next.of.kin head office,model_mfi_next_of_kin,group_mfi_head_office,1,1,1,1
+access_mfi_next_of_kin_admin,mfi.next.of.kin admin,model_mfi_next_of_kin,group_mfi_admin,1,1,1,1
+access_mfi_collection_note_user,mfi.collection.note user,model_mfi_collection_note,group_mfi_user,1,0,0,0
+access_mfi_collection_note_officer,mfi.collection.note officer,model_mfi_collection_note,group_mfi_loan_officer,1,0,1,0
+access_mfi_collection_note_cm,mfi.collection.note credit manager,model_mfi_collection_note,group_mfi_credit_manager,1,0,1,0
+access_mfi_collection_note_ho,mfi.collection.note head office,model_mfi_collection_note,group_mfi_head_office,1,0,1,0
+access_mfi_collection_note_collections,mfi.collection.note collections,model_mfi_collection_note,group_mfi_collections,1,0,1,0
+access_mfi_collection_note_admin,mfi.collection.note admin,model_mfi_collection_note,group_mfi_admin,1,0,1,0
+access_mfi_dashboard_user,mfi.dashboard user,model_mfi_dashboard,group_mfi_user,1,1,1,1
+access_mfi_report_wizard_user,mfi.report.wizard user,model_mfi_report_wizard,group_mfi_user,1,1,1,1

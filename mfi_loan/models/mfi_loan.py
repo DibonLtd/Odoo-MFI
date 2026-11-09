@@ -64,6 +64,7 @@ class MfiLoan(models.Model):
     fee_line_ids = fields.One2many("mfi.loan.fee", "loan_id", "Fees", readonly=True, copy=False)
     upfront_total = fields.Monetary("Fees paid upfront", compute="_compute_fee_totals", store=True)
     deducted_total = fields.Monetary("Fees deducted", compute="_compute_fee_totals", store=True)
+    total_charges = fields.Monetary("Charges", compute="_compute_fee_totals", store=True)
     net_disbursement = fields.Monetary(compute="_compute_fee_totals", store=True)
 
     # Guarantor and security
@@ -133,6 +134,10 @@ class MfiLoan(models.Model):
                                    help="Days since the oldest unpaid instalment fell due.")
     arrears_amount = fields.Monetary(readonly=True, copy=False)
     oldest_unpaid_due = fields.Date(readonly=True, copy=False)
+    ageing_bucket = fields.Selection(
+        [("current", "Current"), ("1_7", "1-7 days"), ("8_14", "8-14 days"),
+         ("15_30", "15-30 days"), ("30_plus", "30+ days")],
+        "Bucket", readonly=True, copy=False)
     closed_date = fields.Date(readonly=True, copy=False)
     written_off_date = fields.Date(readonly=True, copy=False)
     write_off_reason = fields.Text(readonly=True, copy=False)
@@ -148,6 +153,7 @@ class MfiLoan(models.Model):
             deducted = sum(loan.fee_line_ids.filtered(lambda f: f.timing == "deducted").mapped("amount"))
             loan.upfront_total = r2(upfront)
             loan.deducted_total = r2(deducted)
+            loan.total_charges = r2(upfront + deducted)
             loan.net_disbursement = r2(loan.principal - deducted)
 
     @api.depends("state", "total_repayable", "installment_ids.amount_paid", "penalty_accrued", "penalty_paid")
@@ -223,7 +229,8 @@ class MfiLoan(models.Model):
             lines = [(5, 0, 0)]
             for fee in Fee.search([]):
                 if fee._applies(loan.principal, product.category, first):
-                    timing = "upfront" if (first and fee.upfront_on_first_loan) else "deducted"
+                    upfront = first and fee.upfront_on_first_loan and loan.company_id.mfi_first_loan_fees_upfront
+                    timing = "upfront" if upfront else "deducted"
                     lines.append((0, 0, {
                         "fee_id": fee.id, "name": fee.name, "amount": fee.amount, "timing": timing,
                     }))
@@ -536,7 +543,8 @@ class MfiLoan(models.Model):
         today = fields.Date.to_date(today) or fields.Date.context_today(self)
         for loan in self.sudo():
             if loan.state != "active":
-                vals = {"health": False, "days_past_due": 0, "arrears_amount": 0, "oldest_unpaid_due": False}
+                vals = {"health": False, "days_past_due": 0, "arrears_amount": 0, "oldest_unpaid_due": False,
+                        "ageing_bucket": False}
             else:
                 past = loan.installment_ids.filtered(lambda i: i.due_date < today)
                 arrears = r2(sum(past.mapped("amount_due")) - sum(past.mapped("amount_paid")))
@@ -548,11 +556,16 @@ class MfiLoan(models.Model):
                     health = "arrears"
                 else:
                     health = "current"
+                dpd = max((today - oldest).days, 0) if oldest else 0
                 vals = {
                     "health": health,
-                    "days_past_due": max((today - oldest).days, 0) if oldest else 0,
+                    "days_past_due": dpd,
                     "arrears_amount": arrears,
                     "oldest_unpaid_due": oldest,
+                    "ageing_bucket": (
+                        "current" if health == "current" else
+                        "1_7" if dpd <= 7 else "8_14" if dpd <= 14 else "15_30" if dpd <= 30 else "30_plus"
+                    ),
                 }
             if any(loan[k] != v for k, v in vals.items()):
                 loan.write(vals)
@@ -680,12 +693,20 @@ class MfiLoanInstallment(models.Model):
     _order = "loan_id, seq"
 
     loan_id = fields.Many2one("mfi.loan", required=True, ondelete="cascade", index=True)
+    partner_id = fields.Many2one(related="loan_id.partner_id", string="Client")
+    loan_state = fields.Selection(related="loan_id.state", string="Loan status")
     seq = fields.Integer("No.", required=True)
-    due_date = fields.Date(required=True)
+    due_date = fields.Date(required=True, index=True)
     currency_id = fields.Many2one(related="loan_id.currency_id")
     amount_due = fields.Monetary(required=True)
     amount_paid = fields.Monetary()
+    amount_open = fields.Monetary("Still to pay", compute="_compute_amount_open")
     paid_date = fields.Date()
+
+    @api.depends("amount_due", "amount_paid")
+    def _compute_amount_open(self):
+        for inst in self:
+            inst.amount_open = max(r2(inst.amount_due - inst.amount_paid), 0)
 
 
 class MfiLoanApproval(models.Model):

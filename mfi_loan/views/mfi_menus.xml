@@ -1,25 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The portal's navigation: Overview, Clients, Lending, Recovery, Insights, Administration. -->
 <odoo>
-    <menuitem id="menu_mfi_root" name="Microfinance" sequence="40" groups="mfi_loan.group_mfi_user"/>
+    <menuitem id="menu_mfi_root" name="Microfinance" sequence="40" groups="mfi_loan.group_mfi_user"
+              action="action_mfi_dashboard"/>
 
-    <menuitem id="menu_mfi_clients" name="Clients" parent="menu_mfi_root" action="action_mfi_client" sequence="10"/>
+    <menuitem id="menu_mfi_dashboard" name="Dashboard" parent="menu_mfi_root" action="action_mfi_dashboard" sequence="1"/>
+
+    <menuitem id="menu_mfi_clients_root" name="Clients" parent="menu_mfi_root" sequence="10"/>
+    <menuitem id="menu_mfi_clients" name="Clients" parent="menu_mfi_clients_root" action="action_mfi_client" sequence="10"/>
+    <menuitem id="menu_mfi_client_new" name="Onboard client" parent="menu_mfi_clients_root" action="action_mfi_client_new"
+              sequence="20"
+              groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_loan_officer"/>
 
     <menuitem id="menu_mfi_lending" name="Lending" parent="menu_mfi_root" sequence="20"/>
-    <menuitem id="menu_mfi_loans" name="Loans" parent="menu_mfi_lending" action="action_mfi_loan" sequence="10"/>
-    <menuitem id="menu_mfi_my_tasks" name="My approvals" parent="menu_mfi_lending" action="action_mfi_loan_my_tasks"
+    <menuitem id="menu_mfi_loans" name="All loans" parent="menu_mfi_lending" action="action_mfi_loan" sequence="10"/>
+    <menuitem id="menu_mfi_my_tasks" name="Approvals" parent="menu_mfi_lending" action="action_mfi_loan_my_tasks"
               sequence="20" groups="mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_ceo,mfi_loan.group_mfi_admin"/>
-    <menuitem id="menu_mfi_payouts" name="Payouts" parent="menu_mfi_lending" action="action_mfi_loan_to_disburse"
+    <menuitem id="menu_mfi_payouts" name="Disbursements" parent="menu_mfi_lending" action="action_mfi_loan_to_disburse"
               sequence="30"
               groups="mfi_loan.group_mfi_finance,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_admin,mfi_loan.group_mfi_ceo,mfi_loan.group_mfi_auditor"/>
-    <menuitem id="menu_mfi_arrears" name="Arrears" parent="menu_mfi_lending" action="action_mfi_loan_arrears" sequence="40"/>
 
-    <menuitem id="menu_mfi_payments_root" name="Payments" parent="menu_mfi_root" sequence="30"/>
-    <menuitem id="menu_mfi_payments" name="Repayments" parent="menu_mfi_payments_root" action="action_mfi_payment" sequence="10"/>
-    <menuitem id="menu_mfi_payments_unmatched" name="Unmatched" parent="menu_mfi_payments_root"
+    <menuitem id="menu_mfi_recovery" name="Recovery" parent="menu_mfi_root" sequence="30"/>
+    <menuitem id="menu_mfi_payments" name="Repayments" parent="menu_mfi_recovery" action="action_mfi_payment" sequence="10"/>
+    <menuitem id="menu_mfi_payments_unmatched" name="Unmatched payments" parent="menu_mfi_recovery"
               action="action_mfi_payment_unmatched" sequence="20"/>
+    <menuitem id="menu_mfi_collections_late" name="Collections: late loans" parent="menu_mfi_recovery"
+              action="action_mfi_collections_late" sequence="30"/>
+    <menuitem id="menu_mfi_collections_promises" name="Collections: promises to pay" parent="menu_mfi_recovery"
+              action="action_mfi_collections_promises" sequence="40"/>
+    <menuitem id="menu_mfi_collections_due" name="Collections: due today" parent="menu_mfi_recovery"
+              action="action_mfi_collections_due_today" sequence="50"/>
+    <menuitem id="menu_mfi_collections_collected" name="Collections: collected" parent="menu_mfi_recovery"
+              action="action_mfi_collections_collected" sequence="60"/>
 
-    <menuitem id="menu_mfi_config" name="Configuration" parent="menu_mfi_root" sequence="90"
+    <menuitem id="menu_mfi_insights" name="Insights" parent="menu_mfi_root" sequence="40"/>
+    <menuitem id="menu_mfi_reports" name="Reports" parent="menu_mfi_insights" action="action_mfi_report_wizard" sequence="10"/>
+    <menuitem id="menu_mfi_arrears" name="Arrears" parent="menu_mfi_insights" action="action_mfi_loan_arrears" sequence="20"/>
+
+    <menuitem id="menu_mfi_config" name="Administration" parent="menu_mfi_root" sequence="90"
               groups="mfi_loan.group_mfi_admin"/>
+    <menuitem id="menu_mfi_settings" name="Settings" parent="menu_mfi_config" action="action_mfi_settings" sequence="5"
+              groups="base.group_system"/>
     <menuitem id="menu_mfi_products" name="Loan types" parent="menu_mfi_config" action="action_mfi_product" sequence="10"/>
     <menuitem id="menu_mfi_fees" name="Fees" parent="menu_mfi_config" action="action_mfi_fee" sequence="20"/>
+    <menuitem id="menu_mfi_users" name="Users &amp; roles" parent="menu_mfi_config" action="base.action_res_users"
+              sequence="30" groups="base.group_erp_manager"/>
 </odoo>

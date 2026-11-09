@@ -24,6 +24,7 @@ PERMISSIONS = {
     "loans.writeoff": (SA, CEO),
     "payments.record": (SA, HO, CM, FIN, COL, LO),
     "payments.reverse": (SA, CEO, HO, FIN),
+    "collections.write": (SA, HO, CM, COL, LO),
 }
 
 # Who decides each approval stage, in order; a Super Admin may decide any stage.

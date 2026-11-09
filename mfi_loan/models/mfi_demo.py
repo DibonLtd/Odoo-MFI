@@ -23,9 +23,15 @@ class MfiDemo(models.AbstractModel):
         today = fields.Date.context_today(self)
 
         def client(name, phone, id_number):
+            first, last = name.lower().split(" ", 1)
             return self.env["res.partner"].create({
                 "name": name, "phone": phone, "is_mfi_client": True,
+                "email": f"{first}.{last.replace(' ', '')}@example.com",
                 "mfi_client_type": "individual", "mfi_id_number": id_number,
+                "mfi_business_type": "Retail shop", "mfi_business_location": "Kiambu town",
+                "mfi_residential_address": "Kiambu", "mfi_daily_income": 3000, "mfi_stock_value": 60000,
+                "mfi_next_of_kin_ids": [(0, 0, {"full_name": "Next of kin of " + name, "relationship": "Spouse",
+                                                "phone": "0733000000"})],
                 "mfi_document_ids": [
                     (0, 0, {"kind": kind, "file": SAMPLE_FILE, "file_name": f"{kind}.pdf"})
                     for kind in ("national_id", "passport_photo", "mpesa_statement")
@@ -91,10 +97,16 @@ class MfiDemo(models.AbstractModel):
         # Current: the 4 instalments due before today, and the default interest, paid.
         active(application(client("Akinyi Barasa", "0712345605", "30111005"), "chattels", 15000),
                5, paid=lambda loan: loan.installment * 4 + loan.penalty_due)
-        active(application(client("Mwangi Chebet", "0712345606", "30111006"), "logbook", 30000),
-               12, paid=lambda loan: loan.installment * 3)
-        active(application(client("Naliaka Odhiambo", "0712345607", "30111007"), "chattels", 10000, "two_weeks"),
-               25, paid=lambda loan: 2000)
+        late = application(client("Mwangi Chebet", "0712345606", "30111006"), "logbook", 30000)
+        active(late, 12, paid=lambda loan: loan.installment * 3)
+        overdue = application(client("Naliaka Odhiambo", "0712345607", "30111007"), "chattels", 10000, "two_weeks")
+        active(overdue, 25, paid=lambda loan: 2000)
+        Note = self.env["mfi.collection.note"].with_user(user("collections"))
+        Note.create({"loan_id": late.id, "kind": "call", "note": "Client unreachable, left voicemail."})
+        Note.create({"loan_id": overdue.id, "kind": "visit",
+                     "note": "Visited business; client says stock is slow, will pay Friday."})
+        Note.create({"loan_id": overdue.id, "kind": "promise", "note": "Promised part payment",
+                     "promise_date": today + timedelta(days=2), "promise_amount": 3000})
         active(application(client("Kipchoge Atieno", "0712345608", "30111008"), "chattels", 5000, "two_weeks"),
                20, paid=lambda loan: loan.outstanding)
 

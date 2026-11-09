@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_report_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.report.wizard.form</field>
+        <field name="model">mfi.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reports">
+                <field name="currency_id" invisible="1"/>
+                <group>
+                    <field name="report" widget="radio"/>
+                    <field name="date_from" invisible="report in ('portfolio', 'arrears')"/>
+                    <field name="date_to" invisible="report in ('portfolio', 'arrears')"/>
+                </group>
+                <group string="Income summary" invisible="report != 'income'">
+                    <field name="fees_charged"/>
+                    <field name="interest_collected"/>
+                    <field name="penalty_collected"/>
+                    <field name="income_total" class="fw-bold"/>
+                </group>
+                <p class="text-muted" invisible="report == 'income'">
+                    The report opens as a list: select the rows and use Export for Excel or CSV.
+                </p>
+                <footer>
+                    <button name="action_show" type="object" string="Show" class="btn-primary"
+                            invisible="report == 'income'"/>
+                    <button special="cancel" string="Close"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mfi_report_wizard" model="ir.actions.act_window">
+        <field name="name">Reports</field>
+        <field name="res_model">mfi.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
