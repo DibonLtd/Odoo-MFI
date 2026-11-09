@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_loan_decide_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.loan.decide.wizard.form</field>
+        <field name="model">mfi.loan.decide.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Decide">
+                <group>
+                    <field name="loan_id" readonly="1"/>
+                    <field name="decision" widget="radio"/>
+                    <field name="comment" required="decision == 'rejected'" placeholder="Reason, shown to the officer"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_mfi_loan_reject" model="ir.actions.act_window">
+        <field name="name">Reject</field>
+        <field name="res_model">mfi.loan.decide.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_decision': 'rejected'}</field>
+    </record>
+
+    <record id="mfi_loan_disburse_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.loan.disburse.wizard.form</field>
+        <field name="model">mfi.loan.disburse.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Disburse">
+                <group>
+                    <field name="loan_id" readonly="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="net_disbursement"/>
+                    <field name="method" widget="radio"/>
+                    <field name="reference" placeholder="M-Pesa / bank / receipt reference"/>
+                    <field name="date"/>
+                </group>
+                <p class="text-muted">
+                    Placeholder: the payout is made outside Odoo and its reference typed here
+                    until M-Pesa and the bank are connected.
+                </p>
+                <footer>
+                    <button name="action_confirm" type="object" string="Disburse" class="btn-primary"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_mfi_loan_disburse" model="ir.actions.act_window">
+        <field name="name">Disburse</field>
+        <field name="res_model">mfi.loan.disburse.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="mfi_loan_settle_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.loan.settle.wizard.form</field>
+        <field name="model">mfi.loan.settle.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Early settlement">
+                <field name="currency_id" invisible="1"/>
+                <group>
+                    <group string="Settlement today">
+                        <field name="loan_id" readonly="1"/>
+                        <field name="interest_days"/>
+                        <field name="interest"/>
+                        <field name="new_total_payable"/>
+                        <field name="amount_paid"/>
+                        <field name="penalty_due"/>
+                        <field name="settlement_amount" class="fw-bold"/>
+                    </group>
+                    <group string="Payment">
+                        <field name="amount"/>
+                        <field name="method" widget="radio"/>
+                        <field name="reference" required="method != 'cash'"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Settle" class="btn-primary"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_mfi_loan_settle" model="ir.actions.act_window">
+        <field name="name">Early settlement</field>
+        <field name="res_model">mfi.loan.settle.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="mfi_loan_writeoff_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.loan.writeoff.wizard.form</field>
+        <field name="model">mfi.loan.writeoff.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Write off">
+                <group>
+                    <field name="loan_id" readonly="1"/>
+                    <field name="reason" placeholder="Why this loan cannot be recovered"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Write off" class="btn-danger"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_mfi_loan_writeoff" model="ir.actions.act_window">
+        <field name="name">Write off</field>
+        <field name="res_model">mfi.loan.writeoff.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="mfi_payment_match_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.payment.match.wizard.form</field>
+        <field name="model">mfi.payment.match.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Match payment">
+                <group>
+                    <field name="payment_id" readonly="1"/>
+                    <field name="loan_id" options="{'no_create': True}"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Match" class="btn-primary"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_mfi_payment_match" model="ir.actions.act_window">
+        <field name="name">Match to a loan</field>
+        <field name="res_model">mfi.payment.match.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="mfi_payment_reverse_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.payment.reverse.wizard.form</field>
+        <field name="model">mfi.payment.reverse.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reverse payment">
+                <group>
+                    <field name="payment_id" readonly="1"/>
+                    <field name="reason"/>
+                </group>
+                <p class="text-muted">The loan's other payments are re-applied from the start.</p>
+                <footer>
+                    <button name="action_confirm" type="object" string="Reverse" class="btn-danger"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_mfi_payment_reverse" model="ir.actions.act_window">
+        <field name="name">Reverse</field>
+        <field name="res_model">mfi.payment.reverse.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

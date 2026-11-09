@@ -1,0 +1,39 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mfi_product_user,mfi.product user,model_mfi_product,group_mfi_user,1,0,0,0
+access_mfi_product_admin,mfi.product admin,model_mfi_product,group_mfi_admin,1,1,1,1
+access_mfi_fee_user,mfi.fee user,model_mfi_fee,group_mfi_user,1,0,0,0
+access_mfi_fee_admin,mfi.fee admin,model_mfi_fee,group_mfi_admin,1,1,1,1
+access_mfi_client_document_user,mfi.client.document user,model_mfi_client_document,group_mfi_user,1,0,0,0
+access_mfi_client_document_officer,mfi.client.document officer,model_mfi_client_document,group_mfi_loan_officer,1,1,1,0
+access_mfi_client_document_cm,mfi.client.document credit manager,model_mfi_client_document,group_mfi_credit_manager,1,1,1,0
+access_mfi_client_document_ho,mfi.client.document head office,model_mfi_client_document,group_mfi_head_office,1,1,1,0
+access_mfi_client_document_admin,mfi.client.document admin,model_mfi_client_document,group_mfi_admin,1,1,1,1
+access_mfi_loan_user,mfi.loan user,model_mfi_loan,group_mfi_user,1,0,0,0
+access_mfi_loan_officer,mfi.loan officer,model_mfi_loan,group_mfi_loan_officer,1,1,1,0
+access_mfi_loan_cm,mfi.loan credit manager,model_mfi_loan,group_mfi_credit_manager,1,1,1,0
+access_mfi_loan_head_office,mfi.loan head office,model_mfi_loan,group_mfi_head_office,1,1,1,0
+access_mfi_loan_ceo,mfi.loan ceo,model_mfi_loan,group_mfi_ceo,1,1,0,0
+access_mfi_loan_finance,mfi.loan finance,model_mfi_loan,group_mfi_finance,1,1,0,0
+access_mfi_loan_collections,mfi.loan collections,model_mfi_loan,group_mfi_collections,1,1,0,0
+access_mfi_loan_admin,mfi.loan admin,model_mfi_loan,group_mfi_admin,1,1,1,1
+access_mfi_loan_fee_user,mfi.loan.fee user,model_mfi_loan_fee,group_mfi_user,1,0,0,0
+access_mfi_loan_installment_user,mfi.loan.installment user,model_mfi_loan_installment,group_mfi_user,1,0,0,0
+access_mfi_loan_approval_user,mfi.loan.approval user,model_mfi_loan_approval,group_mfi_user,1,0,0,0
+access_mfi_loan_chattel_user,mfi.loan.chattel user,model_mfi_loan_chattel,group_mfi_user,1,0,0,0
+access_mfi_loan_chattel_officer,mfi.loan.chattel officer,model_mfi_loan_chattel,group_mfi_loan_officer,1,1,1,1
+access_mfi_loan_chattel_cm,mfi.loan.chattel credit manager,model_mfi_loan_chattel,group_mfi_credit_manager,1,1,1,1
+access_mfi_loan_chattel_ho,mfi.loan.chattel head office,model_mfi_loan_chattel,group_mfi_head_office,1,1,1,1
+access_mfi_loan_chattel_admin,mfi.loan.chattel admin,model_mfi_loan_chattel,group_mfi_admin,1,1,1,1
+access_mfi_payment_user,mfi.payment user,model_mfi_payment,group_mfi_user,1,0,0,0
+access_mfi_payment_officer,mfi.payment officer,model_mfi_payment,group_mfi_loan_officer,1,0,1,0
+access_mfi_payment_cm,mfi.payment credit manager,model_mfi_payment,group_mfi_credit_manager,1,0,1,0
+access_mfi_payment_ho,mfi.payment head office,model_mfi_payment,group_mfi_head_office,1,0,1,0
+access_mfi_payment_finance,mfi.payment finance,model_mfi_payment,group_mfi_finance,1,0,1,0
+access_mfi_payment_collections,mfi.payment collections,model_mfi_payment,group_mfi_collections,1,0,1,0
+access_mfi_payment_admin,mfi.payment admin,model_mfi_payment,group_mfi_admin,1,0,1,0
+access_mfi_decide_wizard,mfi.loan.decide.wizard,model_mfi_loan_decide_wizard,group_mfi_user,1,1,1,1
+access_mfi_disburse_wizard,mfi.loan.disburse.wizard,model_mfi_loan_disburse_wizard,group_mfi_user,1,1,1,1
+access_mfi_settle_wizard,mfi.loan.settle.wizard,model_mfi_loan_settle_wizard,group_mfi_user,1,1,1,1
+access_mfi_writeoff_wizard,mfi.loan.writeoff.wizard,model_mfi_loan_writeoff_wizard,group_mfi_user,1,1,1,1
+access_mfi_payment_match_wizard,mfi.payment.match.wizard,model_mfi_payment_match_wizard,group_mfi_user,1,1,1,1
+access_mfi_payment_reverse_wizard,mfi.payment.reverse.wizard,model_mfi_payment_reverse_wizard,group_mfi_user,1,1,1,1

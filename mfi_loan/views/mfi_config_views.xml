@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_product_view_list" model="ir.ui.view">
+        <field name="name">mfi.product.list</field>
+        <field name="model">mfi.product</field>
+        <field name="arch" type="xml">
+            <list string="Loan types" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="category"/>
+                <field name="daily_rate"/>
+                <field name="penalty_rate"/>
+                <field name="min_interest_days"/>
+                <field name="min_amount"/>
+                <field name="max_amount"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mfi_product" model="ir.actions.act_window">
+        <field name="name">Loan types</field>
+        <field name="res_model">mfi.product</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
+    <record id="mfi_fee_view_list" model="ir.ui.view">
+        <field name="name">mfi.fee.list</field>
+        <field name="model">mfi.fee</field>
+        <field name="arch" type="xml">
+            <list string="Fees" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="amount"/>
+                <field name="min_principal"/>
+                <field name="max_principal"/>
+                <field name="product_category"/>
+                <field name="first_loan_only"/>
+                <field name="upfront_on_first_loan"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_mfi_fee" model="ir.actions.act_window">
+        <field name="name">Fees</field>
+        <field name="res_model">mfi.fee</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+</odoo>

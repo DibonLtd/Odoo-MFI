@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_loan_view_list" model="ir.ui.view">
+        <field name="name">mfi.loan.list</field>
+        <field name="model">mfi.loan</field>
+        <field name="arch" type="xml">
+            <list string="Loans" decoration-danger="health == 'overdue'" decoration-warning="health == 'arrears'"
+                  decoration-muted="state in ('rejected', 'repaid', 'written_off')">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="product_id"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="principal" sum="Total"/>
+                <field name="term_days" string="Days"/>
+                <field name="disbursed_date" optional="show"/>
+                <field name="maturity_date" optional="show"/>
+                <field name="amount_paid" optional="hide" sum="Total"/>
+                <field name="penalty_due" optional="hide" sum="Total"/>
+                <field name="outstanding" optional="show" sum="Total"/>
+                <field name="arrears_amount" optional="hide" sum="Total"/>
+                <field name="days_past_due" optional="show"/>
+                <field name="health" optional="show" widget="badge"
+                       decoration-success="health == 'current'" decoration-warning="health == 'arrears'"
+                       decoration-danger="health == 'overdue'"/>
+                <field name="state" widget="badge"/>
+                <field name="create_uid" string="Created by" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="mfi_loan_view_form" model="ir.ui.view">
+        <field name="name">mfi.loan.form</field>
+        <field name="model">mfi.loan</field>
+        <field name="arch" type="xml">
+            <form string="Loan">
+                <header>
+                    <button name="action_submit" type="object" string="Send to officer" class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_generate_agreement" type="object" string="Generate agreement"
+                            invisible="state not in ('draft', 'pending_information')"/>
+                    <button name="action_send_for_approval" type="object" string="Send for approval"
+                            class="oe_highlight" invisible="state != 'pending_information'"/>
+                    <button name="action_approve" type="object" string="Approve stage" class="oe_highlight"
+                            invisible="not can_approve"/>
+                    <button name="%(action_mfi_loan_reject)d" type="action" string="Reject" invisible="not can_approve"/>
+                    <button name="%(action_mfi_loan_disburse)d" type="action" string="Disburse" class="oe_highlight"
+                            invisible="state != 'approved'"
+                            groups="mfi_loan.group_mfi_finance,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_admin"/>
+                    <button name="action_record_payment" type="object" string="Record payment" class="oe_highlight"
+                            invisible="state != 'active'"
+                            groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_finance,mfi_loan.group_mfi_collections,mfi_loan.group_mfi_loan_officer"/>
+                    <button name="%(action_mfi_loan_settle)d" type="action" string="Early settlement"
+                            invisible="state != 'active'"
+                            groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_finance,mfi_loan.group_mfi_collections,mfi_loan.group_mfi_loan_officer"/>
+                    <button name="%(action_mfi_loan_writeoff)d" type="action" string="Write off"
+                            invisible="state != 'active'" groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_ceo"/>
+                    <button name="action_reopen" type="object" string="Reopen" invisible="state != 'rejected'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,pending_information,pending_approval,approved,active,repaid"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box"/>
+                    <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger" invisible="state != 'rejected'"/>
+                    <widget name="web_ribbon" title="Repaid" bg_color="text-bg-success" invisible="state != 'repaid'"/>
+                    <widget name="web_ribbon" title="Written off" bg_color="text-bg-dark" invisible="state != 'written_off'"/>
+                    <widget name="web_ribbon" title="Overdue" bg_color="text-bg-danger" invisible="health != 'overdue'"/>
+                    <widget name="web_ribbon" title="In arrears" bg_color="text-bg-warning" invisible="health != 'arrears'"/>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <field name="can_approve" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="product_category" invisible="1"/>
+                    <group>
+                        <group string="Application">
+                            <field name="partner_id" readonly="state not in ('draft', 'pending_information')"
+                                   context="{'default_is_mfi_client': True}"/>
+                            <field name="product_id" readonly="state not in ('draft', 'pending_information')"
+                                   options="{'no_create': True}"/>
+                            <field name="principal" readonly="state not in ('draft', 'pending_information')"/>
+                            <field name="term" readonly="state not in ('draft', 'pending_information')"/>
+                        </group>
+                        <group string="Quote">
+                            <field name="daily_rate"/>
+                            <field name="term_days"/>
+                            <field name="interest"/>
+                            <field name="total_repayable"/>
+                            <field name="installment"/>
+                            <field name="upfront_total"/>
+                            <field name="deducted_total"/>
+                            <field name="net_disbursement"/>
+                            <field name="is_first_loan"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state not in ('draft', 'pending_information') or not checklist_missing">
+                        <strong>Still outstanding:</strong> <field name="checklist_missing" class="d-inline"/>
+                    </div>
+                    <notebook>
+                        <page string="Guarantor and security" name="security">
+                            <group>
+                                <group string="Guarantor">
+                                    <field name="guarantor_name" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="guarantor_id_number" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="guarantor_phone" widget="phone" readonly="state not in ('draft', 'pending_information')"/>
+                                </group>
+                                <group string="Vehicle" invisible="product_category != 'logbook'">
+                                    <field name="vehicle_reg_no" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="vehicle_make" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="vehicle_model" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="vehicle_year" readonly="state not in ('draft', 'pending_information')"/>
+                                </group>
+                                <group string="Land" invisible="product_category != 'title_deed'">
+                                    <field name="title_no" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="land_location" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="registered_owner" readonly="state not in ('draft', 'pending_information')"/>
+                                </group>
+                                <group string="Chattels" invisible="product_category != 'chattels'">
+                                    <field name="chattels_location" readonly="state not in ('draft', 'pending_information')"/>
+                                </group>
+                            </group>
+                            <field name="chattel_ids" invisible="product_category != 'chattels'"
+                                   readonly="state not in ('draft', 'pending_information')">
+                                <list editable="bottom">
+                                    <field name="description"/>
+                                    <field name="quantity"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="value" sum="Total"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Checks and documents" name="checks">
+                            <group>
+                                <group string="Client documents">
+                                    <field name="client_documents_missing" string="Missing"
+                                           invisible="not client_documents_missing"/>
+                                    <div invisible="client_documents_missing" class="text-success" colspan="2">
+                                        All required documents are on the client's record.
+                                    </div>
+                                </group>
+                                <group string="Upfront fees" invisible="upfront_total == 0">
+                                    <field name="upfront_fee_ref" placeholder="M-Pesa / bank reference"
+                                           readonly="state not in ('draft', 'pending_information')"/>
+                                </group>
+                                <group string="House visit">
+                                    <field name="house_visit_date" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="house_visit_officer" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="house_visit_applicant_met" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="house_visit_observations" readonly="state not in ('draft', 'pending_information')"/>
+                                </group>
+                                <group string="Agreement">
+                                    <field name="agreement_generated_at"/>
+                                    <field name="agreement_sent_via" readonly="state not in ('draft', 'pending_information')"/>
+                                    <field name="agreement_sent_at"/>
+                                    <button name="action_mark_agreement_sent" type="object" string="Mark as sent"
+                                            invisible="not agreement_generated_at or agreement_sent_at or state not in ('draft', 'pending_information')"
+                                            colspan="2"/>
+                                </group>
+                            </group>
+                            <separator string="Loan documents"/>
+                            <field name="document_ids" context="{'default_partner_id': partner_id}"
+                                   readonly="state not in ('draft', 'pending_information')">
+                                <list editable="bottom">
+                                    <field name="kind"/>
+                                    <field name="file" filename="file_name" widget="binary"/>
+                                    <field name="file_name" column_invisible="True"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Fees" name="fees">
+                            <field name="fee_line_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="timing"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="amount" sum="Total"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Approvals" name="approvals">
+                            <group>
+                                <field name="approval_stage" string="Current stage" invisible="state != 'pending_approval'"/>
+                                <field name="submitted_at"/>
+                                <field name="approved_at" invisible="not approved_at"/>
+                                <field name="rejection_reason" invisible="not rejection_reason"/>
+                            </group>
+                            <field name="approval_ids">
+                                <list>
+                                    <field name="stage"/>
+                                    <field name="decision" widget="badge"
+                                           decoration-success="decision == 'approved'" decoration-danger="decision == 'rejected'"/>
+                                    <field name="user_id"/>
+                                    <field name="decided_at"/>
+                                    <field name="comment"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Repayment" name="repayment" invisible="state not in ('active', 'repaid', 'written_off')">
+                            <group>
+                                <group string="Disbursement">
+                                    <field name="disbursement_method"/>
+                                    <field name="disbursement_ref"/>
+                                    <field name="disbursed_date"/>
+                                    <field name="disbursed_by"/>
+                                    <field name="start_date"/>
+                                    <field name="maturity_date"/>
+                                </group>
+                                <group string="Balance">
+                                    <field name="amount_paid"/>
+                                    <field name="penalty_accrued"/>
+                                    <field name="penalty_paid"/>
+                                    <field name="penalty_due"/>
+                                    <field name="outstanding" class="fw-bold"/>
+                                    <field name="arrears_amount"/>
+                                    <field name="oldest_unpaid_due"/>
+                                    <field name="days_past_due"/>
+                                    <field name="closed_date" invisible="not closed_date"/>
+                                    <field name="written_off_date" invisible="not written_off_date"/>
+                                    <field name="write_off_reason" invisible="not write_off_reason"/>
+                                </group>
+                            </group>
+                            <separator string="Payments"/>
+                            <field name="payment_ids">
+                                <list decoration-muted="state == 'reversed'">
+                                    <field name="date"/>
+                                    <field name="method"/>
+                                    <field name="reference"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="to_penalty" optional="show"/>
+                                    <field name="to_installments" optional="show"/>
+                                    <field name="overpayment" optional="hide"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="create_uid" string="Recorded by" optional="hide"/>
+                                </list>
+                            </field>
+                            <separator string="Schedule"/>
+                            <field name="installment_ids">
+                                <list decoration-success="amount_paid &gt;= amount_due">
+                                    <field name="seq"/>
+                                    <field name="due_date"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="amount_due" sum="Total"/>
+                                    <field name="amount_paid" sum="Total"/>
+                                    <field name="paid_date"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="mfi_loan_view_search" model="ir.ui.view">
+        <field name="name">mfi.loan.search</field>
+        <field name="model">mfi.loan</field>
+        <field name="arch" type="xml">
+            <search string="Loans">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="disbursement_ref"/>
+                <filter name="awaiting_me" string="Awaiting my decision" domain="[('awaiting_me', '=', True)]"/>
+                <filter name="mine" string="Created by me" domain="[('create_uid', '=', uid)]"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="pending_information" string="Pending information" domain="[('state', '=', 'pending_information')]"/>
+                <filter name="pending_approval" string="Pending approval" domain="[('state', '=', 'pending_approval')]"/>
+                <filter name="approved" string="Approved, to disburse" domain="[('state', '=', 'approved')]"/>
+                <filter name="active" string="Active" domain="[('state', '=', 'active')]"/>
+                <filter name="repaid" string="Repaid" domain="[('state', '=', 'repaid')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
+                <filter name="written_off" string="Written off" domain="[('state', '=', 'written_off')]"/>
+                <separator/>
+                <filter name="current" string="Current" domain="[('state', '=', 'active'), ('health', '=', 'current')]"/>
+                <filter name="arrears" string="In arrears" domain="[('state', '=', 'active'), ('health', '=', 'arrears')]"/>
+                <filter name="overdue" string="Overdue" domain="[('state', '=', 'active'), ('health', '=', 'overdue')]"/>
+                <group>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_product" string="Loan type" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_health" string="Health" context="{'group_by': 'health'}"/>
+                    <filter name="group_disbursed" string="Disbursed (month)" context="{'group_by': 'disbursed_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="mfi_loan_view_pivot" model="ir.ui.view">
+        <field name="name">mfi.loan.pivot</field>
+        <field name="model">mfi.loan</field>
+        <field name="arch" type="xml">
+            <pivot string="Portfolio">
+                <field name="product_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="principal" type="measure"/>
+                <field name="outstanding" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="mfi_loan_view_graph" model="ir.ui.view">
+        <field name="name">mfi.loan.graph</field>
+        <field name="model">mfi.loan</field>
+        <field name="arch" type="xml">
+            <graph string="Disbursements" type="bar">
+                <field name="disbursed_date" interval="month"/>
+                <field name="principal" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_mfi_loan" model="ir.actions.act_window">
+        <field name="name">Loans</field>
+        <field name="res_model">mfi.loan</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Capture the first loan application</p>
+        </field>
+    </record>
+
+    <record id="action_mfi_loan_my_tasks" model="ir.actions.act_window">
+        <field name="name">My approvals</field>
+        <field name="res_model">mfi.loan</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_awaiting_me': 1}</field>
+    </record>
+
+    <record id="action_mfi_loan_to_disburse" model="ir.actions.act_window">
+        <field name="name">Payouts</field>
+        <field name="res_model">mfi.loan</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_approved': 1}</field>
+    </record>
+
+    <record id="action_mfi_loan_arrears" model="ir.actions.act_window">
+        <field name="name">Arrears</field>
+        <field name="res_model">mfi.loan</field>
+        <field name="view_mode">list,form,pivot</field>
+        <field name="context">{'search_default_arrears': 1, 'search_default_overdue': 1}</field>
+    </record>
+</odoo>

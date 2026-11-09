@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Demo databases only (e.g. Odoo.sh development builds): the portal's demo accounts.
+     They share a published password, so this file must never load into a live database. -->
+<odoo>
+    <record id="demo_user_admin" model="res.users">
+        <field name="name">System Administrator</field>
+        <field name="login">admin@roancapital.co.ke</field>
+        <field name="email">admin@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_admin')])]"/>
+    </record>
+    <record id="demo_user_credit" model="res.users">
+        <field name="name">Grace Wanjiru</field>
+        <field name="login">credit@roancapital.co.ke</field>
+        <field name="email">credit@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_credit_manager')])]"/>
+    </record>
+    <record id="demo_user_credit2" model="res.users">
+        <field name="name">Mary Njeri</field>
+        <field name="login">credit2@roancapital.co.ke</field>
+        <field name="email">credit2@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_credit_manager')])]"/>
+    </record>
+    <record id="demo_user_headoffice" model="res.users">
+        <field name="name">Peter Kiprotich</field>
+        <field name="login">headoffice@roancapital.co.ke</field>
+        <field name="email">headoffice@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_head_office')])]"/>
+    </record>
+    <record id="demo_user_ceo" model="res.users">
+        <field name="name">Daniel Mwaura</field>
+        <field name="login">ceo@roancapital.co.ke</field>
+        <field name="email">ceo@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_ceo')])]"/>
+    </record>
+    <record id="demo_user_finance" model="res.users">
+        <field name="name">Faith Achieng</field>
+        <field name="login">finance@roancapital.co.ke</field>
+        <field name="email">finance@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_finance')])]"/>
+    </record>
+    <record id="demo_user_officer" model="res.users">
+        <field name="name">Brian Otieno</field>
+        <field name="login">officer@roancapital.co.ke</field>
+        <field name="email">officer@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_loan_officer')])]"/>
+    </record>
+    <record id="demo_user_collections" model="res.users">
+        <field name="name">Janet Nyokabi</field>
+        <field name="login">collections@roancapital.co.ke</field>
+        <field name="email">collections@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_collections')])]"/>
+    </record>
+    <record id="demo_user_auditor" model="res.users">
+        <field name="name">Samuel Ruto</field>
+        <field name="login">auditor@roancapital.co.ke</field>
+        <field name="email">auditor@roancapital.co.ke</field>
+        <field name="password">Demo@12345!</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_user'), ref('mfi_loan.group_mfi_auditor')])]"/>
+    </record>
+
+    <function model="mfi.demo" name="_load"/>
+</odoo>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_mfi_loan_agreement" model="ir.actions.report">
+        <field name="name">Loan agreement</field>
+        <field name="model">mfi.loan</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">mfi_loan.report_mfi_loan_agreement</field>
+        <field name="report_file">mfi_loan.report_mfi_loan_agreement</field>
+        <field name="print_report_name">'Agreement - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_mfi_loan"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_mfi_loan_agreement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="loan">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Loan agreement <span t-field="loan.name"/></h2>
+                        <p class="text-muted">
+                            Prototype wording: the agreement text is to be adopted by the lender
+                            with its counsel before use.
+                        </p>
+                        <table class="table table-sm">
+                            <tr><th>Borrower</th><td><span t-field="loan.partner_id"/></td></tr>
+                            <tr><th>Loan type</th><td><span t-field="loan.product_id"/></td></tr>
+                            <tr><th>Principal</th><td><span t-field="loan.principal"/></td></tr>
+                            <tr><th>Term</th><td><span t-field="loan.term_days"/> days</td></tr>
+                            <tr><th>Interest rate</th>
+                                <td><t t-out="'%.2f' % (loan.daily_rate * 100)"/>% per day</td></tr>
+                            <tr><th>Interest</th><td><span t-field="loan.interest"/></td></tr>
+                            <tr><th>Total repayable</th><td><span t-field="loan.total_repayable"/></td></tr>
+                            <tr><th>Daily instalment</th><td><span t-field="loan.installment"/></td></tr>
+                        </table>
+                        <h4>Fees</h4>
+                        <table class="table table-sm">
+                            <thead><tr><th>Fee</th><th>When</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="loan.fee_line_ids" t-as="fee">
+                                    <td><span t-field="fee.name"/></td>
+                                    <td><span t-field="fee.timing"/></td>
+                                    <td class="text-end"><span t-field="fee.amount"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>Amount paid out after deductions: <strong><span t-field="loan.net_disbursement"/></strong></p>
+                        <div class="row mt-5">
+                            <div class="col-6">Borrower: ____________________ Date: ________</div>
+                            <div class="col-6">For the lender: ____________________ Date: ________</div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -8,9 +8,90 @@ Dibon's Odoo 19 Enterprise add-ons for microfinance, deployed on Odoo.sh.
 |---|---|
 | `server-auth/` | OCA server-auth, branch 19.0, as a git submodule. Provides `auth_oidc` (Keycloak sign-in) |
 | `requirements.txt` | Python packages Odoo.sh installs on build (`python-jose` for `auth_oidc`) |
+| `mfi_loan/` | Microfinance Loans (prototype): clients, loan applications, approvals, disbursement, repayments |
 | `tools/sso_setup.py` | Sets up the Keycloak provider and links users, per database |
 
 Custom modules go at the repository root, beside `server-auth/`.
+
+## Microfinance Loans (`mfi_loan`), prototype
+
+Replaces the Roan Capital loan portal (roan-loan-app.vercel.app) with screens
+inside Odoo, following the portal's rules as its code has them. **Prototype:**
+loans are stored in Odoo; the target design keeps them in Kapu Core
+(Fineract) behind the lending service, with Odoo as the interface only, so
+moving to it is a migration.
+
+**Roles** (Settings → Users → Microfinance; one person may hold several),
+with the portal's permissions (`mfi_loan/models/rules.py`):
+
+| Action | Who |
+|---|---|
+| Capture and edit applications, client documents | Super Admin, Head Office, Credit Manager, Loan Officer |
+| Blacklist a client (with a reason) | Super Admin, Head Office, CEO, Credit Manager |
+| Approve or reject a stage | The stage's role (Credit Manager, Credit Manager, CEO), or Super Admin |
+| Disburse | Super Admin, Finance, Head Office; never the application's creator, unless Super Admin |
+| Record and match payments, settle early | Super Admin, Head Office, Credit Manager, Finance, Collections, Loan Officer |
+| Reverse a payment | Super Admin, CEO, Head Office, Finance |
+| Write off | Super Admin, CEO |
+| Everything read-only | Auditor (and every role) |
+
+**The loan's path:**
+
+1. *Draft*: client, loan type, amount, term; guarantor (name, ID, phone);
+   security: chattel items and their location, the vehicle (registration,
+   make, model, year) or the land (title number, location, registered owner).
+2. *Send to officer* → *Pending information*: refused while the client's
+   documents (ID and passport photo, or a business's registration and
+   director's ID; 6 months of M-Pesa or bank statements), the guarantor or
+   the security are missing.
+3. *Send for approval*: refused, with what is outstanding, until the loan's
+   documents (logbook, NTSA report and valuation; title deed and valuation;
+   or the chattels mortgage agreement), the generated agreement, the signed
+   agreement, the house visit and, on a first loan, the upfront fee
+   reference are in.
+4. *Approval*: Credit Manager, Credit Manager, CEO. Nobody decides an
+   application they created or acts on it twice. A rejection needs a
+   reason; a rejected loan can be reopened.
+5. *Disburse* → *Active*: M-Pesa, bank or cash with its reference; a daily
+   schedule from the next day, each instalment the daily amount and the last
+   the remainder.
+6. *Repayments*: each M-Pesa or bank payment needs a reference, never used
+   twice. Money pays default interest first, then instalments oldest first.
+   A payment with no loan is found by loan S/N, the client's ID number or
+   phone, or stays *unmatched* until matched. A reversal re-applies the
+   loan's other payments from the start. All paid → *Repaid*.
+7. *Default interest*: each day, 1% of every instalment past due and
+   unpaid. *In arrears*: instalments due before today unpaid; *overdue*: past
+   maturity with a balance; DPD from the oldest unpaid instalment. Charged
+   and refreshed daily.
+8. *Early settlement*: interest for the days since the first instalment
+   (at least 14, at most the term), less what is paid, plus default interest
+   due; the future instalments are dropped.
+9. *Write-off* (with a reason) closes an active loan.
+
+**Pricing** (Configuration, Super Admin): three loan types at 1% a day,
+KES 3,000 to 100,000, 14 or 30 days; interest = principal × rate × days;
+daily instalment = total ÷ days, rounded up. Fees: membership 100 (first loan),
+application 500 or 1,000 (paid upfront on a first loan), LIF 200,
+remittance 120, chattels mortgage 500 or 1,000 (chattels loans), deducted
+from the payout.
+
+**Placeholders:** M-Pesa, the bank and WhatsApp (references typed in);
+the agreement is a printable PDF with prototype wording, marked as sent by
+hand, until Odoo Sign; Keycloak sign-in is set up separately (below).
+
+**Demo data** (demo databases only, such as Odoo.sh development builds):
+the portal's nine accounts (admin@, credit@, credit2@, headoffice@, ceo@,
+finance@, officer@, collections@, auditor@roancapital.co.ke) with the
+portal's published demo password, and sample loans in every state. Never
+install with demo data in a live database.
+
+**Not in the prototype yet:** collections notes and promises to pay, the
+dashboard and the portal's five reports (beyond the list, pivot and graph
+views), the company settings (paybill and bank accounts for the agreement),
+and an audit of who revealed a client's ID number.
+
+**Tests:** `mfi_loan/tests`, run by Odoo.sh on development and staging builds.
 
 ## Single sign-on with Keycloak (phase 1: login only)
 
