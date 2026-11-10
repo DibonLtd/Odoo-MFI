@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_audit_log_view_list" model="ir.ui.view">
+        <field name="name">mfi.audit.log.list</field>
+        <field name="model">mfi.audit.log</field>
+        <field name="arch" type="xml">
+            <list string="Audit log" create="0" edit="0" delete="0"
+                  decoration-danger="action in ('login.failed', 'pii.view_denied', 'payment.reversed', 'loan.written_off')"
+                  decoration-warning="action in ('pii.viewed', 'pii.phone_viewed', 'client.blacklisted')">
+                <field name="date"/>
+                <field name="user_login" string="User"/>
+                <field name="action"/>
+                <field name="entity" optional="show"/>
+                <field name="res_name"/>
+                <field name="detail" optional="show"/>
+                <field name="ip" optional="hide"/>
+                <button name="action_open_record" type="object" string="Open" icon="fa-external-link"
+                        invisible="not res_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="mfi_audit_log_view_form" model="ir.ui.view">
+        <field name="name">mfi.audit.log.form</field>
+        <field name="model">mfi.audit.log</field>
+        <field name="arch" type="xml">
+            <form string="Audit entry" create="0" edit="0" delete="0">
+                <header>
+                    <button name="action_open_record" type="object" string="Open the record" invisible="not res_id"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="user_id"/>
+                            <field name="user_login"/>
+                            <field name="ip"/>
+                        </group>
+                        <group>
+                            <field name="action"/>
+                            <field name="entity"/>
+                            <field name="res_name"/>
+                            <field name="res_model" groups="base.group_no_one"/>
+                            <field name="res_id" groups="base.group_no_one"/>
+                        </group>
+                    </group>
+                    <field name="detail"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="mfi_audit_log_view_search" model="ir.ui.view">
+        <field name="name">mfi.audit.log.search</field>
+        <field name="model">mfi.audit.log</field>
+        <field name="arch" type="xml">
+            <search string="Search action, user or detail">
+                <field name="action"/>
+                <field name="user_login" string="User"/>
+                <field name="res_name" string="Record"/>
+                <field name="detail"/>
+                <filter name="sign_in" string="Sign-ins" domain="[('action', 'in', ('login', 'login.failed'))]"/>
+                <filter name="pii" string="Personal details viewed"
+                        domain="[('action', 'in', ('pii.viewed', 'pii.view_denied', 'pii.phone_viewed'))]"/>
+                <filter name="money" string="Money"
+                        domain="[('action', 'in', ('loan.disbursed', 'payment.recorded', 'payment.matched', 'payment.reversed', 'loan.settled_early', 'loan.written_off'))]"/>
+                <filter name="decisions" string="Approvals"
+                        domain="[('action', 'in', ('loan.approved', 'loan.rejected'))]"/>
+                <separator/>
+                <filter name="date" string="Date" date="date"/>
+                <group>
+                    <filter name="group_action" string="Action" context="{'group_by': 'action'}"/>
+                    <filter name="group_user" string="User" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_day" string="Day" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mfi_audit_log" model="ir.actions.act_window">
+        <field name="name">Audit log</field>
+        <field name="res_model">mfi.audit.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No entries yet</p>
+            <p>Every sign-in, approval, disbursement, payment, settings change and view of a
+                client's personal details is recorded here.</p>
+        </field>
+    </record>
+</odoo>

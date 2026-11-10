@@ -29,6 +29,14 @@ CLIENT_RULE_FIELDS = ("is_mfi_client", "name", "mfi_client_type", "email", "phon
                       "mfi_kra_pin", "mfi_id_number", "mfi_contact_name")
 
 
+# Changes to these are recorded in the audit log (which fields, not their values).
+AUDITED_CLIENT_FIELDS = {
+    "name", "mfi_client_type", "mfi_id_number", "phone", "email", "mfi_alt_phone", "mfi_kra_pin",
+    "mfi_bank_account_name", "mfi_bank_account_number", "mfi_contact_name", "mfi_contact_id_number",
+    "mfi_contact_phone", "mfi_residential_address", "mfi_business_location",
+}
+
+
 def mask_phone(phone):
     digits = re.sub(r"\D", "", phone or "")
     return f"•••• ••• {digits[-3:]}" if digits else ""
@@ -53,7 +61,11 @@ class MfiClientDocument(models.Model):
         for vals in vals_list:
             if vals.get("loan_id") and not vals.get("partner_id"):
                 vals["partner_id"] = self.env["mfi.loan"].browse(vals["loan_id"]).partner_id.id
-        return super().create(vals_list)
+        documents = super().create(vals_list)
+        for document in documents:
+            rules.audit(self.env, "document.uploaded", document.loan_id or document.partner_id,
+                        {"kind": document.kind, "file": document.file_name})
+        return documents
 
 
 class MfiNextOfKin(models.Model):
@@ -210,6 +222,7 @@ class ResPartner(models.Model):
             rules.check(self.env, "clients.write")
         partners = super().create(vals_list)
         partners._assign_mfi_client_no()
+        rules.audit(self.env, "client.created", partners.filtered("is_mfi_client"))
         return partners
 
     def write(self, vals):
@@ -222,6 +235,14 @@ class ResPartner(models.Model):
         result = super().write(vals)
         if vals.get("is_mfi_client"):
             self._assign_mfi_client_no()
+        clients = self.filtered("is_mfi_client")
+        if clients and "mfi_blacklisted" in vals:
+            action = "client.blacklisted" if vals["mfi_blacklisted"] else "client.blacklist_lifted"
+            rules.audit(self.env, action, clients, {"reason": vals.get("mfi_blacklist_reason")})
+        changed = sorted(f for f in vals if f in AUDITED_CLIENT_FIELDS)
+        if clients and changed:
+            labels = [self._fields[f].string for f in changed]
+            rules.audit(self.env, "client.updated", clients, {"fields": ", ".join(labels)})
         return result
 
     def action_view_mfi_loans(self):

@@ -36,6 +36,8 @@
     <menuitem id="menu_mfi_insights" name="Insights" parent="menu_mfi_root" sequence="40"/>
     <menuitem id="menu_mfi_reports" name="Reports" parent="menu_mfi_insights" action="action_mfi_report_wizard" sequence="10"/>
     <menuitem id="menu_mfi_arrears" name="Arrears" parent="menu_mfi_insights" action="action_mfi_loan_arrears" sequence="20"/>
+    <menuitem id="menu_mfi_audit" name="Audit log" parent="menu_mfi_insights" action="action_mfi_audit_log" sequence="30"
+              groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_ceo,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_auditor"/>
 
     <menuitem id="menu_mfi_config" name="Administration" parent="menu_mfi_root" sequence="90"
               groups="mfi_loan.group_mfi_admin"/>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_mfi_demo" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.mfi.demo</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="mfi_loan.res_config_settings_view_form_mfi"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@name='mfi_company']" position="before">
+                <block title="Sample data" name="mfi_demo"
+                       help="Installed by the 'Microfinance Loans: sample data' app. Uninstall it to delete every sample client, loan, payment and staff account.">
+                    <setting string="Sample staff accounts"
+                             help="One per role, all with this password: admin, credit, credit2, headoffice, ceo, finance, officer, collections and auditor @demo.roancapital.co.ke">
+                        <field name="mfi_demo_password" readonly="1"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

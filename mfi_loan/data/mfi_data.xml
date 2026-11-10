@@ -98,5 +98,16 @@
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
         </record>
+
+        <!-- The portal's session limits: sign out after 60 idle minutes and after 10 hours.
+             They apply to every user of the database; change or switch off in Settings. -->
+        <record id="param_session_idle_minutes" model="ir.config_parameter">
+            <field name="key">mfi_loan.session_idle_minutes</field>
+            <field name="value">60</field>
+        </record>
+        <record id="param_session_max_hours" model="ir.config_parameter">
+            <field name="key">mfi_loan.session_max_hours</field>
+            <field name="value">10</field>
+        </record>
     </data>
 </odoo>

@@ -11,7 +11,9 @@
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
-    <!-- One privilege per role, so one person can hold several roles. -->
+    <!-- One privilege per role, so one person can hold several roles. The roles that
+         onboard or blacklist clients also get Contact Creation, which Odoo requires
+         to create or change a contact. -->
     <record id="privilege_mfi_loan_officer" model="res.groups.privilege">
         <field name="name">Loan Officer</field>
         <field name="sequence">10</field>
@@ -20,7 +22,7 @@
     <record id="group_mfi_loan_officer" model="res.groups">
         <field name="name">Loan Officer</field>
         <field name="privilege_id" ref="privilege_mfi_loan_officer"/>
-        <field name="implied_ids" eval="[(4, ref('group_mfi_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_mfi_user')), (4, ref('base.group_partner_manager'))]"/>
     </record>
 
     <record id="privilege_mfi_credit_manager" model="res.groups.privilege">
@@ -31,7 +33,7 @@
     <record id="group_mfi_credit_manager" model="res.groups">
         <field name="name">Credit Manager</field>
         <field name="privilege_id" ref="privilege_mfi_credit_manager"/>
-        <field name="implied_ids" eval="[(4, ref('group_mfi_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_mfi_user')), (4, ref('base.group_partner_manager'))]"/>
     </record>
 
     <record id="privilege_mfi_head_office" model="res.groups.privilege">
@@ -42,7 +44,7 @@
     <record id="group_mfi_head_office" model="res.groups">
         <field name="name">Head Office</field>
         <field name="privilege_id" ref="privilege_mfi_head_office"/>
-        <field name="implied_ids" eval="[(4, ref('group_mfi_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_mfi_user')), (4, ref('base.group_partner_manager'))]"/>
     </record>
 
     <record id="privilege_mfi_ceo" model="res.groups.privilege">
@@ -53,7 +55,7 @@
     <record id="group_mfi_ceo" model="res.groups">
         <field name="name">Chief Executive Officer</field>
         <field name="privilege_id" ref="privilege_mfi_ceo"/>
-        <field name="implied_ids" eval="[(4, ref('group_mfi_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_mfi_user')), (4, ref('base.group_partner_manager'))]"/>
     </record>
 
     <record id="privilege_mfi_finance" model="res.groups.privilege">
@@ -97,7 +99,7 @@
     <record id="group_mfi_admin" model="res.groups">
         <field name="name">Super Admin</field>
         <field name="privilege_id" ref="privilege_mfi_admin"/>
-        <field name="implied_ids" eval="[(4, ref('group_mfi_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_mfi_user')), (4, ref('base.group_partner_manager'))]"/>
         <field name="user_ids" eval="[(4, ref('base.user_admin'))]"/>
     </record>
 </odoo>

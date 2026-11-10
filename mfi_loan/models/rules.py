@@ -25,6 +25,7 @@ PERMISSIONS = {
     "payments.record": (SA, HO, CM, FIN, COL, LO),
     "payments.reverse": (SA, CEO, HO, FIN),
     "collections.write": (SA, HO, CM, COL, LO),
+    "audit.read": (SA, CEO, HO, AUD),
 }
 
 # Who decides each approval stage, in order; a Super Admin may decide any stage.
@@ -45,6 +46,24 @@ def allowed(env, permission):
 def check(env, permission):
     if not allowed(env, permission):
         raise AccessError(env._("You do not have permission to do this."))
+
+
+def audit(env, action, records=None, detail=None):
+    """Add a line to the audit log: who did what, to which record, from where.
+    With an empty recordset nothing happened, so nothing is logged."""
+    if records is not None and not records:
+        return
+    env["mfi.audit.log"].sudo()._log(action, records, detail)
+
+
+def kenyan_msisdn(phone):
+    """07XXXXXXXX, 7XXXXXXXX, +2547XXXXXXXX or 2547XXXXXXXX as 2547XXXXXXXX; else False."""
+    digits = "".join(c for c in phone or "" if c.isdigit())
+    if len(digits) == 10 and digits.startswith("0"):
+        digits = "254" + digits[1:]
+    elif len(digits) == 9 and digits[0] in "17":
+        digits = "254" + digits
+    return digits if len(digits) == 12 and digits.startswith("254") else False
 
 
 def quote(principal, daily_rate, term_days):

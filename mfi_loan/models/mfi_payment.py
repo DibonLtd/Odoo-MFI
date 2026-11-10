@@ -85,6 +85,10 @@ class MfiPayment(models.Model):
         payments = super(MfiPayment, self.with_context(mfi_payment_internal=True)).create(vals_list)
         for payment in payments.filtered("loan_id"):
             payment._apply_to(payment.loan_id)
+        for payment in payments:
+            rules.audit(self.env, "payment.recorded", payment, {
+                "loan": payment.loan_id.name, "amount": payment.amount, "method": payment.method,
+                "reference": payment.reference, "state": payment.state})
         return payments.with_env(self.env)
 
     def _apply_to(self, loan):
@@ -97,7 +101,7 @@ class MfiPayment(models.Model):
             "loan_id": loan.id, "state": "allocated",
             "to_penalty": to_penalty, "to_installments": to_installments, "overpayment": over,
         })
-        loan._close_if_repaid()
+        loan._close_if_repaid(self.date)
         loan._update_health()
 
     def action_match(self, loan):
@@ -109,6 +113,7 @@ class MfiPayment(models.Model):
         self.loan_id.message_post(body=self.env._(
             "Payment %(ref)s of KES %(amount)s matched manually.",
             ref=self.reference or self.method, amount=f"{self.amount:,.2f}"))
+        rules.audit(self.env, "payment.matched", self, {"loan": self.loan_id.name})
 
     def action_reverse(self, reason):
         rules.check(self.env, "payments.reverse")
@@ -119,6 +124,7 @@ class MfiPayment(models.Model):
             if payment.state == "reversed":
                 raise UserError(self.env._("Payment not found or already reversed."))
             was = payment.state
+            rules.audit(self.env, "payment.reversed", payment, {"loan": payment.loan_id.name, "reason": reason})
             payment.sudo().with_context(mfi_payment_internal=True).write({
                 "state": "reversed", "reversal_reason": f"{reason} ({self.env.user.name})",
             })

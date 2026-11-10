@@ -7,4 +7,5 @@ from . import mfi_loan
 from . import mfi_collection
 from . import mfi_payment
 from . import mfi_dashboard
-from . import mfi_demo
+from . import mfi_audit
+from . import mfi_messaging

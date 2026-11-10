@@ -8,6 +8,7 @@ CONTACT_KINDS = [
     ("call", "Call"),
     ("visit", "Visit"),
     ("sms", "SMS"),
+    ("whatsapp", "WhatsApp"),
     ("promise", "Promise to pay"),
     ("other", "Note"),
 ]
@@ -117,6 +118,7 @@ class MfiLoan(models.Model):
         rules.check(self.env, "collections.write")
         self.ensure_one()
         self.message_post(body=self.env._("Phone numbers unlocked by %s.", self.env.user.name))
+        rules.audit(self.env, "pii.phone_viewed", self)
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="mail_template_loan_agreement" model="mail.template">
+            <field name="name">Microfinance: loan agreement</field>
+            <field name="model_id" ref="model_mfi_loan"/>
+            <field name="subject">Your loan agreement {{ object.name }}</field>
+            <field name="email_from">{{ object.company_id.email_formatted or user.email_formatted }}</field>
+            <field name="partner_to">{{ object.partner_id.id }}</field>
+            <field name="report_template_ids" eval="[(4, ref('mfi_loan.action_report_mfi_loan_agreement'))]"/>
+            <field name="lang">{{ object.partner_id.lang }}</field>
+            <field name="auto_delete" eval="True"/>
+            <field name="body_html" type="html">
+<div style="margin: 0; padding: 0; font-size: 14px;">
+    <p>Dear <t t-out="object.partner_id.name or ''">client</t>,</p>
+    <p>Your loan agreement <strong t-out="object.name or ''">RC-L-000001</strong> for
+        KES <t t-out="'{:,.0f}'.format(object.principal)">10,000</t> is attached.</p>
+    <p>Please read it, sign it and send the signed copy back to us. You will repay
+        KES <t t-out="'{:,.0f}'.format(object.installment)">434</t> a day for
+        <t t-out="object.term_days or ''">30</t> days.</p>
+    <t t-if="object.company_id.mfi_repay_paybill">
+        <p>Repay through M-Pesa Paybill <strong t-out="object.company_id.mfi_repay_paybill">123456</strong>,
+            account <strong t-out="object.name or ''">RC-L-000001</strong>.</p>
+    </t>
+    <p>Thank you,<br/><t t-out="object.company_id.name or ''">Company</t></p>
+</div>
+            </field>
+        </record>
+    </data>
+</odoo>

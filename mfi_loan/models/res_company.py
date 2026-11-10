@@ -1,5 +1,7 @@
 from odoo import fields, models
 
+from . import rules
+
 
 class ResCompany(models.Model):
     _inherit = "res.company"
@@ -41,3 +43,15 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.mfi_payout_bank_account_number", readonly=False)
     mfi_first_loan_fees_upfront = fields.Boolean(
         related="company_id.mfi_first_loan_fees_upfront", readonly=False)
+
+    mfi_session_idle_minutes = fields.Integer(
+        "Sign out after idle (minutes)", config_parameter="mfi_loan.session_idle_minutes",
+        help="0 switches it off. Applies to every user of this database.")
+    mfi_session_max_hours = fields.Integer(
+        "Maximum session length (hours)", config_parameter="mfi_loan.session_max_hours",
+        help="0 switches it off. Applies to every user of this database.")
+
+    def set_values(self):
+        super().set_values()
+        if self.env.user.has_group("mfi_loan.group_mfi_user"):
+            rules.audit(self.env, "settings.updated", self.company_id)

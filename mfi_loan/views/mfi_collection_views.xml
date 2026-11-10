@@ -82,6 +82,9 @@
         <field name="arch" type="xml">
             <list string="Late loans" create="0" default_order="days_past_due desc"
                   decoration-danger="health == 'overdue'" decoration-warning="health == 'arrears'">
+                <header>
+                    <button name="action_send_reminder_sms" type="object" string="Send reminder SMS"/>
+                </header>
                 <field name="partner_id"/>
                 <field name="partner_phone_masked"/>
                 <field name="guarantor_name" string="Guarantor" optional="show"/>
@@ -98,6 +101,7 @@
                 <field name="health" widget="badge" decoration-warning="health == 'arrears'"
                        decoration-danger="health == 'overdue'"/>
                 <button name="action_unlock_phone" type="object" string="Unlock" icon="fa-unlock"/>
+                <button name="action_whatsapp_reminder" type="object" string="WhatsApp" icon="fa-whatsapp"/>
                 <button name="action_log_contact" type="object" string="Log" icon="fa-pencil"/>
             </list>
         </field>

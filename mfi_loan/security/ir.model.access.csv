@@ -50,3 +50,8 @@ access_mfi_collection_note_collections,mfi.collection.note collections,model_mfi
 access_mfi_collection_note_admin,mfi.collection.note admin,model_mfi_collection_note,group_mfi_admin,1,0,1,0
 access_mfi_dashboard_user,mfi.dashboard user,model_mfi_dashboard,group_mfi_user,1,1,1,1
 access_mfi_report_wizard_user,mfi.report.wizard user,model_mfi_report_wizard,group_mfi_user,1,1,1,1
+access_mfi_audit_log_admin,mfi.audit.log admin,model_mfi_audit_log,group_mfi_admin,1,0,0,0
+access_mfi_audit_log_ceo,mfi.audit.log ceo,model_mfi_audit_log,group_mfi_ceo,1,0,0,0
+access_mfi_audit_log_head_office,mfi.audit.log head_office,model_mfi_audit_log,group_mfi_head_office,1,0,0,0
+access_mfi_audit_log_auditor,mfi.audit.log auditor,model_mfi_audit_log,group_mfi_auditor,1,0,0,0
+access_mfi_client_reveal_wizard,mfi.client.reveal.wizard,model_mfi_client_reveal_wizard,group_mfi_user,1,1,1,0

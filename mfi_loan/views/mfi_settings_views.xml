@@ -46,6 +46,24 @@
                             </div>
                         </setting>
                     </block>
+                    <block title="Messages to clients" name="mfi_messages"
+                           help="SMS goes through Odoo SMS: IAP credits, or an SMS gateway module such as Dibon's.">
+                        <setting string="Send reminder SMS automatically"
+                                 help="Each morning, to every client in arrears who has not had one that day.">
+                            <field name="mfi_auto_sms_reminders"/>
+                        </setting>
+                    </block>
+                    <block title="Sign-in security" name="mfi_security"
+                           help="These apply to every user of this database, not only Microfinance staff.">
+                        <setting string="Sign out after idle (minutes)" help="0 switches it off.">
+                            <field name="mfi_session_idle_minutes"/>
+                        </setting>
+                        <setting string="Maximum session length (hours)" help="0 switches it off.">
+                            <field name="mfi_session_max_hours"/>
+                        </setting>
+                        <setting string="Two-factor authentication"
+                                 help="Turn on in General Settings, Permissions: Enforce two-factor authentication, for employees. Each user then sets it up at their next sign-in."/>
+                    </block>
                     <block title="Repayment rules" name="mfi_rules">
                         <setting string="Collect membership and application fee upfront on the first loan"
                                  help="Non-refundable, paid at application. When off, they are deducted at disbursement like the other charges.">

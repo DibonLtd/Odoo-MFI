@@ -13,6 +13,8 @@ class MfiCase(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        if "mfi.demo" in cls.env:  # the sample data module is installed: start from an empty book
+            cls.env["mfi.demo"]._unload()
 
         def user(login, *groups):
             names = ",".join(f"mfi_loan.group_mfi_{g}" for g in groups)

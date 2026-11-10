@@ -252,6 +252,7 @@ class MfiLoan(models.Model):
                 vals["name"] = self.env["ir.sequence"].sudo().next_by_code("mfi.loan") or "New"
         loans = super().create(vals_list)
         loans._reprice()
+        rules.audit(self.env, "loan.created", loans)
         return loans
 
     def write(self, vals):
@@ -340,6 +341,7 @@ class MfiLoan(models.Model):
                 raise UserError(". ".join(problems))
             loan.state = "pending_information"
             loan.message_post(body=self.env._("Sent to the officer."))
+            rules.audit(self.env, "loan.sent_to_officer", loan)
 
     def action_generate_agreement(self):
         rules.check(self.env, "loans.create")
@@ -347,6 +349,7 @@ class MfiLoan(models.Model):
             if loan.state not in EDITABLE_STATES:
                 raise UserError(self.env._("The agreement can only be generated before approval."))
             loan.agreement_generated_at = fields.Datetime.now()
+            rules.audit(self.env, "loan.agreement_generated", loan)
         return self.env.ref("mfi_loan.action_report_mfi_loan_agreement").report_action(self)
 
     def action_mark_agreement_sent(self):
@@ -358,6 +361,7 @@ class MfiLoan(models.Model):
             if not loan.agreement_sent_via:
                 raise UserError(self.env._("Choose how the agreement was sent."))
             loan.agreement_sent_at = fields.Datetime.now()
+            rules.audit(self.env, "loan.agreement_sent", loan, {"via": loan.agreement_sent_via})
 
     def action_send_for_approval(self):
         rules.check(self.env, "loans.create")
@@ -383,6 +387,7 @@ class MfiLoan(models.Model):
                 "upfront_fee_ref": (loan.upfront_fee_ref or "").strip().upper() or False,
             })
             loan.message_post(body=self.env._("Sent for approval."))
+            rules.audit(self.env, "loan.submitted", loan)
 
     def _record_decision(self, decision, comment):
         self.ensure_one()
@@ -399,6 +404,7 @@ class MfiLoan(models.Model):
             if not loan.partner_id.mfi_documents_complete:
                 raise UserError(self.env._("Client documents incomplete: %s", loan.partner_id.mfi_documents_missing))
             loan._record_decision("approved", comment or "")
+            rules.audit(self.env, "loan.approved", loan, {"stage": loan.approval_stage, "comment": comment})
             if loan.approval_stage >= len(APPROVAL_CHAIN):
                 loan.write({"state": "approved", "approved_at": fields.Datetime.now(),
                             "approval_stage": loan.approval_stage + 1})
@@ -416,6 +422,7 @@ class MfiLoan(models.Model):
             if problem:
                 raise UserError(problem)
             loan._record_decision("rejected", reason)
+            rules.audit(self.env, "loan.rejected", loan, {"stage": loan.approval_stage, "reason": reason})
             loan.write({"state": "rejected", "rejection_reason": reason})
             loan.message_post(body=self.env._("Rejected: %s", reason))
 
@@ -426,6 +433,7 @@ class MfiLoan(models.Model):
                 raise UserError(self.env._("Only rejected applications can be reopened."))
             loan.write({"state": "draft", "approval_stage": 0, "rejection_reason": False})
             loan._reprice()
+            rules.audit(self.env, "loan.reopened", loan)
 
     # ------------------------------------------------------------------
     # Disbursement
@@ -469,6 +477,8 @@ class MfiLoan(models.Model):
             loan.message_post(body=self.env._(
                 "Disbursed KES %(net)s by %(method)s, reference %(ref)s.",
                 net=f"{loan.net_disbursement:,.2f}", method=method, ref=reference))
+            rules.audit(self.env, "loan.disbursed", loan, {
+                "method": method, "reference": reference, "date": date, "net": loan.net_disbursement})
         self._accrue_penalty()
         self._update_health()
 
@@ -516,11 +526,11 @@ class MfiLoan(models.Model):
         loan.penalty_paid = r2(loan.penalty_paid + to_penalty)
         return to_penalty, to_installments, remaining
 
-    def _close_if_repaid(self):
+    def _close_if_repaid(self, when=None):
         for loan in self.sudo():
             open_installments = any(i.amount_paid < i.amount_due - 0.005 for i in loan.installment_ids)
             if loan.state == "active" and not open_installments and loan.penalty_accrued - loan.penalty_paid < 0.005:
-                loan.write({"state": "repaid", "closed_date": fields.Date.context_today(self)})
+                loan.write({"state": "repaid", "closed_date": when or fields.Date.context_today(self)})
                 loan.message_post(body=self.env._("Repaid in full."))
 
     def _reallocate(self):
@@ -531,12 +541,13 @@ class MfiLoan(models.Model):
             if loan.state == "repaid":
                 vals.update(state="active", closed_date=False)
             loan.write(vals)
-            for payment in loan.payment_ids.filtered(lambda p: p.state == "allocated").sorted(lambda p: (p.date, p.id)):
+            payments = loan.payment_ids.filtered(lambda p: p.state == "allocated").sorted(lambda p: (p.date, p.id))
+            for payment in payments:
                 to_penalty, to_installments, over = loan._allocate(payment.amount, payment.date)
                 payment.with_context(mfi_payment_internal=True).write({
                     "to_penalty": to_penalty, "to_installments": to_installments, "overpayment": over,
                 })
-            loan._close_if_repaid()
+            loan._close_if_repaid(payments[-1:].date or None)
         self._update_health()
 
     def _update_health(self, today=None):
@@ -636,10 +647,13 @@ class MfiLoan(models.Model):
             "term_days": len(remaining),
             "maturity_date": remaining[-1].due_date if remaining else loan.maturity_date,
         })
-        return self.env["mfi.payment"].create({
+        payment = self.env["mfi.payment"].create({
             "loan_id": self.id, "amount": amount, "method": method, "reference": reference,
             "date": today, "note": self.env._("Early settlement."),
         })
+        rules.audit(self.env, "loan.settled_early", self, {
+            "amount": amount, "reference": reference, "interest_days": settlement["interest_days"]})
+        return payment
 
     def action_write_off(self, reason):
         rules.check(self.env, "loans.writeoff")
@@ -659,6 +673,7 @@ class MfiLoan(models.Model):
             loan.message_post(body=self.env._(
                 "Written off with KES %(amount)s outstanding: %(reason)s",
                 amount=f"{outstanding:,.2f}", reason=reason))
+            rules.audit(self.env, "loan.written_off", loan, {"outstanding": outstanding, "reason": reason})
         self._update_health()
 
 

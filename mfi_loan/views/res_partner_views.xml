@@ -24,6 +24,8 @@
         <field name="arch" type="xml">
             <form string="Client">
                 <header>
+                    <button name="action_mfi_reveal" type="object" string="View personal details" icon="fa-eye"
+                            invisible="not id"/>
                     <button name="action_new_mfi_loan" type="object" string="New application" class="oe_highlight"
                             invisible="not id or mfi_blacklisted"
                             groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_loan_officer"/>
@@ -51,7 +53,8 @@
                     <group>
                         <group>
                             <field name="mfi_id_number" string="ID / registration number" required="1"
-                                   help="Individual: national ID. Business: registration number."/>
+                                   invisible="id" help="Individual: national ID. Business: registration number."/>
+                            <field name="mfi_id_masked" invisible="not id"/>
                             <field name="phone" widget="phone" required="1" placeholder="0712 345 678"
                                    help="Used to match M-Pesa payments"/>
                             <field name="email" widget="email" required="1"/>
@@ -147,8 +150,8 @@
                 <field name="mfi_client_no"/>
                 <field name="name"/>
                 <field name="mfi_client_type" optional="show"/>
-                <field name="mfi_id_number" string="ID" optional="show"/>
-                <field name="phone"/>
+                <field name="mfi_id_masked" string="ID" optional="show"/>
+                <field name="mfi_phone_masked" string="Phone"/>
                 <field name="mfi_business_type" string="Business" optional="show"/>
                 <field name="mfi_business_location" string="Location" optional="show"/>
                 <field name="create_date" string="Joined" optional="show"/>

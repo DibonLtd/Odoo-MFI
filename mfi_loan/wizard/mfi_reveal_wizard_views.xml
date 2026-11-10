@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_client_reveal_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.client.reveal.wizard.form</field>
+        <field name="model">mfi.client.reveal.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Personal details">
+                <field name="is_shown" invisible="1"/>
+                <field name="can_correct" invisible="1"/>
+                <h3><field name="partner_id" readonly="1" options="{'no_open': True}"/></h3>
+                <group invisible="is_shown">
+                    <div colspan="2" class="text-muted">
+                        Personal details are hidden. Confirm your password to show them for 60 seconds.
+                        This view is recorded in the audit log.
+                    </div>
+                    <field name="password" password="True" autocomplete="current-password"
+                           placeholder="Your password"/>
+                </group>
+                <div invisible="not is_shown">
+                    <field name="details_html" nolabel="1"/>
+                    <p class="text-muted">Shown for 60 seconds from when you confirmed your password.</p>
+                    <group invisible="not can_correct">
+                        <field name="new_id_number"/>
+                    </group>
+                </div>
+                <footer>
+                    <button name="action_reveal" type="object" string="View details" class="btn-primary"
+                            context="{'password': password}" invisible="is_shown"/>
+                    <button name="action_save_id_number" type="object" string="Save ID number"
+                            invisible="not can_correct"/>
+                    <button string="Close" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

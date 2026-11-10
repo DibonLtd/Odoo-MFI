@@ -69,6 +69,7 @@
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <field name="can_approve" invisible="1"/>
+                    <field name="health" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
                     <field name="product_category" invisible="1"/>
                     <group>
@@ -152,9 +153,15 @@
                                     <field name="agreement_generated_at"/>
                                     <field name="agreement_sent_via" readonly="state not in ('draft', 'pending_information')"/>
                                     <field name="agreement_sent_at"/>
-                                    <button name="action_mark_agreement_sent" type="object" string="Mark as sent"
-                                            invisible="not agreement_generated_at or agreement_sent_at or state not in ('draft', 'pending_information')"
-                                            colspan="2"/>
+                                    <div colspan="2" class="d-flex flex-wrap gap-2"
+                                         invisible="not agreement_generated_at or state not in ('draft', 'pending_information')">
+                                        <button name="action_send_agreement_email" type="object" string="Email to client"
+                                                icon="fa-envelope" class="btn-secondary"/>
+                                        <button name="action_send_agreement_whatsapp" type="object" string="WhatsApp"
+                                                icon="fa-whatsapp" class="btn-secondary"/>
+                                        <button name="action_mark_agreement_sent" type="object" string="Mark as sent"
+                                                invisible="agreement_sent_at" class="btn-link"/>
+                                    </div>
                                 </group>
                             </group>
                             <separator string="Loan documents"/>
@@ -193,6 +200,41 @@
                                     <field name="user_id"/>
                                     <field name="decided_at"/>
                                     <field name="comment"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Collections" name="collections" invisible="state != 'active'">
+                            <group>
+                                <group string="Contact">
+                                    <field name="partner_phone_masked"/>
+                                    <field name="guarantor_name" string="Guarantor"/>
+                                    <field name="guarantor_phone_masked"/>
+                                    <field name="open_promise_date"/>
+                                </group>
+                                <group string="Reminder">
+                                    <field name="reminder_sms" nolabel="1" colspan="2"/>
+                                    <div colspan="2" class="d-flex flex-wrap gap-2" invisible="health not in ('arrears', 'overdue')">
+                                        <button name="action_send_reminder_sms" type="object" string="Send SMS"
+                                                icon="fa-comment" class="btn-secondary"/>
+                                        <button name="action_whatsapp_reminder" type="object" string="WhatsApp"
+                                                icon="fa-whatsapp" class="btn-secondary"/>
+                                        <button name="action_unlock_phone" type="object" string="Unlock phones"
+                                                icon="fa-unlock" class="btn-link"/>
+                                        <button name="action_log_contact" type="object" string="Log a contact"
+                                                icon="fa-pencil" class="btn-link"/>
+                                    </div>
+                                </group>
+                            </group>
+                            <field name="collection_note_ids" readonly="1">
+                                <list>
+                                    <field name="create_date" string="Logged"/>
+                                    <field name="kind"/>
+                                    <field name="note"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="promise_date"/>
+                                    <field name="promise_amount"/>
+                                    <field name="promise_status"/>
+                                    <field name="user_id"/>
                                 </list>
                             </field>
                         </page>
