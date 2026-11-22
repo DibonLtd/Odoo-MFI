@@ -119,7 +119,7 @@ class MfiClientRevealWizard(models.TransientModel):
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    mfi_id_masked = fields.Char("ID / registration number", compute="_compute_mfi_id_masked")
+    mfi_id_masked = fields.Char("ID / registration number (masked)", compute="_compute_mfi_id_masked")
 
     def _compute_mfi_id_masked(self):
         for partner in self:

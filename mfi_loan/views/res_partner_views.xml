@@ -54,7 +54,7 @@
                         <group>
                             <field name="mfi_id_number" string="ID / registration number" required="1"
                                    invisible="id" help="Individual: national ID. Business: registration number."/>
-                            <field name="mfi_id_masked" invisible="not id"/>
+                            <field name="mfi_id_masked" string="ID / registration number" invisible="not id"/>
                             <field name="phone" widget="phone" required="1" placeholder="0712 345 678"
                                    help="Used to match M-Pesa payments"/>
                             <field name="email" widget="email" required="1"/>
