@@ -68,6 +68,9 @@
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
+                    <!-- Next step: where the loan is and what to do (mfi_guide.py) -->
+                    <field name="next_step_html" readonly="1" nolabel="1" class="o_mfi_next_step_field d-block"
+                           invisible="not next_step_html"/>
                     <field name="can_approve" invisible="1"/>
                     <field name="health" invisible="1"/>
                     <field name="currency_id" invisible="1"/>

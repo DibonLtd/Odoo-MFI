@@ -7,6 +7,16 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <app data-string="Microfinance" string="Microfinance" name="mfi_loan">
+                    <block title="Ease of use" name="mfi_ease_of_use">
+                        <setting string="Page guides"
+                                 help="Show a green &quot;What to do here&quot; box at the top of each Microfinance page, and a Next step box on each loan.">
+                            <field name="mfi_show_guides"/>
+                            <div class="mt-2">
+                                <button name="%(mfi_loan.action_mfi_guide)d" type="action" string="Edit the guides"
+                                        class="btn-link" icon="oi-arrow-right"/>
+                            </div>
+                        </setting>
+                    </block>
                     <block title="Company" name="mfi_company">
                         <setting string="Tagline">
                             <field name="mfi_tagline"/>

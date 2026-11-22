@@ -9,3 +9,4 @@ from . import mfi_payment
 from . import mfi_dashboard
 from . import mfi_audit
 from . import mfi_messaging
+from . import mfi_guide

@@ -1,0 +1,21 @@
+.o_mfi_guide {
+    border-left: 4px solid $success;
+
+    .o_mfi_guide_body p:last-child,
+    .o_mfi_guide_body ol:last-child,
+    .o_mfi_guide_body ul:last-child {
+        margin-bottom: 0;
+    }
+    .o_mfi_guide_body ol {
+        padding-left: 1.2rem;
+    }
+}
+
+// "Next step" box on the loan form
+.o_mfi_next_step {
+    border-left: 4px solid currentColor;
+
+    ol {
+        padding-left: 1.2rem;
+    }
+}

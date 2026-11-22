@@ -55,3 +55,7 @@ access_mfi_audit_log_ceo,mfi.audit.log ceo,model_mfi_audit_log,group_mfi_ceo,1,0
 access_mfi_audit_log_head_office,mfi.audit.log head_office,model_mfi_audit_log,group_mfi_head_office,1,0,0,0
 access_mfi_audit_log_auditor,mfi.audit.log auditor,model_mfi_audit_log,group_mfi_auditor,1,0,0,0
 access_mfi_client_reveal_wizard,mfi.client.reveal.wizard,model_mfi_client_reveal_wizard,group_mfi_user,1,1,1,0
+access_mfi_guide_user,mfi.guide user,model_mfi_guide,group_mfi_user,1,0,0,0
+access_mfi_guide_admin,mfi.guide admin,model_mfi_guide,group_mfi_admin,1,1,1,1
+access_mfi_guide_button_user,mfi.guide.button user,model_mfi_guide_button,group_mfi_user,1,0,0,0
+access_mfi_guide_button_admin,mfi.guide.button admin,model_mfi_guide_button,group_mfi_admin,1,1,1,1

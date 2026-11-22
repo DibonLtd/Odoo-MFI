@@ -1,67 +1,190 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!--
+        The portfolio dashboard: coloured cards you can click, a pipeline of loans
+        waiting for action, risk bars and coloured tables. Styles in
+        static/src/dashboard/dashboard.scss.
+    -->
     <record id="mfi_dashboard_view_form" model="ir.ui.view">
         <field name="name">mfi.dashboard.form</field>
         <field name="model">mfi.dashboard</field>
         <field name="arch" type="xml">
-            <form string="Dashboard" create="0" edit="0" delete="0">
+            <form string="Dashboard" create="0" edit="0" delete="0" class="o_mfi_dashboard">
                 <sheet>
                     <field name="currency_id" invisible="1"/>
-                    <div class="oe_title">
-                        <h1>Portfolio snapshot</h1>
-                        <span class="text-muted">As at <field name="as_of" class="d-inline"/>. Figures update as repayments are recorded; reopen to refresh.</span>
+
+                    <!-- Header -->
+                    <div class="o_mfi_hero">
+                        <div>
+                            <h1 class="mb-1">Portfolio snapshot</h1>
+                            <div class="o_mfi_hero_sub">
+                                As at <field name="as_of" class="d-inline"/>.
+                                Click any card to see the loans behind it. Reopen the dashboard to refresh.
+                            </div>
+                        </div>
+                        <i class="fa fa-line-chart o_mfi_hero_icon d-none d-md-block" aria-hidden="true"/>
                     </div>
-                    <group>
-                        <group string="Portfolio">
-                            <field name="active_count" string="Active loans"/>
-                            <field name="active_outstanding" string="Outstanding"/>
-                            <field name="arrears_count" string="In arrears"/>
-                            <field name="arrears_missed"/>
-                            <field name="overdue_count" string="Overdue (past maturity)"/>
-                            <field name="overdue_outstanding" string="To recover"/>
-                        </group>
-                        <group string="Portfolio at risk">
-                            <field name="par_1"/>
-                            <field name="par_7"/>
-                            <field name="par_30"/>
-                            <field name="collection_rate_30"/>
-                        </group>
-                        <group string="Today">
-                            <field name="collected_today"/>
-                            <field name="collected_today_count" string="Payments"/>
-                            <field name="due_today"/>
-                            <field name="collected_vs_due_today"/>
-                        </group>
-                        <group string="This month">
-                            <field name="disbursed_month"/>
-                            <field name="disbursed_month_count" string="Loans disbursed"/>
-                            <field name="collected_month"/>
-                            <field name="clients" string="Clients"/>
-                            <field name="clients_new_month"/>
-                        </group>
-                        <group string="Awaiting action">
-                            <field name="pending_information" string="Need information"/>
-                            <field name="pending_approval" string="To approve"/>
-                            <field name="to_disburse" string="To disburse"/>
-                        </group>
-                    </group>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        <button name="action_open_active" type="object" string="Active loans" class="btn-secondary"/>
-                        <button name="action_open_arrears" type="object" string="Arrears" class="btn-secondary"/>
-                        <button name="action_open_collections" type="object" string="Collections" class="btn-secondary"/>
-                        <button name="action_open_approvals" type="object" string="Approval queue" class="btn-secondary"/>
+
+                    <!-- Portfolio -->
+                    <h4 class="o_mfi_section"><i class="fa fa-briefcase" aria-hidden="true"/> Portfolio</h4>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_active" type="object" class="o_mfi_kpi o_mfi_kpi_indigo">
+                                <i class="fa fa-briefcase o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">Active loans</span>
+                                <span class="o_mfi_kpi_value"><field name="active_count"/></span>
+                                <span class="o_mfi_kpi_sub"><field name="active_outstanding"/> outstanding</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_arrears" type="object" class="o_mfi_kpi o_mfi_kpi_amber">
+                                <i class="fa fa-clock-o o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">In arrears</span>
+                                <span class="o_mfi_kpi_value"><field name="arrears_count"/></span>
+                                <span class="o_mfi_kpi_sub"><field name="arrears_missed"/> missed</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_overdue" type="object" class="o_mfi_kpi o_mfi_kpi_red">
+                                <i class="fa fa-exclamation-triangle o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">Overdue (past maturity)</span>
+                                <span class="o_mfi_kpi_value"><field name="overdue_count"/></span>
+                                <span class="o_mfi_kpi_sub"><field name="overdue_outstanding"/> to recover</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_clients" type="object" class="o_mfi_kpi o_mfi_kpi_teal">
+                                <i class="fa fa-users o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">Clients</span>
+                                <span class="o_mfi_kpi_value"><field name="clients"/></span>
+                                <span class="o_mfi_kpi_sub"><field name="clients_new_month"/> new this month</span>
+                            </button>
+                        </div>
                     </div>
-                    <separator string="Arrears ageing"/>
-                    <field name="ageing_html" nolabel="1"/>
-                    <separator string="Needs attention: largest overdue and in-arrears balances"/>
-                    <field name="attention_html" nolabel="1"/>
-                    <separator string="Approval queue: oldest submissions first"/>
-                    <field name="approvals_html" nolabel="1"/>
-                    <p class="text-muted">
-                        In arrears = missed one or more daily instalments but still within the loan term.
-                        Overdue = past the maturity date with a balance. PAR n = outstanding on loans n or
-                        more days late, as a share of all outstanding. Charts: Loans and Repayments,
-                        graph view.
+
+                    <!-- Money in and out -->
+                    <h4 class="o_mfi_section"><i class="fa fa-money" aria-hidden="true"/> Today and this month</h4>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_collected_today" type="object" class="o_mfi_kpi o_mfi_kpi_green">
+                                <i class="fa fa-check-circle o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">Collected today</span>
+                                <span class="o_mfi_kpi_value o_mfi_kpi_value_money"><field name="collected_today"/></span>
+                                <span class="o_mfi_kpi_sub"><field name="collected_today_count"/> payments</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_due_today" type="object" class="o_mfi_kpi o_mfi_kpi_cyan">
+                                <i class="fa fa-calendar-check-o o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">Due today</span>
+                                <span class="o_mfi_kpi_value o_mfi_kpi_value_money"><field name="due_today"/></span>
+                                <span class="o_mfi_kpi_sub"><field name="collected_vs_due_today"/>% collected</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_disbursed_month" type="object" class="o_mfi_kpi o_mfi_kpi_purple">
+                                <i class="fa fa-paper-plane o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">Disbursed this month</span>
+                                <span class="o_mfi_kpi_value o_mfi_kpi_value_money"><field name="disbursed_month"/></span>
+                                <span class="o_mfi_kpi_sub"><field name="disbursed_month_count"/> loans</span>
+                            </button>
+                        </div>
+                        <div class="col-12 col-sm-6 col-xl-3">
+                            <button name="action_open_collected_month" type="object" class="o_mfi_kpi o_mfi_kpi_emerald">
+                                <i class="fa fa-line-chart o_mfi_kpi_icon" aria-hidden="true"/>
+                                <span class="o_mfi_kpi_label">Collected this month</span>
+                                <span class="o_mfi_kpi_value o_mfi_kpi_value_money"><field name="collected_month"/></span>
+                                <span class="o_mfi_kpi_sub">allocated repayments</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline -->
+                    <h4 class="o_mfi_section"><i class="fa fa-tasks" aria-hidden="true"/> Waiting for action</h4>
+                    <div class="o_mfi_pipeline mb-4">
+                        <button name="action_open_pending_information" type="object" class="o_mfi_stage o_mfi_stage_sky">
+                            <span class="o_mfi_stage_num">1</span>
+                            <span class="o_mfi_stage_body">
+                                <span class="o_mfi_stage_value"><field name="pending_information"/></span>
+                                <span class="o_mfi_stage_label">Need information</span>
+                            </span>
+                        </button>
+                        <i class="fa fa-chevron-right o_mfi_pipeline_arrow d-none d-md-block" aria-hidden="true"/>
+                        <button name="action_open_approvals" type="object" class="o_mfi_stage o_mfi_stage_amber">
+                            <span class="o_mfi_stage_num">2</span>
+                            <span class="o_mfi_stage_body">
+                                <span class="o_mfi_stage_value"><field name="pending_approval"/></span>
+                                <span class="o_mfi_stage_label">To approve</span>
+                            </span>
+                        </button>
+                        <i class="fa fa-chevron-right o_mfi_pipeline_arrow d-none d-md-block" aria-hidden="true"/>
+                        <button name="action_open_to_disburse" type="object" class="o_mfi_stage o_mfi_stage_violet">
+                            <span class="o_mfi_stage_num">3</span>
+                            <span class="o_mfi_stage_body">
+                                <span class="o_mfi_stage_value"><field name="to_disburse"/></span>
+                                <span class="o_mfi_stage_label">To disburse</span>
+                            </span>
+                        </button>
+                    </div>
+
+                    <!-- Risk and ageing -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-xl-5">
+                            <div class="o_mfi_panel o_mfi_panel_rose h-100">
+                                <div class="o_mfi_panel_head">
+                                    <i class="fa fa-shield" aria-hidden="true"/> Portfolio at risk
+                                    <button name="action_open_collections" type="object" string="Collections"
+                                            class="btn-link ms-auto p-0" icon="fa-arrow-right"/>
+                                </div>
+                                <div class="o_mfi_panel_body">
+                                    <field name="risk_html" nolabel="1"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-7">
+                            <div class="o_mfi_panel o_mfi_panel_amber h-100">
+                                <div class="o_mfi_panel_head">
+                                    <i class="fa fa-hourglass-half" aria-hidden="true"/> Arrears ageing
+                                    <button name="action_open_arrears" type="object" string="Arrears"
+                                            class="btn-link ms-auto p-0" icon="fa-arrow-right"/>
+                                </div>
+                                <div class="o_mfi_panel_body p-0">
+                                    <field name="ageing_html" nolabel="1"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lists -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-xl-7">
+                            <div class="o_mfi_panel o_mfi_panel_red h-100">
+                                <div class="o_mfi_panel_head">
+                                    <i class="fa fa-bell" aria-hidden="true"/> Needs attention: largest late balances
+                                </div>
+                                <div class="o_mfi_panel_body p-0">
+                                    <field name="attention_html" nolabel="1"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-xl-5">
+                            <div class="o_mfi_panel o_mfi_panel_indigo h-100">
+                                <div class="o_mfi_panel_head">
+                                    <i class="fa fa-gavel" aria-hidden="true"/> Approval queue: oldest first
+                                    <button name="action_open_approvals" type="object" string="All"
+                                            class="btn-link ms-auto p-0" icon="fa-arrow-right"/>
+                                </div>
+                                <div class="o_mfi_panel_body p-0">
+                                    <field name="approvals_html" nolabel="1"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mb-0">
+                        <b>In arrears</b>: missed one or more daily instalments but still within the loan term.
+                        <b>Overdue</b>: past the maturity date with a balance. <b>PAR n</b>: outstanding on loans
+                        n or more days late, as a share of all outstanding. Charts: Loans and Repayments, graph view.
                     </p>
                 </sheet>
             </form>

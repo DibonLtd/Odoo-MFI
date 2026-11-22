@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Green "What to do here" guides for each Microfinance page: plain language,
+    two to four steps, buttons to the next page. noupdate: managers may edit the
+    texts (Administration › Page guides) without an update overwriting them.
+    A guide tied to a menu action wins over one tied only to the model.
+-->
+<odoo noupdate="1">
+
+    <!-- Dashboard -->
+    <record id="guide_dashboard" model="mfi.guide">
+        <field name="name">Dashboard</field>
+        <field name="model">mfi.dashboard</field>
+        <field name="title">Your portfolio at a glance</field>
+        <field name="body"><![CDATA[<ol>
+<li>Each coloured card is a live count. <b>Click a card</b> to open the loans or payments behind it.</li>
+<li>Red and amber show what needs attention first: arrears, overdue loans and approvals waiting.</li>
+<li>Open <b>Dashboard</b> again from the menu to refresh the figures.</li>
+</ol>]]></field>
+        <field name="button_ids" eval="[(0, 0, {'label': 'All loans', 'action_xmlid': 'mfi_loan.action_mfi_loan', 'sequence': 1}),
+                                        (0, 0, {'label': 'Clients', 'action_xmlid': 'mfi_loan.action_mfi_client', 'sequence': 2})]"/>
+    </record>
+
+    <!-- Clients -->
+    <record id="guide_client_list" model="mfi.guide">
+        <field name="name">Clients: list</field>
+        <field name="model">res.partner</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_client</field>
+        <field name="title">Start here: every loan begins with a client</field>
+        <field name="body"><![CDATA[<ol>
+<li>Search by name, client number or phone. Open a client to see their loans.</li>
+<li>New client? Click <b>Onboard client</b> below, or <b>New</b>.</li>
+<li>Blacklisted clients cannot apply; use the <b>Blacklisted</b> filter to see them.</li>
+</ol>]]></field>
+        <field name="button_ids" eval="[(0, 0, {'label': 'Onboard client', 'action_xmlid': 'mfi_loan.action_mfi_client_new', 'sequence': 1})]"/>
+    </record>
+    <record id="guide_client_form" model="mfi.guide">
+        <field name="name">Clients: client</field>
+        <field name="model">res.partner</field>
+        <field name="view_type">form</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_client</field>
+        <field name="title">The client file, from top to bottom</field>
+        <field name="body"><![CDATA[<ol>
+<li>Choose <b>Individual</b> or <b>Business</b>, then fill in the ID number, phone and KRA PIN.</li>
+<li>Work through the tabs: addresses or director, <b>Financials</b>, next of kin.</li>
+<li>Upload every file in <b>Documents</b>: an application cannot go further while one is missing.</li>
+<li>Click <b>New application</b> at the top to start a loan for this client.</li>
+</ol>]]></field>
+    </record>
+    <record id="guide_client_new" model="mfi.guide">
+        <field name="name">Clients: onboard</field>
+        <field name="model">res.partner</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_client_new</field>
+        <field name="title">Onboard a new client</field>
+        <field name="body"><![CDATA[<ol>
+<li>Choose <b>Individual</b> or <b>Business</b> and type the name, ID number and phone.</li>
+<li>Fill in the tabs, then upload the ID copies and other files in <b>Documents</b>.</li>
+<li>Save. A client number (RC-C-…) is given automatically; then click <b>New application</b>.</li>
+</ol>]]></field>
+    </record>
+
+    <!-- Loans -->
+    <record id="guide_loan_list" model="mfi.guide">
+        <field name="name">Loans: list</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_loan</field>
+        <field name="title">Every loan, from application to repaid</field>
+        <field name="body"><![CDATA[<p>A loan moves through five steps:
+<b>Draft</b> → <b>Pending information</b> → <b>Pending approval</b> → <b>Approved</b> → <b>Active</b>.</p>
+<ol>
+<li>Click <b>New</b> to capture an application, or start it from the client.</li>
+<li>Open a loan: the coloured <b>Next step</b> box tells you exactly what to do.</li>
+<li>Use the filters (In arrears, Pending approval…) or switch to the pivot and graph views for totals.</li>
+</ol>]]></field>
+        <field name="button_ids" eval="[(0, 0, {'label': 'Clients', 'action_xmlid': 'mfi_loan.action_mfi_client', 'sequence': 1}),
+                                        (0, 0, {'label': 'Loan types', 'action_xmlid': 'mfi_loan.action_mfi_product', 'sequence': 2})]"/>
+    </record>
+    <record id="guide_loan_form" model="mfi.guide">
+        <field name="name">Loans: loan</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">form</field>
+        <field name="title">Follow the Next step box</field>
+        <field name="body"><![CDATA[<p>The coloured box below shows where this loan is and what to do next.
+The buttons at the top change with each step. Everything you do is recorded in the chatter and the audit log.</p>]]></field>
+    </record>
+    <record id="guide_loan_analysis" model="mfi.guide">
+        <field name="name">Loans: pivot</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">pivot</field>
+        <field name="title">Totals by any column</field>
+        <field name="body"><![CDATA[<p>Click a header to group by loan type, status, health or month. Use <b>Download</b> to export to Excel.</p>]]></field>
+    </record>
+    <record id="guide_loan_graph" model="mfi.guide">
+        <field name="name">Loans: graph</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">graph</field>
+        <field name="title">See the trend</field>
+        <field name="body"><![CDATA[<p>Switch between bar, line and pie at the top. Group by <b>Disbursed (month)</b> to see lending over time.</p>]]></field>
+    </record>
+    <record id="guide_approvals" model="mfi.guide">
+        <field name="name">Lending: approvals</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_loan_my_tasks</field>
+        <field name="title">Loans waiting for your decision</field>
+        <field name="body"><![CDATA[<ol>
+<li>Open a loan and check the client, the documents and the house visit.</li>
+<li>Click <b>Approve stage</b>, or <b>Reject</b> with a reason.</li>
+<li>Three stages: credit manager, a second credit manager, then the CEO. You cannot approve a loan you created.</li>
+</ol>]]></field>
+    </record>
+    <record id="guide_disbursements" model="mfi.guide">
+        <field name="name">Lending: disbursements</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_loan_to_disburse</field>
+        <field name="title">Approved loans to pay out</field>
+        <field name="body"><![CDATA[<ol>
+<li>Open a loan and click <b>Disburse</b>.</li>
+<li>Choose M-Pesa, bank or cash and type the transaction reference.</li>
+<li>The loan becomes <b>Active</b> and its repayment schedule starts.</li>
+</ol>]]></field>
+    </record>
+
+    <!-- Recovery -->
+    <record id="guide_payment_list" model="mfi.guide">
+        <field name="name">Recovery: repayments</field>
+        <field name="model">mfi.payment</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_payment</field>
+        <field name="title">Every repayment received</field>
+        <field name="body"><![CDATA[<ol>
+<li>Record a repayment from the loan with <b>Record payment</b>; it lands here.</li>
+<li>Each payment clears default interest first, then the instalments in order.</li>
+<li>A wrong entry? Open it and click <b>Reverse</b>; never delete.</li>
+</ol>]]></field>
+        <field name="button_ids" eval="[(0, 0, {'label': 'Unmatched payments', 'action_xmlid': 'mfi_loan.action_mfi_payment_unmatched', 'sequence': 1})]"/>
+    </record>
+    <record id="guide_payment_unmatched" model="mfi.guide">
+        <field name="name">Recovery: unmatched payments</field>
+        <field name="model">mfi.payment</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_payment_unmatched</field>
+        <field name="title">Money in, but no loan found</field>
+        <field name="body"><![CDATA[<ol>
+<li>Open the payment and check the reference and the payer's phone.</li>
+<li>Click <b>Match to a loan</b> and pick the right loan; it is then allocated.</li>
+</ol>]]></field>
+    </record>
+    <record id="guide_payment_form" model="mfi.guide">
+        <field name="name">Recovery: payment</field>
+        <field name="model">mfi.payment</field>
+        <field name="view_type">form</field>
+        <field name="title">One repayment</field>
+        <field name="body"><![CDATA[<p><b>Match to a loan</b> if it is unmatched. <b>Reverse</b> it, with a reason, if it was entered by mistake: the loan is recalculated without it.</p>]]></field>
+    </record>
+    <record id="guide_collections_late" model="mfi.guide">
+        <field name="name">Recovery: late loans</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_collections_late</field>
+        <field name="title">Today's follow-up list</field>
+        <field name="body"><![CDATA[<ol>
+<li>Start from the top: the loans most days late.</li>
+<li><b>Unlock</b> the phone number, then call, or send a <b>WhatsApp</b> reminder.</li>
+<li>Click <b>Log</b> after each contact. A promise to pay is followed up under <b>Promises to pay</b>.</li>
+</ol>]]></field>
+        <field name="button_ids" eval="[(0, 0, {'label': 'Promises to pay', 'action_xmlid': 'mfi_loan.action_mfi_collections_promises', 'sequence': 1}),
+                                        (0, 0, {'label': 'Due today', 'action_xmlid': 'mfi_loan.action_mfi_collections_due_today', 'sequence': 2})]"/>
+    </record>
+    <record id="guide_collections_promises" model="mfi.guide">
+        <field name="name">Recovery: promises to pay</field>
+        <field name="model">mfi.collection.note</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_collections_promises</field>
+        <field name="title">Promises clients have made</field>
+        <field name="body"><![CDATA[<ol>
+<li>On or after the promised date, check whether the money came in.</li>
+<li>Click <b>Kept</b> or <b>Broken</b>. The loan stays on the late-loans list until it is paid up.</li>
+</ol>]]></field>
+    </record>
+    <record id="guide_collections_due" model="mfi.guide">
+        <field name="name">Recovery: due today</field>
+        <field name="model">mfi.loan.installment</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_collections_due_today</field>
+        <field name="title">Instalments falling due today</field>
+        <field name="body"><![CDATA[<p>Remind these clients early in the day. Paid instalments drop off as repayments are recorded.</p>]]></field>
+    </record>
+    <record id="guide_collections_collected" model="mfi.guide">
+        <field name="name">Recovery: collected</field>
+        <field name="model">mfi.payment</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_collections_collected</field>
+        <field name="title">What has come in</field>
+        <field name="body"><![CDATA[<p>Use the <b>Today</b> and <b>This month</b> filters, or group by <b>Method</b> to reconcile M-Pesa and bank.</p>]]></field>
+    </record>
+
+    <!-- Insights -->
+    <record id="guide_arrears" model="mfi.guide">
+        <field name="name">Insights: arrears</field>
+        <field name="model">mfi.loan</field>
+        <field name="view_type">list</field>
+        <field name="action_xmlid">mfi_loan.action_mfi_loan_arrears</field>
+        <field name="title">Loans behind on repayments</field>
+        <field name="body"><![CDATA[<p><b>In arrears</b>: missed one or more instalments within the term.
+<b>Overdue</b>: past the maturity date with a balance. Switch to the pivot view to see totals by ageing bucket.</p>]]></field>
+        <field name="button_ids" eval="[(0, 0, {'label': 'Collections: late loans', 'action_xmlid': 'mfi_loan.action_mfi_collections_late', 'sequence': 1})]"/>
+    </record>
+    <record id="guide_audit" model="mfi.guide">
+        <field name="name">Insights: audit log</field>
+        <field name="model">mfi.audit.log</field>
+        <field name="title">Who did what, and when</field>
+        <field name="body"><![CDATA[<p>Every approval, payout, payment, reveal of personal details and settings change is logged here and cannot be edited. Click <b>Open</b> to go to the record.</p>]]></field>
+    </record>
+
+    <!-- Administration -->
+    <record id="guide_products" model="mfi.guide">
+        <field name="name">Administration: loan types</field>
+        <field name="model">mfi.product</field>
+        <field name="title">Set up what you lend</field>
+        <field name="body"><![CDATA[<ol>
+<li>One line per loan type: rate, default interest, minimum interest days and limits.</li>
+<li>Loans are repriced until they are sent for approval; after that their terms are fixed.</li>
+</ol>]]></field>
+        <field name="button_ids" eval="[(0, 0, {'label': 'Fees', 'action_xmlid': 'mfi_loan.action_mfi_fee', 'sequence': 1})]"/>
+    </record>
+    <record id="guide_fees" model="mfi.guide">
+        <field name="name">Administration: fees</field>
+        <field name="model">mfi.fee</field>
+        <field name="title">Charges on each loan</field>
+        <field name="body"><![CDATA[<p>One line per fee band: the amount, the principal range and loan type it applies to, and whether it is charged on the first loan only or paid upfront. Fees show on the loan agreement.</p>]]></field>
+    </record>
+</odoo>

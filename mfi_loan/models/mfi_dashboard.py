@@ -8,14 +8,55 @@ from .rules import r2
 
 BUCKETS = [("current", "Current"), ("1_7", "1-7 days"), ("8_14", "8-14 days"),
            ("15_30", "15-30 days"), ("30_plus", "30+ days")]
+# Colour per ageing bucket, from healthy to worst (Bootstrap colour names).
+BUCKET_TONES = {"current": "success", "1_7": "info", "8_14": "warning", "15_30": "orange", "30_plus": "danger"}
+HEALTH_TONES = {"current": "success", "arrears": "warning", "overdue": "danger"}
 
 
-def _table(headers, rows):
+def _cell(value):
+    """A table cell: plain text is escaped, Markup is kept (badges, bars)."""
+    return value if isinstance(value, Markup) else escape(value)
+
+
+def _table(headers, rows, tone="primary"):
+    """A coloured table: header in the section colour, hover rows."""
     head = "".join(f"<th>{escape(h)}</th>" for h in headers)
-    body = "".join("<tr>" + "".join(f"<td>{escape(c)}</td>" for c in row) + "</tr>" for row in rows)
-    empty = f'<tr><td colspan="{len(headers)}" class="text-muted">Nothing to show</td></tr>'
-    return Markup(f'<table class="table table-sm"><thead><tr>{head}</tr></thead>'
-                  f"<tbody>{body or empty}</tbody></table>")
+    body = "".join("<tr>" + "".join(f"<td>{_cell(c)}</td>" for c in row) + "</tr>" for row in rows)
+    empty = f'<tr><td colspan="{len(headers)}" class="text-muted text-center py-3">Nothing to show</td></tr>'
+    return Markup(f'<table class="table table-sm table-hover align-middle o_mfi_table o_mfi_table_{tone} mb-0">'
+                  f"<thead><tr>{head}</tr></thead><tbody>{body or empty}</tbody></table>")
+
+
+def _badge(label, tone):
+    return Markup('<span class="badge rounded-pill o_mfi_badge o_mfi_tone_%s">%s</span>') % (tone, label)
+
+
+def _bar(percent, tone):
+    """A thin progress bar, 0-100."""
+    width = max(0.0, min(float(percent or 0), 100.0))
+    return Markup(
+        '<div class="progress o_mfi_bar" role="progressbar" aria-valuenow="%s" aria-valuemin="0" aria-valuemax="100">'
+        '<div class="progress-bar o_mfi_tone_%s" style="width: %s%%"></div></div>'
+    ) % (f"{width:.0f}", tone, f"{width:.1f}")
+
+
+def _risk_tone(value, warn, bad):
+    """Green below ``warn``, amber below ``bad``, red from ``bad``."""
+    return "success" if value < warn else "warning" if value < bad else "danger"
+
+
+def _risk_panel(rows):
+    """PAR and collection rate as coloured bars: (label, hint, percent, tone)."""
+    items = Markup("").join(
+        Markup(
+            '<div class="o_mfi_risk_row">'
+            '<div class="d-flex justify-content-between align-items-baseline">'
+            '<span class="fw-semibold">%s <small class="text-muted fw-normal">%s</small></span>'
+            '<span class="fw-bold o_mfi_text_%s">%s%%</span></div>%s</div>'
+        ) % (label, hint, tone, f"{percent:,.1f}", _bar(percent, tone))
+        for label, hint, percent, tone in rows
+    )
+    return Markup('<div class="o_mfi_risk">%s</div>') % items
 
 
 class MfiDashboard(models.TransientModel):
@@ -48,6 +89,7 @@ class MfiDashboard(models.TransientModel):
     clients = fields.Integer(compute="_compute_all")
     clients_new_month = fields.Integer("New this month", compute="_compute_all")
     collection_rate_30 = fields.Float("30-day collection rate (%)", compute="_compute_all")
+    risk_html = fields.Html("Portfolio at risk", compute="_compute_all", sanitize=False)
     ageing_html = fields.Html("Arrears ageing", compute="_compute_all", sanitize=False)
     attention_html = fields.Html("Needs attention", compute="_compute_all", sanitize=False)
     approvals_html = fields.Html("Approval queue", compute="_compute_all", sanitize=False)
@@ -75,6 +117,7 @@ class MfiDashboard(models.TransientModel):
             expected_30 = sum(Inst.search([("due_date", ">=", since), ("due_date", "<=", today)]).mapped("amount_due"))
             collected_30 = sum(paid.filtered(lambda p: since <= p.date <= today).mapped("amount"))
             disbursed = Loan.search([("disbursed_date", ">=", month_start), ("disbursed_date", "<=", today)])
+            rate_30 = r2(collected_30 / expected_30 * 100) if expected_30 else 0.0
 
             board.update({
                 "active_count": len(active),
@@ -97,21 +140,36 @@ class MfiDashboard(models.TransientModel):
                 "clients": Partner.search_count([("is_mfi_client", "=", True)]),
                 "clients_new_month": Partner.search_count([
                     ("is_mfi_client", "=", True), ("create_date", ">=", fields.Datetime.to_datetime(month_start))]),
-                "collection_rate_30": r2(collected_30 / expected_30 * 100) if expected_30 else 0.0,
-                "ageing_html": _table(["Bucket", "Loans", "Outstanding (KES)"], [
-                    (label, len(group), f"{sum(group.mapped('outstanding')):,.0f}")
+                "collection_rate_30": rate_30,
+                "risk_html": _risk_panel([
+                    (label, hint, value, _risk_tone(value, warn, bad))
+                    for label, hint, value, warn, bad in [
+                        (self.env._("PAR 1"), self.env._("1+ days late"), par(1), 5, 10),
+                        (self.env._("PAR 7"), self.env._("7+ days late"), par(7), 5, 10),
+                        (self.env._("PAR 30"), self.env._("30+ days late"), par(30), 3, 5),
+                    ]
+                ] + [(
+                    self.env._("Collection rate"), self.env._("last 30 days"), rate_30,
+                    # higher is better: green from 95 %, amber from 80 %
+                    "success" if rate_30 >= 95 else "warning" if rate_30 >= 80 else "danger",
+                )]),
+                "ageing_html": _table(["Bucket", "Loans", "Outstanding (KES)", "Share"], [
+                    (_badge(label, BUCKET_TONES[key]), len(group), f"{amount:,.0f}",
+                     _bar(amount / total * 100 if total else 0, BUCKET_TONES[key]))
                     for key, label in BUCKETS
                     for group in [active.filtered(lambda l, k=key: l.ageing_bucket == k)]
-                ]),
+                    for amount in [sum(group.mapped("outstanding"))]
+                ], tone="warning"),
                 "attention_html": _table(["Loan", "Client", "Days late", "Outstanding (KES)", "Status"], [
                     (l.name, l.partner_id.name, l.days_past_due, f"{l.outstanding:,.0f}",
-                     dict(l._fields["health"].selection)[l.health])
+                     _badge(dict(l._fields["health"].selection)[l.health], HEALTH_TONES.get(l.health, "info")))
                     for l in (arrears | overdue).sorted("outstanding", reverse=True)[:6]
-                ]),
+                ], tone="danger"),
                 "approvals_html": _table(["Loan", "Client", "Amount (KES)", "Stage"], [
-                    (l.name, l.partner_id.name, f"{l.principal:,.0f}", l.approval_stage)
+                    (l.name, l.partner_id.name, f"{l.principal:,.0f}",
+                     _badge(self.env._("Stage %s of 3", l.approval_stage), "primary"))
                     for l in Loan.search([("state", "=", "pending_approval")], order="submitted_at asc, id asc", limit=5)
-                ]),
+                ], tone="primary"),
             })
 
     @api.model
@@ -144,3 +202,41 @@ class MfiDashboard(models.TransientModel):
 
     def action_open_collections(self):
         return self._open("mfi_loan.action_mfi_collections_late")
+
+    def _open_loans(self, *filters):
+        action = self._open("mfi_loan.action_mfi_loan")
+        action["context"] = {f"search_default_{name}": 1 for name in filters}
+        return action
+
+    def action_open_overdue(self):
+        return self._open_loans("overdue")
+
+    def action_open_pending_information(self):
+        return self._open_loans("pending_information")
+
+    def action_open_to_disburse(self):
+        return self._open("mfi_loan.action_mfi_loan_to_disburse")
+
+    def action_open_disbursed_month(self):
+        action = self._open("mfi_loan.action_mfi_loan")
+        month_start = (self.as_of or fields.Date.context_today(self)).replace(day=1)
+        action["domain"] = [("disbursed_date", ">=", fields.Date.to_string(month_start))]
+        action["context"] = {}
+        return action
+
+    def action_open_clients(self):
+        return self._open("mfi_loan.action_mfi_client")
+
+    def _open_payments(self, period):
+        action = self._open("mfi_loan.action_mfi_payment")
+        action["context"] = {"search_default_allocated": 1, f"search_default_{period}": 1}
+        return action
+
+    def action_open_collected_today(self):
+        return self._open_payments("today")
+
+    def action_open_collected_month(self):
+        return self._open_payments("this_month")
+
+    def action_open_due_today(self):
+        return self._open("mfi_loan.action_mfi_collections_due_today")

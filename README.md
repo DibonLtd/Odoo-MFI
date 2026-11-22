@@ -122,7 +122,15 @@ restarts at 1 if nothing real was numbered meanwhile.
   instalments; overdue and to recover; PAR 1, 7 and 30; collected against
   due today; disbursed and collected this month; awaiting action; clients
   and new this month; 30-day collection rate; ageing buckets; the largest
-  late balances; the approval queue. Worked out when opened.
+  late balances; the approval queue. Worked out when opened. Coloured cards
+  open the loans or payments behind each figure; PAR and the collection rate
+  show as green, amber or red bars.
+- *Page guides*: a green "What to do here" box at the top of each
+  Microfinance page (two to four steps, with buttons to the next page), and
+  a coloured *Next step* box on each loan that follows it from application
+  to repaid (step 1 of 5 to 5 of 5). Each user can close a guide and bring
+  them back from My Preferences; admins edit the texts in Administration ›
+  Page guides, or switch guides off in Settings › Ease of use.
 - *Clients*: personal details (ID number, phones, email, KRA PIN, bank
   account, contact person, next of kin, guarantors) are masked; *View
   personal details* asks for the user's password again, shows them for 60

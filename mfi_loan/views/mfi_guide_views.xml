@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mfi_guide_view_list" model="ir.ui.view">
+        <field name="name">mfi.guide.list</field>
+        <field name="model">mfi.guide</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="title"/>
+                <field name="model"/>
+                <field name="view_type"/>
+                <field name="action_xmlid" optional="hide"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="mfi_guide_view_form" model="ir.ui.view">
+        <field name="name">mfi.guide.form</field>
+        <field name="model">mfi.guide</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <group string="Where it shows">
+                            <field name="name"/>
+                            <field name="model" placeholder="e.g. mfi.loan"/>
+                            <field name="view_type" placeholder="Every view"/>
+                            <field name="action_xmlid" placeholder="e.g. mfi_loan.action_mfi_loan (optional)"/>
+                            <field name="sequence"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="What it says">
+                            <field name="title"/>
+                        </group>
+                    </group>
+                    <field name="body" placeholder="Two to four short steps: what to do on this page."/>
+                    <separator string="Buttons"/>
+                    <field name="button_ids">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="label"/>
+                            <field name="action_xmlid"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="mfi_guide_view_search" model="ir.ui.view">
+        <field name="name">mfi.guide.search</field>
+        <field name="model">mfi.guide</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="title"/>
+                <field name="model"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_model" string="Model" context="{'group_by': 'model'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_mfi_guide" model="ir.actions.act_window">
+        <field name="name">Page guides</field>
+        <field name="res_model">mfi.guide</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No page guides yet</p>
+            <p>Guides are the green "What to do here" boxes at the top of each Microfinance page.</p>
+        </field>
+    </record>
+
+    <!-- My Preferences: bring closed guides back -->
+    <record id="view_users_form_simple_modif_mfi_guide" model="ir.ui.view">
+        <field name="name">res.users.preferences.mfi.guide</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form_simple_modif"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='preferences_page']" position="inside">
+                <group string="Microfinance page guides" name="mfi_guides">
+                    <div colspan="2" class="text-muted">
+                        Closed some green guide boxes and want them back?
+                        <button name="action_mfi_reset_guides" type="object" class="btn btn-link p-0 ms-1"
+                                string="Show page guides again"/>
+                    </div>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

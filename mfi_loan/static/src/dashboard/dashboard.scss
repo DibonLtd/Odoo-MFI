@@ -1,0 +1,316 @@
+// Microfinance dashboard: coloured cards, pipeline, risk bars and tables.
+// Gradients keep white text readable in both light and dark mode.
+
+$mfi-tones: (
+    "indigo":  (#4f46e5, #7c3aed),
+    "amber":   (#d97706, #ea580c),
+    "red":     (#dc2626, #be123c),
+    "teal":    (#0d9488, #0891b2),
+    "green":   (#16a34a, #059669),
+    "cyan":    (#0891b2, #2563eb),
+    "purple":  (#9333ea, #c026d3),
+    "emerald": (#059669, #0d9488),
+    "sky":     (#0284c7, #0ea5e9),
+    "violet":  (#7c3aed, #6d28d9),
+    "rose":    (#e11d48, #db2777),
+);
+
+// Flat colours for badges, bars and table headers (_badge/_bar/_table tones).
+$mfi-flat: (
+    "success": #16a34a,
+    "info":    #0891b2,
+    "warning": #d97706,
+    "orange":  #ea580c,
+    "danger":  #dc2626,
+    "primary": #4f46e5,
+);
+
+@function mfi-gradient($pair) {
+    @return linear-gradient(135deg, nth($pair, 1) 0%, nth($pair, 2) 100%);
+}
+
+.o_mfi_dashboard {
+    .o_form_sheet_bg > .o_form_sheet,
+    .o_form_sheet {
+        max-width: 1400px;
+    }
+
+    // ---- Header ---------------------------------------------------------
+    .o_mfi_hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.75rem;
+        border-radius: 1rem;
+        color: #fff;
+        background: linear-gradient(120deg, #312e81 0%, #4f46e5 45%, #0891b2 100%);
+        box-shadow: 0 10px 30px -12px rgba(79, 70, 229, 0.55);
+
+        h1 {
+            color: #fff;
+            font-weight: 700;
+        }
+        .o_mfi_hero_sub,
+        .o_field_widget,
+        .o_field_widget span {
+            color: rgba(255, 255, 255, 0.88);
+        }
+        .o_mfi_hero_icon {
+            font-size: 3.5rem;
+            opacity: 0.35;
+        }
+    }
+
+    .o_mfi_section {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
+        font-weight: 700;
+        color: $o-main-text-color;
+
+        .fa {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.9rem;
+            height: 1.9rem;
+            border-radius: 0.6rem;
+            font-size: 0.95rem;
+            color: #fff;
+            background: mfi-gradient(map-get($mfi-tones, "indigo"));
+        }
+    }
+
+    // ---- KPI cards (form buttons with content) --------------------------
+    .o_mfi_kpi {
+        --btn-color: #fff;
+        --btn-hover-color: #fff;
+        --btn-active-color: #fff;
+        --btn-bg: transparent;
+        --btn-hover-bg: transparent;
+        --btn-active-bg: transparent;
+        --btn-border-color: transparent;
+        --btn-hover-border-color: transparent;
+        --btn-active-border-color: transparent;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        min-height: 9rem;
+        padding: 1.1rem 1.25rem;
+        overflow: hidden;
+        text-align: left;
+        white-space: normal;
+        color: #fff;
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 8px 20px -10px rgba(15, 23, 42, 0.5);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+        &:hover,
+        &:focus-visible {
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 14px 28px -12px rgba(15, 23, 42, 0.6);
+        }
+
+        .o_field_widget,
+        .o_field_widget span {
+            color: inherit;
+            font: inherit;
+        }
+        .o_mfi_kpi_icon {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 2.6rem;
+            opacity: 0.25;
+        }
+        .o_mfi_kpi_label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+        .o_mfi_kpi_value {
+            margin: 0.3rem 0 0.15rem;
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .o_mfi_kpi_value_money {
+            font-size: 1.55rem;
+        }
+        .o_mfi_kpi_sub {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: auto;
+            padding: 0.15rem 0.6rem;
+            font-size: 0.82rem;
+            border-radius: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+        }
+    }
+
+    @each $name, $pair in $mfi-tones {
+        .o_mfi_kpi_#{$name},
+        .o_mfi_stage_#{$name} .o_mfi_stage_num {
+            background: mfi-gradient($pair);
+        }
+    }
+
+    // ---- Pipeline -------------------------------------------------------
+    .o_mfi_pipeline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+
+        .o_mfi_pipeline_arrow {
+            color: $text-muted;
+            font-size: 1.1rem;
+        }
+    }
+
+    .o_mfi_stage {
+        --btn-bg: #{$o-view-background-color};
+        --btn-hover-bg: #{$o-view-background-color};
+        --btn-border-color: #{$border-color};
+        --btn-hover-border-color: #{$border-color};
+        --btn-color: #{$o-main-text-color};
+        --btn-hover-color: #{$o-main-text-color};
+        display: flex;
+        flex: 1 1 12rem;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-radius: 1rem;
+        box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.35);
+        transition: transform 0.15s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+        }
+
+        .o_mfi_stage_num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 2.6rem;
+            height: 2.6rem;
+            border-radius: 50%;
+            font-weight: 800;
+            color: #fff;
+        }
+        .o_mfi_stage_body {
+            display: flex;
+            flex-direction: column;
+        }
+        .o_mfi_stage_value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .o_mfi_stage_label {
+            font-size: 0.85rem;
+            color: $text-muted;
+        }
+    }
+
+    // ---- Panels ---------------------------------------------------------
+    .o_mfi_panel {
+        overflow: hidden;
+        border: 1px solid $border-color;
+        border-radius: 1rem;
+        background: $o-view-background-color;
+        box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.25);
+
+        .o_mfi_panel_head {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.1rem;
+            font-weight: 700;
+            color: #fff;
+
+            .btn-link,
+            .btn-link span {
+                color: #fff;
+                font-weight: 600;
+            }
+        }
+        .o_mfi_panel_body {
+            padding: 1rem 1.1rem;
+        }
+    }
+
+    @each $name, $pair in $mfi-tones {
+        .o_mfi_panel_#{$name} .o_mfi_panel_head {
+            background: mfi-gradient($pair);
+        }
+    }
+
+    // ---- Risk bars ------------------------------------------------------
+    .o_mfi_risk {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .o_mfi_bar {
+        height: 0.6rem;
+        margin-top: 0.3rem;
+        border-radius: 1rem;
+        background-color: rgba(127, 127, 127, 0.15);
+
+        .progress-bar {
+            border-radius: 1rem;
+        }
+    }
+
+    // ---- Tables ---------------------------------------------------------
+    .o_mfi_table {
+        thead th {
+            padding: 0.6rem 1.1rem;
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border-bottom-width: 2px;
+        }
+        tbody td {
+            padding: 0.55rem 1.1rem;
+        }
+        tbody td:first-child {
+            font-weight: 600;
+        }
+        .o_mfi_bar {
+            min-width: 6rem;
+            margin-top: 0;
+        }
+    }
+    .o_mfi_badge {
+        padding: 0.35em 0.75em;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    @each $name, $color in $mfi-flat {
+        .o_mfi_tone_#{$name} {
+            background-color: $color;
+        }
+        .o_mfi_text_#{$name} {
+            color: $color;
+        }
+        .o_mfi_table_#{$name} thead th {
+            color: $color;
+            border-bottom-color: $color;
+            background-color: rgba($color, 0.08);
+        }
+    }
+}
