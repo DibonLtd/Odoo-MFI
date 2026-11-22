@@ -118,13 +118,16 @@ restarts at 1 if nothing real was numbered meanwhile.
 
 **Screens** (the portal's navigation):
 
-- *Dashboard*: active loans and outstanding; in arrears and missed
-  instalments; overdue and to recover; PAR 1, 7 and 30; collected against
-  due today; disbursed and collected this month; awaiting action; clients
-  and new this month; 30-day collection rate; ageing buckets; the largest
-  late balances; the approval queue. Worked out when opened. Coloured cards
-  open the loans or payments behind each figure; PAR and the collection rate
-  show as green, amber or red bars.
+- *Dashboard* (live): greets the user and lets them pick the period (today,
+  7 days, 30 days, this month, this year). Collected, disbursed, collection
+  rate, new clients and applications count up on screen, with a trend
+  against the previous period and a sparkline. Below: active portfolio, in
+  arrears, overdue and PAR 1/7/30 (green, amber or red); a money-in vs
+  money-due chart with disbursements; portfolio health and arrears ageing
+  charts; the approval pipeline; who to follow up first, the approval queue
+  and the latest repayments. A banner flags loans waiting for the user's
+  decision. Every card, chart slice, bar and row opens the records behind
+  it. Figures refresh every 5 minutes or on demand.
 - *Page guides*: a green "What to do here" box at the top of each
   Microfinance page (two to four steps, with buttons to the next page), and
   a coloured *Next step* box on each loan that follows it from application

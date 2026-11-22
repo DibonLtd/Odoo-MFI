@@ -65,13 +65,32 @@ class TestGuides(MfiCase):
         self.assertIn("Step 5 of 5", loan.next_step_title)
         self.assertEqual(loan.next_step_tone, "success")
 
-    def test_dashboard_panels(self):
-        self._active(self._new_loan(), days_ago=10)
-        board = self.env["mfi.dashboard"].with_user(self.ceo).create({})
-        self.assertIn("PAR 30", board.risk_html)
-        self.assertIn("o_mfi_bar", board.ageing_html)
-        self.assertIn("o_mfi_badge", board.attention_html)
-        for method in ("action_open_overdue", "action_open_pending_information", "action_open_to_disburse",
-                       "action_open_disbursed_month", "action_open_clients", "action_open_collected_today",
-                       "action_open_collected_month", "action_open_due_today"):
-            self.assertEqual(getattr(board, method)()["type"], "ir.actions.act_window", method)
+    def test_live_dashboard_data(self):
+        late = self._active(self._new_loan(), days_ago=10)  # 9 days late
+        self._pay(late, 500, "DASH1")
+        Board = self.env["mfi.dashboard"].with_user(self.ceo)
+        for period in ("today", "7d", "30d", "month", "year"):
+            data = Board.mfi_dashboard_data(period)
+            self.assertEqual(data["period"], period)
+            self.assertEqual(len(data["series"]["labels"]), len(data["series"]["collected"]), period)
+            self.assertGreaterEqual(len(data["series"]["labels"]), 7, period)  # always at least a week
+        data = Board.mfi_dashboard_data("30d")
+        self.assertEqual(data["kpis"]["collected"]["value"], 500)
+        self.assertEqual(data["kpis"]["disbursed"]["count"], 1)
+        self.assertEqual(data["book"]["active"]["count"], 1)
+        self.assertEqual([loan["id"] for loan in data["late"]], [late.id])
+        self.assertEqual(sum(b["count"] for b in data["ageing"]), 1)
+        self.assertEqual(data["payments"][0]["amount"], 500)
+
+    def test_live_dashboard_drilldown(self):
+        Board = self.env["mfi.dashboard"].with_user(self.ceo)
+        for key, value in [("collected", None), ("disbursed", None), ("rate", None), ("clients", None),
+                           ("applications", None), ("active", None), ("arrears", None), ("overdue", None),
+                           ("pending_information", None), ("pending_approval", None), ("approved", None),
+                           ("health", "current"), ("health", "overdue"), ("ageing", "1_7"), ("mine", None),
+                           ("late", None), ("payments", None)]:
+            action = Board.mfi_dashboard_action(key, "30d", value)
+            self.assertEqual(action["type"], "ir.actions.act_window", key)
+            domain = action.get("domain") or []
+            if isinstance(domain, list):  # ours; menu actions keep their own (text) domain
+                self.env[action["res_model"]].with_user(self.ceo).search(domain)

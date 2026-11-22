@@ -1,6 +1,7 @@
+from collections import defaultdict
 from datetime import timedelta
 
-from markupsafe import Markup, escape
+from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models
 
@@ -8,59 +9,21 @@ from .rules import r2
 
 BUCKETS = [("current", "Current"), ("1_7", "1-7 days"), ("8_14", "8-14 days"),
            ("15_30", "15-30 days"), ("30_plus", "30+ days")]
-# Colour per ageing bucket, from healthy to worst (Bootstrap colour names).
-BUCKET_TONES = {"current": "success", "1_7": "info", "8_14": "warning", "15_30": "orange", "30_plus": "danger"}
-HEALTH_TONES = {"current": "success", "arrears": "warning", "overdue": "danger"}
+HEALTH = [("current", "On time"), ("arrears", "In arrears"), ("overdue", "Overdue")]
+# Period picker on the dashboard: key -> label
+PERIODS = [("today", "Today"), ("7d", "7 days"), ("30d", "30 days"), ("month", "This month"), ("year", "This year")]
 
 
-def _cell(value):
-    """A table cell: plain text is escaped, Markup is kept (badges, bars)."""
-    return value if isinstance(value, Markup) else escape(value)
-
-
-def _table(headers, rows, tone="primary"):
-    """A coloured table: header in the section colour, hover rows."""
-    head = "".join(f"<th>{escape(h)}</th>" for h in headers)
-    body = "".join("<tr>" + "".join(f"<td>{_cell(c)}</td>" for c in row) + "</tr>" for row in rows)
-    empty = f'<tr><td colspan="{len(headers)}" class="text-muted text-center py-3">Nothing to show</td></tr>'
-    return Markup(f'<table class="table table-sm table-hover align-middle o_mfi_table o_mfi_table_{tone} mb-0">'
-                  f"<thead><tr>{head}</tr></thead><tbody>{body or empty}</tbody></table>")
-
-
-def _badge(label, tone):
-    return Markup('<span class="badge rounded-pill o_mfi_badge o_mfi_tone_%s">%s</span>') % (tone, label)
-
-
-def _bar(percent, tone):
-    """A thin progress bar, 0-100."""
-    width = max(0.0, min(float(percent or 0), 100.0))
-    return Markup(
-        '<div class="progress o_mfi_bar" role="progressbar" aria-valuenow="%s" aria-valuemin="0" aria-valuemax="100">'
-        '<div class="progress-bar o_mfi_tone_%s" style="width: %s%%"></div></div>'
-    ) % (f"{width:.0f}", tone, f"{width:.1f}")
-
-
-def _risk_tone(value, warn, bad):
-    """Green below ``warn``, amber below ``bad``, red from ``bad``."""
-    return "success" if value < warn else "warning" if value < bad else "danger"
-
-
-def _risk_panel(rows):
-    """PAR and collection rate as coloured bars: (label, hint, percent, tone)."""
-    items = Markup("").join(
-        Markup(
-            '<div class="o_mfi_risk_row">'
-            '<div class="d-flex justify-content-between align-items-baseline">'
-            '<span class="fw-semibold">%s <small class="text-muted fw-normal">%s</small></span>'
-            '<span class="fw-bold o_mfi_text_%s">%s%%</span></div>%s</div>'
-        ) % (label, hint, tone, f"{percent:,.1f}", _bar(percent, tone))
-        for label, hint, percent, tone in rows
-    )
-    return Markup('<div class="o_mfi_risk">%s</div>') % items
+def _trend(now, before):
+    """Change against the previous period, in %, or None when there is nothing to compare."""
+    if not before:
+        return None
+    return r2((now - before) / abs(before) * 100)
 
 
 class MfiDashboard(models.TransientModel):
-    """The portfolio snapshot, worked out when opened (as the portal's dashboard)."""
+    """The portfolio snapshot. The live dashboard (client action mfi_loan.dashboard)
+    reads everything through mfi_dashboard_data(); the fields stay for reports and tests."""
 
     _name = "mfi.dashboard"
     _description = "Microfinance dashboard"
@@ -77,166 +40,243 @@ class MfiDashboard(models.TransientModel):
     par_7 = fields.Float("PAR 7 (%)", compute="_compute_all")
     par_30 = fields.Float("PAR 30 (%)", compute="_compute_all")
     collected_today = fields.Monetary(compute="_compute_all")
-    collected_today_count = fields.Integer(compute="_compute_all")
     due_today = fields.Monetary(compute="_compute_all")
-    collected_vs_due_today = fields.Float("Collected / due today (%)", compute="_compute_all")
     disbursed_month = fields.Monetary("Disbursed this month", compute="_compute_all")
-    disbursed_month_count = fields.Integer(compute="_compute_all")
-    collected_month = fields.Monetary("Collected this month", compute="_compute_all")
     pending_information = fields.Integer(compute="_compute_all")
     pending_approval = fields.Integer(compute="_compute_all")
     to_disburse = fields.Integer(compute="_compute_all")
     clients = fields.Integer(compute="_compute_all")
-    clients_new_month = fields.Integer("New this month", compute="_compute_all")
     collection_rate_30 = fields.Float("30-day collection rate (%)", compute="_compute_all")
-    risk_html = fields.Html("Portfolio at risk", compute="_compute_all", sanitize=False)
-    ageing_html = fields.Html("Arrears ageing", compute="_compute_all", sanitize=False)
-    attention_html = fields.Html("Needs attention", compute="_compute_all", sanitize=False)
-    approvals_html = fields.Html("Approval queue", compute="_compute_all", sanitize=False)
 
     @api.depends("as_of")
     def _compute_all(self):
-        Loan, Payment = self.env["mfi.loan"], self.env["mfi.payment"]
-        Inst, Partner = self.env["mfi.loan.installment"], self.env["res.partner"]
         for board in self:
             today = board.as_of or fields.Date.context_today(self)
-            month_start = today.replace(day=1)
-            active = Loan.search([("state", "=", "active")])
-            arrears = active.filtered(lambda l: l.health == "arrears")
-            overdue = active.filtered(lambda l: l.health == "overdue")
-            total = sum(active.mapped("outstanding"))
-
-            def par(days):
-                at_risk = sum(active.filtered(lambda l: l.days_past_due >= days).mapped("outstanding"))
-                return r2(at_risk / total * 100) if total else 0.0
-
-            paid = Payment.search([("state", "=", "allocated")])
-            today_paid = paid.filtered(lambda p: p.date == today)
-            due_today = sum(Inst.search([("due_date", "=", today), ("loan_id.state", "=", "active")]).mapped("amount_due"))
-            since = today - timedelta(days=29)
-            expected_30 = sum(Inst.search([("due_date", ">=", since), ("due_date", "<=", today)]).mapped("amount_due"))
-            collected_30 = sum(paid.filtered(lambda p: since <= p.date <= today).mapped("amount"))
-            disbursed = Loan.search([("disbursed_date", ">=", month_start), ("disbursed_date", "<=", today)])
-            rate_30 = r2(collected_30 / expected_30 * 100) if expected_30 else 0.0
-
+            snap = self._mfi_snapshot()
             board.update({
-                "active_count": len(active),
-                "active_outstanding": total,
-                "arrears_count": len(arrears),
-                "arrears_missed": sum(arrears.mapped("arrears_amount")),
-                "overdue_count": len(overdue),
-                "overdue_outstanding": sum(overdue.mapped("outstanding")),
-                "par_1": par(1), "par_7": par(7), "par_30": par(30),
-                "collected_today": sum(today_paid.mapped("amount")),
-                "collected_today_count": len(today_paid),
-                "due_today": due_today,
-                "collected_vs_due_today": r2(sum(today_paid.mapped("amount")) / due_today * 100) if due_today else 0.0,
-                "disbursed_month": sum(disbursed.mapped("principal")),
-                "disbursed_month_count": len(disbursed),
-                "collected_month": sum(paid.filtered(lambda p: p.date >= month_start).mapped("amount")),
-                "pending_information": Loan.search_count([("state", "=", "pending_information")]),
-                "pending_approval": Loan.search_count([("state", "=", "pending_approval")]),
-                "to_disburse": Loan.search_count([("state", "=", "approved")]),
-                "clients": Partner.search_count([("is_mfi_client", "=", True)]),
-                "clients_new_month": Partner.search_count([
-                    ("is_mfi_client", "=", True), ("create_date", ">=", fields.Datetime.to_datetime(month_start))]),
-                "collection_rate_30": rate_30,
-                "risk_html": _risk_panel([
-                    (label, hint, value, _risk_tone(value, warn, bad))
-                    for label, hint, value, warn, bad in [
-                        (self.env._("PAR 1"), self.env._("1+ days late"), par(1), 5, 10),
-                        (self.env._("PAR 7"), self.env._("7+ days late"), par(7), 5, 10),
-                        (self.env._("PAR 30"), self.env._("30+ days late"), par(30), 3, 5),
-                    ]
-                ] + [(
-                    self.env._("Collection rate"), self.env._("last 30 days"), rate_30,
-                    # higher is better: green from 95 %, amber from 80 %
-                    "success" if rate_30 >= 95 else "warning" if rate_30 >= 80 else "danger",
-                )]),
-                "ageing_html": _table(["Bucket", "Loans", "Outstanding (KES)", "Share"], [
-                    (_badge(label, BUCKET_TONES[key]), len(group), f"{amount:,.0f}",
-                     _bar(amount / total * 100 if total else 0, BUCKET_TONES[key]))
-                    for key, label in BUCKETS
-                    for group in [active.filtered(lambda l, k=key: l.ageing_bucket == k)]
-                    for amount in [sum(group.mapped("outstanding"))]
-                ], tone="warning"),
-                "attention_html": _table(["Loan", "Client", "Days late", "Outstanding (KES)", "Status"], [
-                    (l.name, l.partner_id.name, l.days_past_due, f"{l.outstanding:,.0f}",
-                     _badge(dict(l._fields["health"].selection)[l.health], HEALTH_TONES.get(l.health, "info")))
-                    for l in (arrears | overdue).sorted("outstanding", reverse=True)[:6]
-                ], tone="danger"),
-                "approvals_html": _table(["Loan", "Client", "Amount (KES)", "Stage"], [
-                    (l.name, l.partner_id.name, f"{l.principal:,.0f}",
-                     _badge(self.env._("Stage %s of 3", l.approval_stage), "primary"))
-                    for l in Loan.search([("state", "=", "pending_approval")], order="submitted_at asc, id asc", limit=5)
-                ], tone="primary"),
+                "active_count": snap["active"]["count"],
+                "active_outstanding": snap["active"]["amount"],
+                "arrears_count": snap["arrears"]["count"],
+                "arrears_missed": snap["arrears"]["amount"],
+                "overdue_count": snap["overdue"]["count"],
+                "overdue_outstanding": snap["overdue"]["amount"],
+                "par_1": snap["par"]["1"], "par_7": snap["par"]["7"], "par_30": snap["par"]["30"],
+                "collected_today": self._mfi_collected(today, today),
+                "due_today": self._mfi_due(today, today),
+                "disbursed_month": self._mfi_disbursed(today.replace(day=1), today)[0],
+                "pending_information": snap["pipeline"]["pending_information"],
+                "pending_approval": snap["pipeline"]["pending_approval"],
+                "to_disburse": snap["pipeline"]["approved"],
+                "clients": self.env["res.partner"].search_count([("is_mfi_client", "=", True)]),
+                "collection_rate_30": self._mfi_rate(today - timedelta(days=29), today),
             })
 
-    @api.model
-    def action_open(self):
-        board = self.create({})
+    # ------------------------------------------------------------------
+    # Building blocks
+    # ------------------------------------------------------------------
+
+    def _mfi_collected(self, start, end):
+        groups = self.env["mfi.payment"]._read_group(
+            [("state", "=", "allocated"), ("date", ">=", start), ("date", "<=", end)], [], ["amount:sum"])
+        return groups[0][0] or 0.0
+
+    def _mfi_due(self, start, end):
+        groups = self.env["mfi.loan.installment"]._read_group(
+            [("due_date", ">=", start), ("due_date", "<=", end),
+             ("loan_id.state", "in", ("active", "repaid", "written_off"))], [], ["amount_due:sum"])
+        return groups[0][0] or 0.0
+
+    def _mfi_rate(self, start, end):
+        due = self._mfi_due(start, end)
+        return r2(self._mfi_collected(start, end) / due * 100) if due else 0.0
+
+    def _mfi_disbursed(self, start, end):
+        groups = self.env["mfi.loan"]._read_group(
+            [("disbursed_date", ">=", start), ("disbursed_date", "<=", end)], [], ["principal:sum", "__count"])
+        return groups[0][0] or 0.0, groups[0][1]
+
+    def _mfi_count(self, model, domain, start, end):
+        return self.env[model].search_count(domain + [
+            ("create_date", ">=", fields.Datetime.to_datetime(start)),
+            ("create_date", "<", fields.Datetime.to_datetime(end + timedelta(days=1)))])
+
+    def _mfi_snapshot(self):
+        """Figures that do not depend on the period: the book as it stands."""
+        Loan = self.env["mfi.loan"]
+        active = Loan.search([("state", "=", "active")])
+        total = sum(active.mapped("outstanding"))
+
+        def par(days):
+            at_risk = sum(active.filtered(lambda l: l.days_past_due >= days).mapped("outstanding"))
+            return r2(at_risk / total * 100) if total else 0.0
+
+        by_health = {key: active.filtered(lambda l, k=key: l.health == k) for key, _label in HEALTH}
         return {
-            "type": "ir.actions.act_window",
-            "name": self.env._("Dashboard"),
-            "res_model": "mfi.dashboard",
-            "res_id": board.id,
-            "view_mode": "form",
-            "target": "current",
+            "active": {"count": len(active), "amount": total},
+            "arrears": {"count": len(by_health["arrears"]),
+                        "amount": sum(by_health["arrears"].mapped("arrears_amount"))},
+            "overdue": {"count": len(by_health["overdue"]),
+                        "amount": sum(by_health["overdue"].mapped("outstanding"))},
+            "par": {"1": par(1), "7": par(7), "30": par(30)},
+            "health": [{"key": key, "label": self.env._(label), "count": len(by_health[key]),
+                        "amount": sum(by_health[key].mapped("outstanding"))} for key, label in HEALTH],
+            "ageing": [{"key": key, "label": self.env._(label), "count": len(group),
+                        "amount": sum(group.mapped("outstanding"))}
+                       for key, label in BUCKETS
+                       for group in [active.filtered(lambda l, k=key: l.ageing_bucket == k)]],
+            "pipeline": {state: Loan.search_count([("state", "=", state)])
+                         for state in ("pending_information", "pending_approval", "approved")},
+            "late": by_health["arrears"] | by_health["overdue"],
         }
 
-    def _open(self, action_xmlid):
-        return self.env["ir.actions.act_window"]._for_xml_id(action_xmlid)
+    @api.model
+    def _mfi_period(self, period, today):
+        """(start, end, previous start, previous end) for a period key."""
+        start = {
+            "today": today,
+            "7d": today - timedelta(days=6),
+            "month": today.replace(day=1),
+            "year": today.replace(month=1, day=1),
+        }.get(period, today - timedelta(days=29))
+        days = (today - start).days + 1
+        prev_end = start - timedelta(days=1)
+        return start, today, prev_end - timedelta(days=days - 1), prev_end
 
-    def action_open_arrears(self):
-        return self._open("mfi_loan.action_mfi_loan_arrears")
+    def _mfi_series(self, start, end):
+        """Collected, due and disbursed per day (or per month over long periods)."""
+        start = min(start, end - timedelta(days=6))  # at least a week, so "today" still shows a trend
+        monthly = (end - start).days > 62
+        grain = "month" if monthly else "day"
+        buckets, cursor = [], start.replace(day=1) if monthly else start
+        while cursor <= end:
+            buckets.append(cursor)
+            cursor += relativedelta(months=1) if monthly else timedelta(days=1)
 
-    def action_open_active(self):
-        action = self._open("mfi_loan.action_mfi_loan")
-        action["context"] = {"search_default_active": 1}
-        return action
+        def grouped(model, domain, date_field, measure):
+            totals = defaultdict(float)
+            for when, amount in self.env[model]._read_group(
+                    domain + [(date_field, ">=", buckets[0]), (date_field, "<=", end)],
+                    [f"{date_field}:{grain}"], [f"{measure}:sum"]):
+                if when:
+                    totals[when] += amount or 0.0
+            return [r2(totals.get(b, 0.0)) for b in buckets]
 
-    def action_open_approvals(self):
-        action = self._open("mfi_loan.action_mfi_loan")
-        action["context"] = {"search_default_pending_approval": 1}
-        return action
+        label = "%b %Y" if monthly else "%d %b"
+        return {
+            "labels": [b.strftime(label) for b in buckets],
+            "collected": grouped("mfi.payment", [("state", "=", "allocated")], "date", "amount"),
+            "due": grouped("mfi.loan.installment",
+                           [("loan_id.state", "in", ("active", "repaid", "written_off"))], "due_date", "amount_due"),
+            "disbursed": grouped("mfi.loan", [], "disbursed_date", "principal"),
+        }
 
-    def action_open_collections(self):
-        return self._open("mfi_loan.action_mfi_collections_late")
+    # ------------------------------------------------------------------
+    # Live dashboard
+    # ------------------------------------------------------------------
 
-    def _open_loans(self, *filters):
-        action = self._open("mfi_loan.action_mfi_loan")
-        action["context"] = {f"search_default_{name}": 1 for name in filters}
-        return action
+    @api.model
+    def mfi_dashboard_data(self, period="30d"):
+        """Everything the live dashboard shows, in one call."""
+        today = fields.Date.context_today(self)
+        start, end, prev_start, prev_end = self._mfi_period(period, today)
+        snap = self._mfi_snapshot()
+        Loan = self.env["mfi.loan"]
+        series = self._mfi_series(start, end)
 
-    def action_open_overdue(self):
-        return self._open_loans("overdue")
+        def kpi(now, before, **extra):
+            return {"value": now, "previous": before, "trend": _trend(now, before), **extra}
 
-    def action_open_pending_information(self):
-        return self._open_loans("pending_information")
+        disbursed, disbursed_count = self._mfi_disbursed(start, end)
+        disbursed_before, _count = self._mfi_disbursed(prev_start, prev_end)
+        client_domain = [("is_mfi_client", "=", True)]
+        company = self.env.company
+        currency = company.currency_id
+        return {
+            "user": self.env.user.name,
+            "company": company.name,
+            "today": fields.Date.to_string(today),
+            "period": period,
+            "periods": [{"key": key, "label": self.env._(label)} for key, label in PERIODS],
+            "currency": {"symbol": currency.symbol or currency.name, "position": currency.position,
+                         "name": currency.name},
+            "kpis": {
+                "collected": kpi(self._mfi_collected(start, end), self._mfi_collected(prev_start, prev_end),
+                                 spark=series["collected"]),
+                "disbursed": kpi(disbursed, disbursed_before, count=disbursed_count, spark=series["disbursed"]),
+                "rate": kpi(self._mfi_rate(start, end), self._mfi_rate(prev_start, prev_end),
+                            due=self._mfi_due(start, end)),
+                "clients": kpi(self._mfi_count("res.partner", client_domain, start, end),
+                               self._mfi_count("res.partner", client_domain, prev_start, prev_end),
+                               total=self.env["res.partner"].search_count(client_domain)),
+                "applications": kpi(self._mfi_count("mfi.loan", [], start, end),
+                                    self._mfi_count("mfi.loan", [], prev_start, prev_end)),
+            },
+            "book": {key: snap[key] for key in ("active", "arrears", "overdue", "par")},
+            "health": snap["health"],
+            "ageing": snap["ageing"],
+            "pipeline": dict(snap["pipeline"], mine=Loan.search_count([("awaiting_me", "=", True)])),
+            "series": series,
+            "late": [{
+                "id": loan.id, "name": loan.name, "client": loan.partner_id.name,
+                "days": loan.days_past_due, "amount": loan.outstanding, "health": loan.health,
+            } for loan in snap["late"].sorted("days_past_due", reverse=True)[:6]],
+            "approvals": [{
+                "id": loan.id, "name": loan.name, "client": loan.partner_id.name, "amount": loan.principal,
+                "stage": loan.approval_stage, "mine": loan.awaiting_me,
+                "days": (today - loan.submitted_at.date()).days if loan.submitted_at else 0,
+            } for loan in Loan.search([("state", "=", "pending_approval")],
+                                      order="submitted_at asc, id asc", limit=6)],
+            "payments": [{
+                "id": pay.id, "client": pay.partner_id.name or self.env._("Unmatched"),
+                "amount": pay.amount, "date": fields.Date.to_string(pay.date),
+                "method": dict(pay._fields["method"].selection).get(pay.method, ""), "matched": bool(pay.loan_id),
+            } for pay in self.env["mfi.payment"].search(
+                [("state", "in", ("allocated", "unmatched"))], order="date desc, id desc", limit=6)],
+        }
 
-    def action_open_to_disburse(self):
-        return self._open("mfi_loan.action_mfi_loan_to_disburse")
+    @api.model
+    def mfi_dashboard_action(self, key, period="30d", value=None):
+        """The list behind a card, chart segment or pipeline step."""
+        today = fields.Date.context_today(self)
+        start, end, _ps, _pe = self._mfi_period(period, today)
 
-    def action_open_disbursed_month(self):
-        action = self._open("mfi_loan.action_mfi_loan")
-        month_start = (self.as_of or fields.Date.context_today(self)).replace(day=1)
-        action["domain"] = [("disbursed_date", ">=", fields.Date.to_string(month_start))]
-        action["context"] = {}
-        return action
+        def act(xmlid, name=None, domain=None, context=None):
+            action = self.env["ir.actions.act_window"]._for_xml_id(xmlid)
+            if name:
+                action["name"] = name
+            if domain is not None:
+                action["domain"] = domain
+            action["context"] = context or {}
+            return action
 
-    def action_open_clients(self):
-        return self._open("mfi_loan.action_mfi_client")
-
-    def _open_payments(self, period):
-        action = self._open("mfi_loan.action_mfi_payment")
-        action["context"] = {"search_default_allocated": 1, f"search_default_{period}": 1}
-        return action
-
-    def action_open_collected_today(self):
-        return self._open_payments("today")
-
-    def action_open_collected_month(self):
-        return self._open_payments("this_month")
-
-    def action_open_due_today(self):
-        return self._open("mfi_loan.action_mfi_collections_due_today")
+        _ = self.env._
+        loans = "mfi_loan.action_mfi_loan"
+        span = [(">=", fields.Date.to_string(start)), ("<=", fields.Date.to_string(end))]
+        created = [("create_date", ">=", fields.Datetime.to_string(fields.Datetime.to_datetime(start))),
+                   ("create_date", "<", fields.Datetime.to_string(
+                       fields.Datetime.to_datetime(end + timedelta(days=1))))]
+        if key == "collected":
+            return act("mfi_loan.action_mfi_payment", _("Collected"),
+                       [("state", "=", "allocated")] + [("date", op, d) for op, d in span])
+        if key == "disbursed":
+            return act(loans, _("Disbursed"), [("disbursed_date", op, d) for op, d in span])
+        if key == "rate":
+            return act("mfi_loan.action_mfi_collections_late")
+        if key == "clients":
+            return act("mfi_loan.action_mfi_client", _("New clients"), [("is_mfi_client", "=", True)] + created)
+        if key == "applications":
+            return act(loans, _("New applications"), created)
+        if key in ("active", "arrears", "overdue", "pending_information", "pending_approval", "approved"):
+            return act(loans, context={f"search_default_{key}": 1})
+        if key == "health" and value in dict(HEALTH):
+            return act(loans, context={f"search_default_{'current' if value == 'current' else value}": 1})
+        if key == "ageing" and value in dict(BUCKETS):
+            return act(loans, _("Ageing: %s", dict(BUCKETS)[value]),
+                       [("state", "=", "active"), ("ageing_bucket", "=", value)])
+        if key == "mine":
+            return act("mfi_loan.action_mfi_loan_my_tasks")
+        if key == "late":
+            return act("mfi_loan.action_mfi_collections_late")
+        if key == "payments":
+            return act("mfi_loan.action_mfi_payment")
+        return act(loans)

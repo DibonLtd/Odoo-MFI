@@ -2,9 +2,9 @@
 <!-- The portal's navigation: Overview, Clients, Lending, Recovery, Insights, Administration. -->
 <odoo>
     <menuitem id="menu_mfi_root" name="Microfinance" sequence="40" groups="mfi_loan.group_mfi_user"
-              action="action_mfi_dashboard"/>
+              action="action_mfi_dashboard_live"/>
 
-    <menuitem id="menu_mfi_dashboard" name="Dashboard" parent="menu_mfi_root" action="action_mfi_dashboard" sequence="1"/>
+    <menuitem id="menu_mfi_dashboard" name="Dashboard" parent="menu_mfi_root" action="action_mfi_dashboard_live" sequence="1"/>
 
     <menuitem id="menu_mfi_clients_root" name="Clients" parent="menu_mfi_root" sequence="10"/>
     <menuitem id="menu_mfi_clients" name="Clients" parent="menu_mfi_clients_root" action="action_mfi_client" sequence="10"/>
