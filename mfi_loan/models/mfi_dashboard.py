@@ -266,7 +266,8 @@ class MfiDashboard(models.TransientModel):
             return act("mfi_loan.action_mfi_client", _("New clients"), [("is_mfi_client", "=", True)] + created)
         if key == "applications":
             return act(loans, _("New applications"), created)
-        if key in ("active", "arrears", "overdue", "pending_information", "pending_approval", "approved"):
+        if key in ("active", "arrears", "overdue", "pending_information", "pending_approval", "approved",
+                   "draft", "repaid", "rejected", "written_off"):
             return act(loans, context={f"search_default_{key}": 1})
         if key == "health" and value in dict(HEALTH):
             return act(loans, context={f"search_default_{'current' if value == 'current' else value}": 1})
@@ -280,3 +281,51 @@ class MfiDashboard(models.TransientModel):
         if key == "payments":
             return act("mfi_loan.action_mfi_payment")
         return act(loans)
+
+    # ------------------------------------------------------------------
+    # How it works: the presentation page (client action mfi_loan.how_it_works)
+    # ------------------------------------------------------------------
+
+    @api.model
+    def mfi_how_it_works_data(self):
+        """What the How it works page shows, read live so it matches this database:
+        loans in each state, the loan types and the fee table."""
+        from .mfi_loan import STATES
+        from .mfi_product import CATEGORIES
+
+        Loan = self.env["mfi.loan"]
+        counts = {state: count for state, count in Loan._read_group([], ["state"], ["__count"])}
+        categories = dict(CATEGORIES)
+        company = self.env.company
+        products = [{
+            "id": p.id,
+            "name": p.name,
+            "category": p.category,
+            "category_label": categories.get(p.category, ""),
+            "rate": p.daily_rate,
+            "penalty": p.penalty_rate,
+            "min_days": p.min_interest_days,
+            "min": p.min_amount,
+            "max": p.max_amount,
+        } for p in self.env["mfi.product"].search([])]
+        fees = [{
+            "id": f.id,
+            "name": f.name,
+            "code": f.code,
+            "amount": f.amount,
+            "min": f.min_principal,
+            "max": f.max_principal,
+            "category": f.product_category or False,
+            "first_only": f.first_loan_only,
+            "upfront_first": f.upfront_on_first_loan and company.mfi_first_loan_fees_upfront,
+        } for f in self.env["mfi.fee"].search([])]
+        sample = Loan.search([("state", "=", "active")], limit=1, order="days_past_due desc, id desc")             or Loan.search([], limit=1, order="id desc")
+        return {
+            "company": company.name,
+            "currency": company.currency_id.symbol or company.currency_id.name,
+            "states": [{"key": k, "label": label, "count": counts.get(k, 0)} for k, label in STATES],
+            "clients": self.env["res.partner"].search_count([("is_mfi_client", "=", True)]),
+            "products": products,
+            "fees": fees,
+            "sample": {"id": sample.id, "name": sample.name, "client": sample.partner_id.name} if sample else False,
+        }

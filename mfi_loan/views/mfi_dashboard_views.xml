@@ -11,6 +11,13 @@
         <field name="path">microfinance-dashboard</field>
     </record>
 
+    <!-- How it works: the presentation page shown before a live demo -->
+    <record id="action_mfi_how_it_works" model="ir.actions.client">
+        <field name="name">How it works</field>
+        <field name="tag">mfi_loan.how_it_works</field>
+        <field name="path">microfinance-how-it-works</field>
+    </record>
+
     <!-- Kept for existing links and bookmarks: opens the live dashboard. -->
     <record id="action_mfi_dashboard" model="ir.actions.server">
         <field name="name">Dashboard</field>

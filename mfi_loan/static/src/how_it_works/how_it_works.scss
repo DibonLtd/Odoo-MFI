@@ -1,0 +1,782 @@
+// How it works: the presentation page (client action mfi_loan.how_it_works).
+// Readable from the back of the room; light and dark mode (surfaces use Odoo's
+// view colours, accents stay saturated). Tones match the dashboard.
+
+$mfi-how-tones: (
+    "indigo": #4f46e5,
+    "cyan": #0891b2,
+    "teal": #0d9488,
+    "amber": #d97706,
+    "green": #16a34a,
+    "orange": #ea580c,
+    "purple": #9333ea,
+    "red": #dc2626,
+    "slate": #64748b,
+);
+
+@keyframes mfi-how-in {
+    from { opacity: 0.35; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes mfi-how-ring {
+    0% { box-shadow: 0 0 0 0 rgba(var(--mfi-rgb), 0.55); }
+    100% { box-shadow: 0 0 0 14px transparent; }
+}
+
+// Odoo makes each action a full-height, overflow-hidden flex column; the page scrolls inside it.
+.o_action.o_mfi_how_action {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+.o_mfi_how_action > .o_mfi_how {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.o_mfi_how {
+    --mfi-line: rgba(128, 128, 128, 0.25);
+    --mfi-soft: rgba(128, 128, 128, 0.08);
+    --mfi-card: #{$o-view-background-color};
+    --mfi-tone: #4f46e5;
+    --mfi-rgb: 79, 70, 229;
+    color: $o-main-text-color;
+    background: $o-webclient-background-color;
+    scroll-behavior: smooth;
+
+    @each $name, $color in $mfi-how-tones {
+        .o_mfi_tone_#{$name} {
+            --mfi-tone: #{$color};
+            --mfi-rgb: #{red($color)}, #{green($color)}, #{blue($color)};
+        }
+    }
+
+    h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.2rem; }
+    h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .min-w-0 { min-width: 0; }
+
+    .o_mfi_how_wrap {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding-left: clamp(1rem, 3vw, 2rem);
+        padding-right: clamp(1rem, 3vw, 2rem);
+    }
+
+    // -- hero ------------------------------------------------------------
+    .o_mfi_how_hero {
+        padding: 2.25rem 0 1.75rem;
+        color: #fff;
+        background:
+            radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.18), transparent 42%),
+            radial-gradient(circle at 10% 110%, rgba(22, 163, 74, 0.45), transparent 50%),
+            linear-gradient(135deg, #1e1b4b 0%, #3730a3 50%, #0e7490 100%);
+    }
+    .o_mfi_how_eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.8rem;
+        font-weight: 600;
+        opacity: 0.8;
+    }
+    .o_mfi_how_title {
+        color: #fff;
+        font-size: clamp(2.2rem, 4.5vw, 3.4rem);
+        font-weight: 800;
+        margin: 0.2rem 0 0.5rem;
+        letter-spacing: -0.02em;
+    }
+    .o_mfi_how_lead {
+        font-size: clamp(1.02rem, 1.5vw, 1.25rem);
+        max-width: 48rem;
+        opacity: 0.92;
+        margin-bottom: 1.25rem;
+    }
+    .o_mfi_how_stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 2rem;
+        margin-bottom: 1.5rem;
+    }
+    .o_mfi_how_stat {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4rem;
+        opacity: 0.95;
+    }
+    .o_mfi_how_stat_n {
+        font-size: 1.6rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+    .o_mfi_how_nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+        gap: 0.6rem;
+    }
+    .o_mfi_how_chip {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.6rem 0.75rem;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 0.8rem;
+        transition: background 0.15s, transform 0.15s;
+
+        &:hover, &:focus-visible {
+            background: rgba(255, 255, 255, 0.22);
+            transform: translateY(-2px);
+        }
+        .o_mfi_how_num {
+            color: #312e81;
+            background: #fff;
+        }
+    }
+    .o_mfi_how_num {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        font-weight: 800;
+        color: #fff;
+        background: #4f46e5;
+    }
+    .o_mfi_how_num_lg {
+        width: 2.6rem;
+        height: 2.6rem;
+        font-size: 1.2rem;
+    }
+
+    // -- parts -----------------------------------------------------------
+    .o_mfi_how_body {
+        padding-top: 1.5rem;
+        padding-bottom: 3rem;
+    }
+    .o_mfi_how_part {
+        scroll-margin-top: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        background: var(--mfi-card);
+        border: 1px solid var(--mfi-line);
+        border-radius: 1.1rem;
+    }
+    .o_mfi_how_head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    .o_mfi_how_say {
+        margin: 0;
+        max-width: 52rem;
+        font-size: 1.02rem;
+        color: $text-muted;
+    }
+
+    // -- 1. journey ------------------------------------------------------
+    .o_mfi_how_player {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+    }
+    .o_mfi_how_flow_scroll {
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+    .o_mfi_how_flow {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(8.5rem, 1fr));
+        gap: 0.6rem;
+        min-width: 62rem;
+    }
+    .o_mfi_how_rail {
+        position: absolute;
+        top: 2.35rem;
+        left: 7%;
+        right: 7%;
+        height: 4px;
+        border-radius: 4px;
+        background: var(--mfi-line);
+
+        > span {
+            display: block;
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #4f46e5, #0d9488, #d97706, #16a34a, #9333ea);
+            transition: width 0.6s ease;
+        }
+    }
+    .o_mfi_how_node {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.5rem 0.4rem 0.75rem;
+        color: inherit;
+        text-align: center;
+        background: transparent;
+        border: 2px solid transparent;
+        border-radius: 1rem;
+        transition: background 0.2s, border-color 0.2s, transform 0.2s;
+
+        &:hover, &:focus-visible {
+            background: var(--mfi-soft);
+            transform: translateY(-2px);
+        }
+        &.o_active {
+            background: rgba(var(--mfi-rgb), 0.1);
+            border-color: var(--mfi-tone);
+        }
+        &.o_active .o_mfi_how_node_icon {
+            transform: scale(1.12);
+            animation: mfi-how-ring 1.6s ease-out infinite;
+        }
+        &.o_done .o_mfi_how_node_icon,
+        &.o_active .o_mfi_how_node_icon {
+            color: #fff;
+            background: var(--mfi-tone);
+            border-color: var(--mfi-tone);
+        }
+    }
+    .o_mfi_how_node_icon {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.4rem;
+        height: 3.4rem;
+        font-size: 1.35rem;
+        color: var(--mfi-tone);
+        background: var(--mfi-card);
+        border: 3px solid rgba(var(--mfi-rgb), 0.45);
+        border-radius: 50%;
+        transition: transform 0.25s, background 0.25s, color 0.25s;
+    }
+    .o_mfi_how_node_n {
+        margin-top: 0.3rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--mfi-tone);
+    }
+    .o_mfi_how_node_title {
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .o_mfi_how_node_count {
+        margin-top: 0.15rem;
+        padding: 0.05rem 0.55rem;
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        border-radius: 1rem;
+        background: var(--mfi-soft);
+    }
+
+    .o_mfi_how_branches {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(8.5rem, 1fr));
+        gap: 0.6rem;
+        min-width: 62rem;
+        margin-top: 0.4rem;
+    }
+    .o_mfi_how_branch {
+        display: flex;
+        gap: 0.5rem;
+        align-items: flex-start;
+        padding: 0.5rem 0.65rem;
+        color: inherit;
+        text-align: left;
+        font-size: 0.85rem;
+        background: rgba(var(--mfi-rgb), 0.08);
+        border: 1px dashed var(--mfi-tone);
+        border-radius: 0.7rem;
+
+        > .fa { color: var(--mfi-tone); font-size: 1.1rem; margin-top: 0.1rem; }
+        &:hover, &:focus-visible { background: rgba(var(--mfi-rgb), 0.16); }
+        // hang each side road under the step it leaves from
+        &.o_from_pending_approval { grid-column: 4; }
+        &.o_from_active { grid-column: 6; }
+    }
+
+    .o_mfi_how_detail {
+        display: flex;
+        gap: 1.1rem;
+        margin-top: 1.1rem;
+        padding: 1.25rem 1.4rem;
+        border-radius: 1rem;
+        border-left: 6px solid var(--mfi-tone);
+        background: linear-gradient(rgba(var(--mfi-rgb), 0.07), rgba(var(--mfi-rgb), 0.07)), var(--mfi-card);
+        animation: mfi-how-in 0.35s ease both;
+
+        h3 { font-size: 1.35rem; }
+    }
+    .o_mfi_how_detail_icon {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3.2rem;
+        height: 3.2rem;
+        font-size: 1.4rem;
+        color: #fff;
+        border-radius: 0.9rem;
+        background: var(--mfi-tone);
+    }
+    .o_mfi_how_detail_kicker {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--mfi-tone);
+    }
+    .o_mfi_how_detail_say {
+        font-size: 1.05rem;
+        margin-bottom: 0.6rem;
+    }
+    .o_mfi_how_ticks {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+        gap: 0.35rem 1.5rem;
+        padding: 0;
+        margin: 0 0 0.9rem;
+        list-style: none;
+
+        li {
+            position: relative;
+            padding-left: 1.5rem;
+        }
+        li::before {
+            content: "\f00c"; // fa-check
+            font-family: FontAwesome;
+            position: absolute;
+            left: 0;
+            color: var(--mfi-tone);
+        }
+    }
+    .o_mfi_how_detail_foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    .o_mfi_how_who {
+        font-weight: 600;
+    }
+    .o_mfi_how_btnlabel {
+        color: $text-muted;
+    }
+
+    // -- 2. people -------------------------------------------------------
+    .o_mfi_how_chain {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.1rem;
+        padding: 0.8rem 1rem;
+        border-radius: 0.9rem;
+        background: var(--mfi-soft);
+
+        > .fa { color: $text-muted; }
+    }
+    .o_mfi_how_chain_label {
+        font-weight: 600;
+        margin-right: 0.25rem;
+    }
+    .o_mfi_how_chain_step {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.3rem 0.75rem;
+        font-weight: 600;
+        color: #fff;
+        border-radius: 2rem;
+        background: var(--mfi-tone);
+
+        > b {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.3rem;
+            height: 1.3rem;
+            font-size: 0.75rem;
+            color: var(--mfi-tone);
+            background: #fff;
+            border-radius: 50%;
+        }
+    }
+    .o_mfi_how_roles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+        gap: 0.8rem;
+    }
+    .o_mfi_how_role {
+        padding: 1rem;
+        border: 1px solid var(--mfi-line);
+        border-top: 4px solid var(--mfi-tone);
+        border-radius: 0.9rem;
+        transition: transform 0.15s, box-shadow 0.15s;
+
+        &:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px -14px rgba(var(--mfi-rgb), 0.7);
+        }
+        ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            font-size: 0.9rem;
+        }
+    }
+    .o_mfi_how_role_icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.4rem;
+        height: 2.4rem;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+        color: var(--mfi-tone);
+        border-radius: 0.7rem;
+        background: rgba(var(--mfi-rgb), 0.14);
+    }
+
+    // -- 3. pricing ------------------------------------------------------
+    .o_mfi_how_calc {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: 1.5rem;
+
+        @media (max-width: 900px) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    .o_mfi_how_calc_in {
+        padding: 1.1rem;
+        border-radius: 0.9rem;
+        background: var(--mfi-soft);
+    }
+    .o_mfi_how_label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin: 0.9rem 0 0.4rem;
+        font-weight: 600;
+
+        &:first-child { margin-top: 0; }
+    }
+    .o_mfi_how_big {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #4f46e5;
+        font-variant-numeric: tabular-nums;
+    }
+    .o_mfi_how_range {
+        accent-color: #4f46e5;
+    }
+    .o_mfi_how_seg {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+        gap: 0.4rem;
+
+        > button {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 0.5rem 0.7rem;
+            color: inherit;
+            text-align: left;
+            background: var(--mfi-card);
+            border: 2px solid var(--mfi-line);
+            border-radius: 0.7rem;
+            transition: border-color 0.15s, background 0.15s;
+
+            &:hover { border-color: #818cf8; }
+            &.o_on {
+                border-color: #4f46e5;
+                background: rgba(79, 70, 229, 0.1);
+            }
+        }
+    }
+    .o_mfi_how_seg_sm > button {
+        align-items: center;
+        font-weight: 600;
+    }
+    .o_mfi_how_figs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+
+        @media (max-width: 560px) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+    .o_mfi_how_fig {
+        display: flex;
+        flex-direction: column;
+        padding: 0.8rem 0.9rem;
+        color: #fff;
+        border-radius: 0.9rem;
+        background: linear-gradient(135deg, transparent, rgba(0, 0, 0, 0.28)), var(--mfi-tone);
+
+        > span { font-size: 0.85rem; opacity: 0.9; }
+        > b {
+            font-size: 1.45rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            transition: all 0.2s;
+        }
+        > small { opacity: 0.85; }
+    }
+    .o_mfi_how_bar {
+        display: flex;
+        height: 1.1rem;
+        overflow: hidden;
+        border-radius: 1rem;
+        background: var(--mfi-soft);
+
+        > span { transition: width 0.35s ease; }
+    }
+    .o_mfi_how_bar_payout { background: #16a34a; }
+    .o_mfi_how_bar_fees { background: #d97706; }
+    .o_mfi_how_bar_interest { background: #4f46e5; }
+    .o_mfi_how_legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem 1.2rem;
+        margin: 0.5rem 0 1rem;
+        font-size: 0.88rem;
+    }
+    .o_mfi_how_dot {
+        display: inline-block;
+        width: 0.7rem;
+        height: 0.7rem;
+        margin-right: 0.3rem;
+        border-radius: 50%;
+    }
+    .o_mfi_how_sum {
+        width: 100%;
+        margin-bottom: 0.6rem;
+        font-variant-numeric: tabular-nums;
+
+        td {
+            padding: 0.3rem 0;
+            border-bottom: 1px solid var(--mfi-line);
+        }
+        td:last-child {
+            text-align: right;
+            white-space: nowrap;
+            padding-left: 1rem;
+        }
+    }
+    .o_mfi_how_sum_total td {
+        font-weight: 700;
+        border-bottom-width: 2px;
+    }
+    .o_mfi_how_tag {
+        display: inline-block;
+        margin-left: 0.35rem;
+        padding: 0 0.45rem;
+        font-size: 0.72rem;
+        border-radius: 1rem;
+        background: var(--mfi-soft);
+
+        &.o_mfi_tone_amber {
+            color: #fff;
+            background: var(--mfi-tone);
+        }
+    }
+
+    // -- 4. repayments ---------------------------------------------------
+    .o_mfi_how_pay_ctrl {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .o_mfi_how_pill {
+        padding: 0.15rem 0.7rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #fff;
+        border-radius: 1rem;
+        background: var(--mfi-tone);
+        transition: background 0.3s;
+    }
+    .o_mfi_how_buckets {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.6rem;
+
+        @media (max-width: 760px) {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        @media (max-width: 440px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    .o_mfi_how_bucket {
+        --mfi-tone: #64748b;
+        --mfi-rgb: 100, 116, 139;
+        position: relative;
+        height: 9.5rem;
+        overflow: hidden;
+        border: 2px solid rgba(var(--mfi-rgb), 0.55);
+        border-radius: 0.9rem;
+        background: var(--mfi-card);
+
+        &.o_mfi_how_bucket_pen { --mfi-tone: #dc2626; --mfi-rgb: 220, 38, 38; }
+        &.o_mfi_how_bucket_late { --mfi-tone: #ea580c; --mfi-rgb: 234, 88, 12; }
+        &.o_mfi_how_bucket_today { --mfi-tone: #d97706; --mfi-rgb: 217, 119, 6; }
+        &.o_mfi_how_bucket_paid { --mfi-tone: #16a34a; --mfi-rgb: 22, 163, 74; }
+        &.o_mfi_how_bucket_future { --mfi-tone: #94a3b8; --mfi-rgb: 148, 163, 184; }
+    }
+    .o_mfi_how_bucket_fill {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(var(--mfi-rgb), 0.28);
+        border-top: 3px solid var(--mfi-tone);
+        transition: height 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .o_mfi_how_bucket_txt {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 0.6rem;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.25;
+
+        > b { color: var(--mfi-tone); }
+        > span { font-size: 1.05rem; font-weight: 700; }
+        > small { color: $text-muted; }
+    }
+    .o_mfi_how_late {
+        color: #ea580c !important;
+        font-weight: 700;
+    }
+    .o_mfi_how_bucket_order {
+        position: absolute;
+        right: 0.45rem;
+        bottom: 0.35rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--mfi-tone);
+    }
+    .o_mfi_how_terms {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: 0.5rem 1.5rem;
+        margin-top: 1rem;
+        font-size: 0.92rem;
+    }
+
+    // -- 5. safeguards ---------------------------------------------------
+    .o_mfi_how_safe {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+        gap: 0.8rem;
+    }
+    .o_mfi_how_safe_card {
+        display: flex;
+        gap: 0.8rem;
+        padding: 1rem;
+        border-radius: 0.9rem;
+        background: var(--mfi-soft);
+
+        p { margin: 0; font-size: 0.92rem; }
+    }
+    .o_mfi_how_safe_icon {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.15rem;
+        color: #fff;
+        border-radius: 0.7rem;
+        background: linear-gradient(135deg, #0f766e, #0e7490);
+    }
+
+    // -- 6. live ---------------------------------------------------------
+    .o_mfi_how_live {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+        gap: 0.7rem;
+    }
+    .o_mfi_how_go {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        padding: 0.9rem 1rem;
+        color: inherit;
+        text-align: left;
+        background: var(--mfi-card);
+        border: 1px solid var(--mfi-line);
+        border-radius: 0.9rem;
+        transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+
+        > .fa {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            width: 2.6rem;
+            height: 2.6rem;
+            font-size: 1.2rem;
+            color: #fff;
+            border-radius: 0.75rem;
+            background: var(--mfi-tone);
+        }
+        > span { display: flex; flex-direction: column; min-width: 0; }
+        small { color: $text-muted; }
+        &:hover, &:focus-visible {
+            transform: translateY(-3px);
+            border-color: var(--mfi-tone);
+            box-shadow: 0 10px 24px -14px var(--mfi-tone);
+        }
+    }
+    .o_mfi_how_sample {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding: 1rem 1.2rem;
+        border-radius: 0.9rem;
+        color: #fff;
+        background: linear-gradient(135deg, #3730a3, #0e7490);
+
+        .btn-primary {
+            color: #3730a3;
+            background: #fff;
+            border-color: #fff;
+            font-weight: 700;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+}

@@ -1,6 +1,6 @@
 {
     "name": "Microfinance Loans (prototype)",
-    "version": "19.0.0.5.0",
+    "version": "19.0.0.6.0",
     "summary": "Clients, loan applications, approvals, disbursement and repayments for a lender",
     "description": """
 Prototype that replaces the Roan Capital loan portal with screens inside Odoo.

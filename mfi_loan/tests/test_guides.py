@@ -82,6 +82,23 @@ class TestGuides(MfiCase):
         self.assertEqual(sum(b["count"] for b in data["ageing"]), 1)
         self.assertEqual(data["payments"][0]["amount"], 500)
 
+    def test_how_it_works_data(self):
+        """The How it works page reads loan types, fees and loans per state, and opens each state."""
+        self._active(self._new_loan(), days_ago=3)
+        Board = self.env["mfi.dashboard"].with_user(self.officer)
+        data = Board.mfi_how_it_works_data()
+        states = {s["key"]: s["count"] for s in data["states"]}
+        self.assertEqual(set(states), {"draft", "pending_information", "pending_approval", "approved",
+                                       "active", "repaid", "rejected", "written_off"})
+        self.assertGreaterEqual(states["active"], 1)
+        self.assertTrue(data["products"])
+        self.assertTrue(data["fees"])
+        self.assertTrue(data["sample"])  # a loan to open at the end of the demo
+        for key in states:
+            action = Board.mfi_dashboard_action(key)
+            self.assertEqual(action["context"], {f"search_default_{key}": 1})
+        self.assertTrue(self.env.ref("mfi_loan.action_mfi_how_it_works"))
+
     def test_live_dashboard_drilldown(self):
         Board = self.env["mfi.dashboard"].with_user(self.ceo)
         for key, value in [("collected", None), ("disbursed", None), ("rate", None), ("clients", None),

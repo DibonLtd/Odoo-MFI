@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="mfi_loan.HowItWorks">
+        <div class="o_action o_mfi_how_action">
+        <div class="o_content o_mfi_how">
+            <t t-set="d" t-value="this.state.data"/>
+
+            <!-- Hero ===================================================== -->
+            <header class="o_mfi_how_hero">
+                <div class="o_mfi_how_wrap">
+                    <div class="o_mfi_how_eyebrow"><t t-out="d.company"/> · Microfinance Loans</div>
+                    <h1 class="o_mfi_how_title">How it works</h1>
+                    <p class="o_mfi_how_lead">
+                        One place for the whole loan: <b>onboard</b> the client, <b>capture</b> the application,
+                        <b>approve</b> it in three steps, <b>pay out</b>, <b>collect</b> every day and <b>close</b> it,
+                        with every step checked and recorded.
+                    </p>
+                    <div class="o_mfi_how_stats">
+                        <div class="o_mfi_how_stat">
+                            <span class="o_mfi_how_stat_n" t-out="d.clients"/>
+                            <span>clients</span>
+                        </div>
+                        <div class="o_mfi_how_stat">
+                            <span class="o_mfi_how_stat_n" t-out="this.count('active')"/>
+                            <span>active loans</span>
+                        </div>
+                        <div class="o_mfi_how_stat">
+                            <span class="o_mfi_how_stat_n" t-out="this.count('pending_approval')"/>
+                            <span>awaiting approval</span>
+                        </div>
+                        <div class="o_mfi_how_stat">
+                            <span class="o_mfi_how_stat_n" t-out="this.count('repaid')"/>
+                            <span>repaid</span>
+                        </div>
+                    </div>
+                    <nav class="o_mfi_how_nav" aria-label="Parts of the page">
+                        <button t-foreach="this.parts" t-as="part" t-key="part.key" type="button"
+                                class="o_mfi_how_chip" t-on-click="() => this.goTo(part.key)">
+                            <span class="o_mfi_how_num" t-out="part.number"/>
+                            <span class="d-flex flex-column align-items-start lh-sm text-start">
+                                <span class="fw-bold" t-out="part.title"/>
+                                <span class="small opacity-75" t-out="part.hint"/>
+                            </span>
+                        </button>
+                    </nav>
+                </div>
+            </header>
+
+            <div class="o_mfi_how_wrap o_mfi_how_body">
+
+                <!-- 1. Journey =========================================== -->
+                <section id="o_mfi_how_journey" class="o_mfi_how_part">
+                    <div class="o_mfi_how_head">
+                        <span class="o_mfi_how_num o_mfi_how_num_lg">1</span>
+                        <div class="flex-grow-1">
+                            <h2>The loan's journey</h2>
+                            <p class="o_mfi_how_say">Seven steps from the first visit to the last shilling. Click a step, or press <b>Play</b> to walk through it.</p>
+                        </div>
+                        <div class="o_mfi_how_player">
+                            <button type="button" class="btn btn-light" t-on-click="() => this.prev()"
+                                    t-att-disabled="this.state.step === 0" aria-label="Previous step">
+                                <i class="fa fa-chevron-left"/>
+                            </button>
+                            <button type="button" class="btn btn-primary o_mfi_how_play" t-on-click="() => this.togglePlay()">
+                                <i t-attf-class="fa #{this.state.playing ? 'fa-pause' : 'fa-play'} me-1"/>
+                                <t t-out="this.state.playing ? 'Pause' : 'Play'"/>
+                            </button>
+                            <button type="button" class="btn btn-light" t-on-click="() => this.next()"
+                                    t-att-disabled="this.state.step === this.journey.length - 1" aria-label="Next step">
+                                <i class="fa fa-chevron-right"/>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="o_mfi_how_flow_scroll">
+                        <div class="o_mfi_how_flow">
+                            <div class="o_mfi_how_rail"><span t-attf-style="width: #{this.progress}%"/></div>
+                            <button t-foreach="this.journey" t-as="step" t-key="step.key" type="button"
+                                    t-attf-class="o_mfi_how_node o_mfi_tone_#{step.tone} #{step_index === this.state.step ? 'o_active' : ''} #{step_index &lt; this.state.step ? 'o_done' : ''}"
+                                    t-on-click="() => this.select(step_index)">
+                                <span class="o_mfi_how_node_icon"><i t-attf-class="fa #{step.icon}"/></span>
+                                <span class="o_mfi_how_node_n">Step <t t-out="step_index + 1"/></span>
+                                <span class="o_mfi_how_node_title" t-out="step.title"/>
+                                <span class="o_mfi_how_node_count">
+                                    <t t-out="this.stepCount(step)"/> <t t-out="this.stepNoun(step)"/>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="o_mfi_how_branches">
+                            <button t-foreach="this.branches" t-as="branch" t-key="branch.key" type="button"
+                                    t-attf-class="o_mfi_how_branch o_mfi_tone_#{branch.tone} o_from_#{branch.from}"
+                                    t-on-click="() => this.openState(branch.state)">
+                                <i t-attf-class="fa #{branch.icon}"/>
+                                <span class="min-w-0">
+                                    <b t-out="branch.title"/> · <t t-out="this.count(branch.state)"/>
+                                    <span class="d-block small opacity-75" t-out="branch.text"/>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <t t-set="step" t-value="this.current"/>
+                    <article t-attf-class="o_mfi_how_detail o_mfi_tone_#{step.tone}" t-key="step.key">
+                        <div class="o_mfi_how_detail_icon"><i t-attf-class="fa #{step.icon}"/></div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="o_mfi_how_detail_kicker">Step <t t-out="this.state.step + 1"/> of <t t-out="this.journey.length"/></div>
+                            <h3 t-out="step.title"/>
+                            <p class="o_mfi_how_detail_say" t-out="step.say"/>
+                            <ul class="o_mfi_how_ticks">
+                                <li t-foreach="step.points" t-as="point" t-key="point_index" t-out="point"/>
+                            </ul>
+                            <div class="o_mfi_how_detail_foot">
+                                <span class="o_mfi_how_who"><i class="fa fa-user me-1"/><t t-out="step.who"/></span>
+                                <span class="o_mfi_how_btnlabel">Button: <b t-out="step.button"/></span>
+                                <button type="button" class="btn btn-sm btn-outline-primary ms-auto"
+                                        t-on-click="() => this.openStep(step)">
+                                    Open the <t t-out="this.stepCount(step)"/> <t t-out="this.stepNoun(step)"/> here
+                                    <i class="fa fa-arrow-right ms-1"/>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- 2. People ============================================ -->
+                <section id="o_mfi_how_people" class="o_mfi_how_part">
+                    <div class="o_mfi_how_head">
+                        <span class="o_mfi_how_num o_mfi_how_num_lg">2</span>
+                        <div class="flex-grow-1">
+                            <h2>Who does what</h2>
+                            <p class="o_mfi_how_say">Each member of staff gets one or more roles. Odoo shows them only the buttons their role allows.</p>
+                        </div>
+                    </div>
+
+                    <div class="o_mfi_how_chain" aria-label="Approval chain">
+                        <span class="o_mfi_how_chain_label">Every loan is approved by</span>
+                        <span class="o_mfi_how_chain_step o_mfi_tone_amber"><b>1</b> Credit Manager</span>
+                        <i class="fa fa-long-arrow-right"/>
+                        <span class="o_mfi_how_chain_step o_mfi_tone_amber"><b>2</b> a second Credit Manager</span>
+                        <i class="fa fa-long-arrow-right"/>
+                        <span class="o_mfi_how_chain_step o_mfi_tone_purple"><b>3</b> CEO</span>
+                        <i class="fa fa-long-arrow-right"/>
+                        <span class="o_mfi_how_chain_step o_mfi_tone_green"><i class="fa fa-money me-1"/> Finance pays out</span>
+                    </div>
+
+                    <div class="o_mfi_how_roles">
+                        <article t-foreach="this.roles" t-as="role" t-key="role.name"
+                                 t-attf-class="o_mfi_how_role o_mfi_tone_#{role.tone}">
+                            <span class="o_mfi_how_role_icon"><i t-attf-class="fa #{role.icon}"/></span>
+                            <h3 t-out="role.name"/>
+                            <ul>
+                                <li t-foreach="role.does" t-as="item" t-key="item_index" t-out="item"/>
+                            </ul>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- 3. Pricing =========================================== -->
+                <section id="o_mfi_how_pricing" class="o_mfi_how_part">
+                    <div class="o_mfi_how_head">
+                        <span class="o_mfi_how_num o_mfi_how_num_lg">3</span>
+                        <div class="flex-grow-1">
+                            <h2>What a loan costs</h2>
+                            <p class="o_mfi_how_say">Try any amount. The figures use this database's loan types and fee table, the same way a new application is priced.</p>
+                        </div>
+                    </div>
+
+                    <div t-if="!d.products.length" class="alert alert-info">
+                        No loan types yet. Add one in Administration › Loan types and it appears here.
+                    </div>
+                    <div t-else="" class="o_mfi_how_calc">
+                        <t t-set="q" t-value="this.quote"/>
+                        <div class="o_mfi_how_calc_in">
+                            <span class="o_mfi_how_label">Loan type</span>
+                            <div class="o_mfi_how_seg" id="o_mfi_how_product" role="radiogroup">
+                                <button t-foreach="d.products" t-as="product" t-key="product.id" type="button"
+                                        role="radio" t-att-aria-checked="product.id === this.state.productId ? 'true' : 'false'"
+                                        t-attf-class="#{product.id === this.state.productId ? 'o_on' : ''}"
+                                        t-on-click="() => this.selectProduct(product.id)">
+                                    <span class="fw-bold" t-out="product.name"/>
+                                    <span class="small opacity-75" t-out="product.category_label"/>
+                                </button>
+                            </div>
+
+                            <label class="o_mfi_how_label" for="o_mfi_how_amount">
+                                Amount <span class="o_mfi_how_big" t-out="this.money(this.state.amount)"/>
+                            </label>
+                            <input id="o_mfi_how_amount" type="range" class="form-range o_mfi_how_range"
+                                   t-att-min="this.product.min" t-att-max="this.product.max" t-att-step="this.amountStep"
+                                   t-att-value="this.state.amount" t-on-input="(ev) => this.setAmount(ev.target.value)"/>
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span t-out="this.money(this.product.min)"/>
+                                <span t-out="this.money(this.product.max)"/>
+                            </div>
+
+                            <span class="o_mfi_how_label">Term</span>
+                            <div class="o_mfi_how_seg o_mfi_how_seg_sm" role="radiogroup">
+                                <button type="button" role="radio" t-attf-class="#{this.state.days === 14 ? 'o_on' : ''}"
+                                        t-att-aria-checked="this.state.days === 14 ? 'true' : 'false'"
+                                        t-on-click="() => this.setDays(14)">14 days</button>
+                                <button type="button" role="radio" t-attf-class="#{this.state.days === 30 ? 'o_on' : ''}"
+                                        t-att-aria-checked="this.state.days === 30 ? 'true' : 'false'"
+                                        t-on-click="() => this.setDays(30)">30 days</button>
+                            </div>
+
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input" type="checkbox" id="o_mfi_how_first"
+                                       t-att-checked="this.state.first" t-on-change="(ev) => this.setFirst(ev.target.checked)"/>
+                                <label class="form-check-label" for="o_mfi_how_first">The client's first loan</label>
+                            </div>
+                        </div>
+
+                        <div class="o_mfi_how_calc_out">
+                            <div class="o_mfi_how_figs">
+                                <div class="o_mfi_how_fig o_mfi_tone_green">
+                                    <span>Client receives</span>
+                                    <b t-out="this.money(q.payout)"/>
+                                </div>
+                                <div class="o_mfi_how_fig o_mfi_tone_indigo">
+                                    <span>Pays back</span>
+                                    <b t-out="this.money(q.total)"/>
+                                </div>
+                                <div class="o_mfi_how_fig o_mfi_tone_orange">
+                                    <span>Every day</span>
+                                    <b t-out="this.money(q.daily)"/>
+                                    <small>for <t t-out="this.state.days - 1"/> days, then <t t-out="this.money(q.lastDay)"/></small>
+                                </div>
+                            </div>
+
+                            <div class="o_mfi_how_bar" role="img" aria-label="How the repayment splits">
+                                <span t-foreach="q.bar" t-as="seg" t-key="seg.key"
+                                      t-attf-class="o_mfi_how_bar_#{seg.key}"
+                                      t-attf-style="width: #{this.share(seg.value, q.barTotal)}"
+                                      t-att-title="seg.label + ': ' + this.money(seg.value)"/>
+                            </div>
+                            <div class="o_mfi_how_legend">
+                                <span t-foreach="q.bar" t-as="seg" t-key="seg.key">
+                                    <i t-attf-class="o_mfi_how_dot o_mfi_how_bar_#{seg.key}"/>
+                                    <t t-out="seg.label"/> <b t-out="this.money(seg.value)"/>
+                                </span>
+                            </div>
+
+                            <table class="o_mfi_how_sum">
+                                <tr><td>Amount</td><td t-out="this.money(q.principal)"/></tr>
+                                <tr>
+                                    <td>Interest: <t t-out="q.ratePct"/>% a day × <t t-out="this.state.days"/> days</td>
+                                    <td t-out="this.money(q.interest)"/>
+                                </tr>
+                                <tr class="o_mfi_how_sum_total"><td>To repay</td><td t-out="this.money(q.total)"/></tr>
+                                <tr t-foreach="q.fees" t-as="fee" t-key="fee.id">
+                                    <td>
+                                        <t t-out="fee.name"/>
+                                        <span t-if="fee.upfront" class="o_mfi_how_tag o_mfi_tone_amber">paid upfront</span>
+                                        <span t-else="" class="o_mfi_how_tag">off the payout</span>
+                                    </td>
+                                    <td t-out="this.money(fee.amount)"/>
+                                </tr>
+                                <tr class="o_mfi_how_sum_total"><td>Paid out to the client</td><td t-out="this.money(q.payout)"/></tr>
+                            </table>
+                            <p class="small text-muted mb-0">
+                                Late instalments add default interest of <t t-out="q.penaltyPct"/>% a day each.
+                                <t t-if="q.upfront">On a first loan, <t t-out="this.money(q.upfront)"/> is paid before approval.</t>
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Repayments ======================================== -->
+                <section id="o_mfi_how_repay" class="o_mfi_how_part">
+                    <div class="o_mfi_how_head">
+                        <span class="o_mfi_how_num o_mfi_how_num_lg">4</span>
+                        <div class="flex-grow-1">
+                            <h2>Where each payment goes</h2>
+                            <p class="o_mfi_how_say">
+                                Money pays the <b>default interest first</b>, then the <b>oldest instalment</b>.
+                                Example: a 30-day loan of <t t-out="this.money(10000)"/>, on day 4, three instalments late.
+                                Send a payment and watch it land.
+                            </p>
+                        </div>
+                    </div>
+
+                    <t t-set="ex" t-value="this.example"/>
+                    <div class="o_mfi_how_repay">
+                        <div class="o_mfi_how_pay_ctrl">
+                            <button type="button" class="btn btn-success" t-on-click="() => this.pay(300)">
+                                <i class="fa fa-mobile me-1"/> Pay <t t-out="this.money(300)"/>
+                            </button>
+                            <button type="button" class="btn btn-success" t-on-click="() => this.pay(1000)">
+                                <i class="fa fa-mobile me-1"/> Pay <t t-out="this.money(1000)"/>
+                            </button>
+                            <button type="button" class="btn btn-light" t-on-click="() => this.resetPay()" t-att-disabled="!ex.paid">
+                                <i class="fa fa-undo me-1"/> Start again
+                            </button>
+                            <span class="ms-auto d-flex align-items-center gap-2">
+                                Paid so far <b t-out="this.money(ex.paid)"/>
+                                <span t-attf-class="o_mfi_how_pill o_mfi_tone_#{ex.healthTone}" t-out="ex.health"/>
+                            </span>
+                        </div>
+
+                        <div class="o_mfi_how_buckets">
+                            <div class="o_mfi_how_bucket o_mfi_how_bucket_pen">
+                                <div class="o_mfi_how_bucket_fill" t-attf-style="height: #{ex.penaltyPct}%"/>
+                                <div class="o_mfi_how_bucket_txt">
+                                    <b>Default interest</b>
+                                    <span t-out="this.money(ex.toPenalty)"/>
+                                    <small>of <t t-out="this.money(ex.penalty)"/></small>
+                                </div>
+                                <span class="o_mfi_how_bucket_order">1st</span>
+                            </div>
+                            <div t-foreach="ex.rows" t-as="row" t-key="row.n"
+                                 t-attf-class="o_mfi_how_bucket o_mfi_how_bucket_#{row.status}">
+                                <div class="o_mfi_how_bucket_fill" t-attf-style="height: #{row.pct}%"/>
+                                <div class="o_mfi_how_bucket_txt">
+                                    <b>Day <t t-out="row.n"/></b>
+                                    <span t-out="this.money(row.paid)"/>
+                                    <small>of <t t-out="this.money(row.due)"/></small>
+                                    <small t-if="row.status === 'late'" class="o_mfi_how_late"><t t-out="row.lateDays"/> d late</small>
+                                    <small t-elif="row.status === 'today'">due today</small>
+                                    <small t-elif="row.status === 'paid'"><i class="fa fa-check"/> paid</small>
+                                </div>
+                                <span class="o_mfi_how_bucket_order" t-out="(row_index + 2) + (row_index === 0 ? 'nd' : row_index === 1 ? 'rd' : 'th')"/>
+                            </div>
+                        </div>
+
+                        <div class="o_mfi_how_terms">
+                            <div><b>In arrears</b>: an instalment due before today is unpaid.</div>
+                            <div><b>Overdue</b>: past the last day with money still owed.</div>
+                            <div><b>DPD</b>: days past due, counted from the oldest unpaid instalment.</div>
+                            <div><b>PAR 1 / 7 / 30</b>: share of the money lent out on loans that many days late.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Safeguards ======================================== -->
+                <section id="o_mfi_how_safe" class="o_mfi_how_part">
+                    <div class="o_mfi_how_head">
+                        <span class="o_mfi_how_num o_mfi_how_num_lg">5</span>
+                        <div class="flex-grow-1">
+                            <h2>Safeguards</h2>
+                            <p class="o_mfi_how_say">Client data stays private and every action leaves a trace.</p>
+                        </div>
+                    </div>
+                    <div class="o_mfi_how_safe">
+                        <article t-foreach="this.safeguards" t-as="item" t-key="item.title" class="o_mfi_how_safe_card">
+                            <span class="o_mfi_how_safe_icon"><i t-attf-class="fa #{item.icon}"/></span>
+                            <div class="min-w-0">
+                                <h3 t-out="item.title"/>
+                                <p t-out="item.text"/>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- 6. Live ============================================== -->
+                <section id="o_mfi_how_live" class="o_mfi_how_part">
+                    <div class="o_mfi_how_head">
+                        <span class="o_mfi_how_num o_mfi_how_num_lg">6</span>
+                        <div class="flex-grow-1">
+                            <h2>Show it live</h2>
+                            <p class="o_mfi_how_say">Each page has a green <b>What to do here</b> box, and each loan a <b>Next step</b> box, so the walk-through carries on inside the screens.</p>
+                        </div>
+                    </div>
+                    <div class="o_mfi_how_live">
+                        <button type="button" class="o_mfi_how_go o_mfi_tone_indigo" t-on-click="() => this.openAction('mfi_loan.action_mfi_dashboard_live')">
+                            <i class="fa fa-tachometer"/><span><b>Dashboard</b><small>The book at a glance</small></span>
+                        </button>
+                        <button type="button" class="o_mfi_how_go o_mfi_tone_cyan" t-on-click="() => this.openAction('mfi_loan.action_mfi_client')">
+                            <i class="fa fa-users"/><span><b>Clients</b><small><t t-out="d.clients"/> on the books</small></span>
+                        </button>
+                        <button type="button" class="o_mfi_how_go o_mfi_tone_teal" t-on-click="() => this.openAction('mfi_loan.action_mfi_loan')">
+                            <i class="fa fa-file-text-o"/><span><b>All loans</b><small>Every application and loan</small></span>
+                        </button>
+                        <button type="button" class="o_mfi_how_go o_mfi_tone_amber" t-on-click="() => this.openAction('mfi_loan.action_mfi_loan_my_tasks')">
+                            <i class="fa fa-gavel"/><span><b>Approvals</b><small>Waiting for a decision</small></span>
+                        </button>
+                        <button type="button" class="o_mfi_how_go o_mfi_tone_green" t-on-click="() => this.openAction('mfi_loan.action_mfi_payment')">
+                            <i class="fa fa-mobile"/><span><b>Repayments</b><small>M-Pesa and bank</small></span>
+                        </button>
+                        <button type="button" class="o_mfi_how_go o_mfi_tone_orange" t-on-click="() => this.openAction('mfi_loan.action_mfi_collections_late')">
+                            <i class="fa fa-phone"/><span><b>Collections</b><small>Late loans to follow up</small></span>
+                        </button>
+                    </div>
+                    <div t-if="d.sample" class="o_mfi_how_sample">
+                        <i class="fa fa-lightbulb-o fs-3"/>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">Start the demo on a real loan</div>
+                            <div class="small"><t t-out="d.sample.name"/> for <t t-out="d.sample.client"/>: its Next step box says what happens next.</div>
+                        </div>
+                        <button type="button" class="btn btn-primary" t-on-click="() => this.openSample()">
+                            Open <t t-out="d.sample.name"/>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+        </div>
+    </t>
+</templates>

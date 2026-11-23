@@ -128,6 +128,16 @@ restarts at 1 if nothing real was numbered meanwhile.
   and the latest repayments. A banner flags loans waiting for the user's
   decision. Every card, chart slice, bar and row opens the records behind
   it. Figures refresh every 5 minutes or on demand.
+- *How it works*: a presentation page to show before the live demo, in six
+  parts: the loan's journey as a clickable flowchart with Play (seven steps,
+  each with who does it, what Odoo checks, its button and the live number of
+  clients or loans at that step, plus the side roads to rejected and written
+  off); who does what (the eight roles and the three-step approval chain); a
+  pricing calculator on this database's loan types and fees (payout, amount to
+  repay, daily instalment, fees upfront or off the payout); a repayment
+  example where each payment fills default interest first, then the oldest
+  instalment; the safeguards; and buttons into the real screens, with a loan
+  to start on.
 - *Page guides*: a green "What to do here" box at the top of each
   Microfinance page (two to four steps, with buttons to the next page), and
   a coloured *Next step* box on each loan that follows it from application
