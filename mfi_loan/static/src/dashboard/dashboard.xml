@@ -34,7 +34,8 @@
     </t>
 
     <t t-name="mfi_loan.Dashboard">
-        <div class="o_action o_mfi_dash" t-ref="root" t-att-class="{ 'o_mfi_loading': state.loading }">
+        <div class="o_action o_mfi_dash_action">
+        <div class="o_content o_mfi_dash" t-ref="root" t-att-class="{ 'o_mfi_loading': state.loading }">
             <t t-set="d" t-value="state.data"/>
 
             <!-- Header: greeting, period picker, refresh -->
@@ -305,6 +306,7 @@
                 <b>PAR n</b>: outstanding on loans n or more days late, as a share of all outstanding.
                 Figures refresh every 5 minutes.
             </p>
+        </div>
         </div>
     </t>
 </templates>

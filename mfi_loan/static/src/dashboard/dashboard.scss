@@ -26,9 +26,23 @@ $mfi-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.08), 0 16px 32px -12px rgba(15, 
     100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
 }
 
-.o_mfi_dash {
+// Odoo makes each action a full-height, overflow-hidden flex column; the
+// dashboard scrolls inside it.
+.o_action.o_mfi_dash_action {
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+.o_mfi_dash_action > .o_mfi_dash {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.o_mfi_dash {
     padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2rem;
     color: $o-main-text-color;
     background:
