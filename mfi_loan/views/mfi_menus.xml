@@ -38,7 +38,12 @@
               action="action_mfi_collections_collected" sequence="60"/>
 
     <menuitem id="menu_mfi_insights" name="Insights" parent="menu_mfi_root" sequence="40"/>
-    <menuitem id="menu_mfi_reports" name="Reports" parent="menu_mfi_insights" action="action_mfi_report_wizard" sequence="10"/>
+    <menuitem id="menu_mfi_income" name="Income (profit and loss)" parent="menu_mfi_insights"
+              action="account_reports.action_account_report_pl" sequence="10"
+              groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_ceo,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_finance,mfi_loan.group_mfi_auditor"/>
+    <menuitem id="menu_mfi_aged" name="Aged receivables (PAR)" parent="menu_mfi_insights"
+              action="account_reports.action_account_report_ar" sequence="15"
+              groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_ceo,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_finance,mfi_loan.group_mfi_auditor"/>
     <menuitem id="menu_mfi_arrears" name="Arrears" parent="menu_mfi_insights" action="action_mfi_loan_arrears" sequence="20"/>
     <menuitem id="menu_mfi_audit" name="Audit log" parent="menu_mfi_insights" action="action_mfi_audit_log" sequence="30"
               groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_ceo,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_auditor"/>

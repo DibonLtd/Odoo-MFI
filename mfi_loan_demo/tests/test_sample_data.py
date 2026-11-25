@@ -6,8 +6,8 @@ class TestSampleData(TransactionCase):
 
     def test_loaded(self):
         env = self.env
-        clients = env["res.partner"].search([("mfi_is_sample", "=", True)])
-        self.assertEqual(len(clients), 30)
+        clients = env["res.partner"].search([("mfi_is_sample", "=", True), ("is_mfi_client", "=", True)])
+        self.assertEqual(len(clients), 30)  # suppliers are sample partners too, not clients
         self.assertTrue(all(c.mfi_client_no and c.mfi_documents_complete for c in clients))
         loans = env["mfi.loan"].search([("partner_id", "in", clients.ids)])
         states = set(loans.mapped("state"))
@@ -15,9 +15,18 @@ class TestSampleData(TransactionCase):
                          "repaid", "rejected", "written_off"} <= states, states)
         buckets = set(loans.filtered(lambda loan: loan.state == "active").mapped("ageing_bucket"))
         self.assertTrue({"current", "1_7", "8_14", "15_30", "30_plus"} <= buckets, buckets)
-        self.assertTrue(env["mfi.payment"].search_count([("state", "=", "unmatched")]) >= 2)
-        self.assertTrue(env["mfi.payment"].search_count([("state", "=", "reversed")]) >= 1)
-        self.assertTrue(env["mfi.collection.note"].search_count([("loan_id", "in", loans.ids)]))
+        Payment = env["account.payment"]
+        self.assertGreaterEqual(Payment.search_count([("payment_type", "=", "inbound"), ("partner_id", "=", False),
+                                                      ("state", "in", ("paid", "reconciled"))]), 2)  # unmatched
+        self.assertGreaterEqual(Payment.search_count([("mfi_loan_id", "in", loans.ids), ("state", "=", "canceled")]), 1)
+        self.assertTrue(env["mail.activity"].search_count([
+            ("res_model", "=", "mfi.loan"), ("res_id", "in", loans.ids),
+            ("activity_type_id", "=", env.ref("mfi_loan.mail_activity_promise").id)]))
+        # Every disbursed loan is booked: a posted loan invoice, with its instalments.
+        disbursed = loans.filtered("disbursed_date")
+        self.assertTrue(all(loan.invoice_id.state == "posted" for loan in disbursed))
+        self.assertTrue(all(loan.invoice_id.payment_state in ("paid", "in_payment")
+                            for loan in loans.filtered(lambda l: l.state == "repaid")))
         staff = env["res.users"].search([("login", "=like", "%@demo.roancapital.co.ke")])
         self.assertEqual(len(staff), 9)
         self.assertTrue(env["ir.config_parameter"].get_str("mfi_loan_demo.password"))
@@ -55,15 +64,13 @@ class TestSampleData(TransactionCase):
             oldest = min(tickets.mapped("create_date"))
             self.assertLess(oldest.date(), self.env.cr.now().date())
         if "account.move" in env:
-            journal = env["account.journal"].search([("name", "=", "Loan fees (sample)")])
-            if journal:  # a database with a chart of accounts
-                invoices = env["account.move"].search([("journal_id", "=", journal.id)])
-                self.assertTrue(invoices)
-                self.assertTrue(all(i.state == "posted" and i.payment_state in ("paid", "in_payment")
-                                    for i in invoices))
-                bills = env["account.move"].search([("journal_id.name", "=", "Supplier bills (sample)")])
-                self.assertEqual(len(bills), 21)
-                self.assertTrue(bills.filtered(lambda b: b.payment_state == "not_paid"))
+            fees = env["account.move"].search([("mfi_kind", "=", "fee"), ("move_type", "=", "out_invoice"),
+                                               ("mfi_loan_id.partner_id.mfi_is_sample", "=", True)])
+            self.assertTrue(fees)  # upfront fees, booked with each loan
+            self.assertTrue(all(i.payment_state in ("paid", "in_payment") for i in fees))
+            bills = env["account.move"].search([("journal_id.name", "=", "Supplier bills (sample)")])
+            self.assertEqual(len(bills), 21)
+            self.assertTrue(bills.filtered(lambda b: b.payment_state == "not_paid"))
 
     def test_unload_removes_everything(self):
         env = self.env
@@ -72,7 +79,9 @@ class TestSampleData(TransactionCase):
         env["mfi.demo"]._unload()
         self.assertFalse(clients.exists())
         self.assertFalse(env["mfi.loan"].search_count([]))
-        self.assertFalse(env["mfi.payment"].search_count([]))
+        self.assertFalse(env["account.payment"].search_count([("state", "!=", "canceled"),
+                                                              ("partner_id.mfi_is_sample", "=", True)]))
+        self.assertFalse(env["account.move"].search_count([("state", "=", "posted"), ("mfi_loan_id", "!=", False)]))
         self.assertFalse(env["res.users"].search([("id", "in", staff.ids)]))
         self.assertFalse(env["mfi.audit.log"].search_count([("user_id", "in", staff.ids)]))
         self.assertFalse(env["ir.model.data"].search_count([("module", "=", "mfi_loan_demo"),

@@ -26,15 +26,4 @@
         <field name="code">action = env["ir.actions.actions"]._for_xml_id("mfi_loan.action_mfi_dashboard_live")</field>
     </record>
 
-    <!-- Charts behind the dashboard -->
-    <record id="mfi_payment_view_graph" model="ir.ui.view">
-        <field name="name">mfi.payment.graph</field>
-        <field name="model">mfi.payment</field>
-        <field name="arch" type="xml">
-            <graph string="Collected" type="line">
-                <field name="date" interval="day"/>
-                <field name="amount" type="measure"/>
-            </graph>
-        </field>
-    </record>
 </odoo>

@@ -279,7 +279,7 @@
                         <a href="#" class="o_mfi_link" t-on-click.prevent="() => this.open('payments')">All repayments</a>
                     </div>
                     <ul class="o_mfi_list">
-                        <li t-foreach="d.payments" t-as="pay" t-key="pay.id" t-on-click="() => this.openRecord('mfi.payment', pay.id)">
+                        <li t-foreach="d.payments" t-as="pay" t-key="pay.id" t-on-click="() => this.openRecord('account.payment', pay.id)">
                             <span t-attf-class="o_mfi_pay_icon {{ pay.matched ? '' : 'o_mfi_pay_unmatched' }}">
                                 <i class="oi" t-att-data-icon="pay.matched ? 'check' : 'question_mark'" aria-hidden="true"/>
                             </span>

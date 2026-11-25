@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from freezegun import freeze_time
+
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
 
@@ -48,24 +50,19 @@ class TestBackOffice(MfiCase):
     # Collections
     # ------------------------------------------------------------------
 
-    def test_contact_log_and_promises(self):
+    def test_promise_to_pay_is_an_activity(self):
         loan = self._active(self._new_loan(), days_ago=5)
-        Note = self.env["mfi.collection.note"]
-        with self.assertRaises(AccessError):
-            Note.with_user(self.finance).create({"loan_id": loan.id, "kind": "call", "note": "x"})
-        with self.assertRaisesRegex(UserError, "Promise date"):
-            Note.with_user(self.collections).create({"loan_id": loan.id, "kind": "promise"})
-        Note.with_user(self.collections).create({"loan_id": loan.id, "kind": "call", "note": "No answer"})
-        promise = Note.with_user(self.collections).create({
-            "loan_id": loan.id, "kind": "promise", "note": "Will pay Friday",
-            "promise_date": self.today + timedelta(days=2), "promise_amount": 1000,
-        })
-        self.assertEqual(promise.promise_status, "open")
-        self.assertEqual(loan.last_contact_kind, "promise")
-        self.assertEqual(loan.open_promise_date, self.today + timedelta(days=2))
-        promise.with_user(self.collections).action_kept()
-        self.assertEqual(promise.promise_status, "kept")
-        self.assertFalse(loan.open_promise_date)
+        promise_type = self.env.ref("mfi_loan.mail_activity_promise")
+        loan.with_user(self.collections).activity_schedule(
+            activity_type_id=promise_type.id, date_deadline=self.today + timedelta(days=2),
+            summary="Will pay KES 1,000 on Friday", user_id=self.collections.id)
+        promises = self.env["mail.activity"].search([("res_model", "=", "mfi.loan"),
+                                                     ("activity_type_id", "=", promise_type.id)])
+        self.assertEqual(promises.res_id, loan.id)
+        self.assertEqual(promises.state, "planned")
+        with freeze_time(self.today + timedelta(days=3)):
+            promises.invalidate_recordset(["state"])
+            self.assertEqual(promises.state, "overdue")  # not kept
 
     def test_reminder_sms(self):
         self.env.company.mfi_repay_paybill = "123456"
@@ -85,8 +82,9 @@ class TestBackOffice(MfiCase):
     def test_ageing_bucket(self):
         loan = self._active(self._new_loan(), days_ago=5)
         self.assertEqual(loan.ageing_bucket, "1_7")
-        loan._update_health(today=self.today + timedelta(days=10))
-        self.assertEqual(loan.ageing_bucket, "8_14")
+        with freeze_time(self.today + timedelta(days=10)):
+            loan._mfi_refresh()
+            self.assertEqual(loan.ageing_bucket, "8_14")
 
     # ------------------------------------------------------------------
     # Dashboard and reports
@@ -104,22 +102,18 @@ class TestBackOffice(MfiCase):
         self.assertEqual(board.par_30, 0)
         self.assertEqual(board.arrears_count, 1)
 
-    def test_income_report(self):
-        loan = self._active(self._new_loan())  # fees 1,920; interest 3,000 of 13,000
-        self._pay(loan, 1300, "INC1")
-        wizard = self.env["mfi.report.wizard"].with_user(self.ceo).create({
-            "report": "income", "date_from": self.today, "date_to": self.today})
-        self.assertEqual(wizard.fees_charged, 1920)
-        self.assertAlmostEqual(wizard.interest_collected, 300, places=2)  # 1,300 x 3,000 / 13,000
-        self.assertEqual(wizard.penalty_collected, 0)
-        self.assertAlmostEqual(wizard.income_total, 2220, places=2)
-
-    def test_report_lists_open(self):
-        self._active(self._new_loan())
-        for report in ("portfolio", "arrears", "disbursements", "collections", "clients"):
-            wizard = self.env["mfi.report.wizard"].with_user(self.ceo).create({"report": report})
-            action = wizard.action_show()
-            self.assertEqual(action["type"], "ir.actions.act_window", report)
+    def test_income_in_accounting(self):
+        """Income is Accounting's: interest, fees and default interest by account and product."""
+        loan = self._active(self._new_loan())
+        company = loan.company_id
+        lines = self.env["account.move.line"].search([("move_id.mfi_loan_id", "=", loan.id),
+                                                      ("parent_state", "=", "posted")])
+        def credited(account):
+            return sum(lines.filtered(lambda l: l.account_id == account).mapped("credit"))
+        self.assertEqual(credited(company.mfi_interest_account_id), 3000)
+        self.assertEqual(credited(company.mfi_fee_account_id), 1920)  # 600 upfront + 1,320 deducted
+        self.assertEqual(lines.filtered(lambda l: l.account_id == company.mfi_interest_account_id).product_id,
+                         loan.product_id.interest_product_id)  # by loan type
 
     # ------------------------------------------------------------------
     # Settings

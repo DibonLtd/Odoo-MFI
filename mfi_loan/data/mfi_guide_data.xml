@@ -127,34 +127,34 @@ The buttons at the top change with each step. Everything you do is recorded in t
     <!-- Recovery -->
     <record id="guide_payment_list" model="mfi.guide">
         <field name="name">Recovery: repayments</field>
-        <field name="model">mfi.payment</field>
+        <field name="model">account.payment</field>
         <field name="view_type">list</field>
         <field name="action_xmlid">mfi_loan.action_mfi_payment</field>
         <field name="title">Every repayment received</field>
         <field name="body"><![CDATA[<ol>
 <li>Record a repayment from the loan with <b>Record payment</b>; it lands here.</li>
-<li>Each payment clears default interest first, then the instalments in order.</li>
-<li>A wrong entry? Open it and click <b>Reverse</b>; never delete.</li>
+<li>Each payment is applied to the oldest unpaid instalment or charge first.</li>
+<li>A wrong entry? Open it and click <b>Reverse repayment</b>; never delete.</li>
 </ol>]]></field>
         <field name="button_ids" eval="[(0, 0, {'label': 'Unmatched payments', 'action_xmlid': 'mfi_loan.action_mfi_payment_unmatched', 'sequence': 1})]"/>
     </record>
     <record id="guide_payment_unmatched" model="mfi.guide">
         <field name="name">Recovery: unmatched payments</field>
-        <field name="model">mfi.payment</field>
+        <field name="model">account.payment</field>
         <field name="view_type">list</field>
         <field name="action_xmlid">mfi_loan.action_mfi_payment_unmatched</field>
         <field name="title">Money in, but no loan found</field>
         <field name="body"><![CDATA[<ol>
-<li>Open the payment and check the reference and the payer's phone.</li>
-<li>Click <b>Match to a loan</b> and pick the right loan; it is then allocated.</li>
+<li>Open the payment and check the reference and the payer.</li>
+<li>Click <b>Apply to a loan</b> and pick the right loan; it is applied to its oldest instalments.</li>
 </ol>]]></field>
     </record>
     <record id="guide_payment_form" model="mfi.guide">
         <field name="name">Recovery: payment</field>
-        <field name="model">mfi.payment</field>
+        <field name="model">account.payment</field>
         <field name="view_type">form</field>
         <field name="title">One repayment</field>
-        <field name="body"><![CDATA[<p><b>Match to a loan</b> if it is unmatched. <b>Reverse</b> it, with a reason, if it was entered by mistake: the loan is recalculated without it.</p>]]></field>
+        <field name="body"><![CDATA[<p><b>Apply to a loan</b> if it is not applied yet. <b>Reverse repayment</b>, with a reason, if it was entered by mistake: the loan's instalments are open again.</p>]]></field>
     </record>
     <record id="guide_collections_late" model="mfi.guide">
         <field name="name">Recovery: late loans</field>
@@ -165,31 +165,31 @@ The buttons at the top change with each step. Everything you do is recorded in t
         <field name="body"><![CDATA[<ol>
 <li>Start from the top: the loans most days late.</li>
 <li><b>Unlock</b> the phone number, then call, or send a <b>WhatsApp</b> reminder.</li>
-<li>Click <b>Log</b> after each contact. A promise to pay is followed up under <b>Promises to pay</b>.</li>
+<li>Note each contact in the loan's chatter. A promise to pay is a <b>Promise to pay</b> activity on the promised date.</li>
 </ol>]]></field>
         <field name="button_ids" eval="[(0, 0, {'label': 'Promises to pay', 'action_xmlid': 'mfi_loan.action_mfi_collections_promises', 'sequence': 1}),
                                         (0, 0, {'label': 'Due today', 'action_xmlid': 'mfi_loan.action_mfi_collections_due_today', 'sequence': 2})]"/>
     </record>
     <record id="guide_collections_promises" model="mfi.guide">
         <field name="name">Recovery: promises to pay</field>
-        <field name="model">mfi.collection.note</field>
+        <field name="model">mail.activity</field>
         <field name="action_xmlid">mfi_loan.action_mfi_collections_promises</field>
         <field name="title">Promises clients have made</field>
         <field name="body"><![CDATA[<ol>
 <li>On or after the promised date, check whether the money came in.</li>
-<li>Click <b>Kept</b> or <b>Broken</b>. The loan stays on the late-loans list until it is paid up.</li>
+<li>Mark it <b>Done</b> when paid. One still open after its date was not kept; the loan stays on the late-loans list until it is paid up.</li>
 </ol>]]></field>
     </record>
     <record id="guide_collections_due" model="mfi.guide">
         <field name="name">Recovery: due today</field>
-        <field name="model">mfi.loan.installment</field>
+        <field name="model">account.move.line</field>
         <field name="action_xmlid">mfi_loan.action_mfi_collections_due_today</field>
         <field name="title">Instalments falling due today</field>
         <field name="body"><![CDATA[<p>Remind these clients early in the day. Paid instalments drop off as repayments are recorded.</p>]]></field>
     </record>
     <record id="guide_collections_collected" model="mfi.guide">
         <field name="name">Recovery: collected</field>
-        <field name="model">mfi.payment</field>
+        <field name="model">account.payment</field>
         <field name="view_type">list</field>
         <field name="action_xmlid">mfi_loan.action_mfi_collections_collected</field>
         <field name="title">What has come in</field>

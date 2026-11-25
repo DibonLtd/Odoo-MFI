@@ -4,9 +4,9 @@ from . import mfi_fee
 from . import res_company
 from . import res_partner
 from . import res_partner_lending
+from . import account
 from . import mfi_loan
 from . import mfi_collection
-from . import mfi_payment
 from . import mfi_dashboard
 from . import mfi_audit
 from . import mfi_messaging

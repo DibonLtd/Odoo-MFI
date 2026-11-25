@@ -8,7 +8,7 @@ WhatsApp with the message filled in, and the officer sends it.
 
 from urllib.parse import quote
 
-from odoo import api, fields, models
+from odoo import fields, models
 from odoo.exceptions import UserError
 
 from . import rules
@@ -23,18 +23,29 @@ class ResPartner(models.Model):
         return False
 
 
-class ResCompany(models.Model):
-    _inherit = "res.company"
-
-    mfi_auto_sms_reminders = fields.Boolean(
-        "Send reminder SMS automatically",
-        help="Each morning, send the reminder SMS to every client in arrears who has not had one that day.")
-
-
 class ResConfigSettings(models.TransientModel):
+    """Automatic reminders are Accounting's follow-up (its levels send the SMS):
+    this switch is that daily run, so there is one switch, not two."""
+
     _inherit = "res.config.settings"
 
-    mfi_auto_sms_reminders = fields.Boolean(related="company_id.mfi_auto_sms_reminders", readonly=False)
+    mfi_auto_sms_reminders = fields.Boolean(
+        "Send reminder SMS automatically", compute="_compute_mfi_auto_sms_reminders",
+        inverse="_inverse_mfi_auto_sms_reminders",
+        help="Each night, Accounting's follow-up sends the reminder levels to clients with overdue instalments.")
+
+    def _mfi_followup_cron(self):
+        return self.env.ref("account_followup.ir_cron_follow_up", raise_if_not_found=False)
+
+    def _compute_mfi_auto_sms_reminders(self):
+        cron = self._mfi_followup_cron()
+        for settings in self:
+            settings.mfi_auto_sms_reminders = bool(cron and cron.sudo().active)
+
+    def _inverse_mfi_auto_sms_reminders(self):
+        cron = self._mfi_followup_cron()
+        if cron:
+            cron.sudo().active = self[:1].mfi_auto_sms_reminders
 
 
 class MfiLoan(models.Model):
@@ -59,7 +70,6 @@ class MfiLoan(models.Model):
     def _mfi_send_reminder_sms(self):
         """Send the reminder SMS to each loan; returns (sent loans, reasons skipped)."""
         sent, skipped = self.browse(), []
-        Note = self.env["mfi.collection.note"]
         for loan in self:
             msisdn, problem = loan._mfi_reminder_target()
             if problem:
@@ -68,7 +78,6 @@ class MfiLoan(models.Model):
             partner = loan.partner_id
             loan._message_sms(loan.reminder_sms, partner_ids=partner.ids,
                               sms_pid_to_number={partner.id: "+" + msisdn})
-            Note.create({"loan_id": loan.id, "kind": "sms", "note": loan.reminder_sms})
             rules.audit(self.env, "reminder.sms_sent", loan, {"to": partner.phone})
             sent |= loan
         return sent, skipped
@@ -95,26 +104,10 @@ class MfiLoan(models.Model):
         msisdn, problem = self._mfi_reminder_target()
         if problem:
             raise UserError(problem)
-        self.env["mfi.collection.note"].create({"loan_id": self.id, "kind": "whatsapp", "note": self.reminder_sms})
+        self.message_post(body=self.env._("WhatsApp reminder opened: %s", self.reminder_sms))
         rules.audit(self.env, "reminder.whatsapp_opened", self, {"to": self.partner_id.phone})
         return {"type": "ir.actions.act_url", "target": "new",
                 "url": f"https://wa.me/{msisdn}?text={quote(self.reminder_sms)}"}
-
-    @api.model
-    def _cron_send_reminders(self):
-        today = fields.Date.context_today(self)
-        for company in self.env["res.company"].search([("mfi_auto_sms_reminders", "=", True)]):
-            loans = self.search([
-                ("company_id", "=", company.id), ("state", "=", "active"),
-                ("health", "in", ("arrears", "overdue")),
-                ("collection_note_ids", "not any", [("kind", "=", "sms"), ("create_date", ">=", today)]),
-            ])
-            loans.sudo()._mfi_send_reminder_sms()
-
-    @api.model
-    def _cron_daily(self):
-        super()._cron_daily()
-        self._cron_send_reminders()
 
     # ------------------------------------------------------------------
     # The agreement

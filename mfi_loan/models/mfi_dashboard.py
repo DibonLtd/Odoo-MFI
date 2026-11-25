@@ -5,11 +5,17 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models
 
+from .mfi_loan import BUCKETS, HEALTH
 from .rules import r2
 
-BUCKETS = [("current", "Current"), ("1_7", "1-7 days"), ("8_14", "8-14 days"),
-           ("15_30", "15-30 days"), ("30_plus", "30+ days")]
-HEALTH = [("current", "On time"), ("arrears", "In arrears"), ("overdue", "Overdue")]
+# Every figure comes from Accounting (DECISIONS D-017): money in is the loans'
+# receivable credited in a bank, cash or M-Pesa journal (payments and statement
+# lines alike); money due is the loan invoices' instalments.
+COLLECTED = [("account_id.account_type", "=", "asset_receivable"), ("parent_state", "=", "posted"),
+             ("credit", ">", 0), ("journal_id.type", "in", ("bank", "cash")),
+             ("partner_id.is_mfi_client", "=", True), ("move_id.mfi_kind", "!=", "fee")]
+DUE = [("account_id.account_type", "=", "asset_receivable"), ("parent_state", "=", "posted"),
+       ("move_id.mfi_kind", "=", "loan"), ("debit", ">", 0)]
 # Period picker on the dashboard: key -> label
 PERIODS = [("today", "Today"), ("7d", "7 days"), ("30d", "30 days"), ("month", "This month"), ("year", "This year")]
 
@@ -76,14 +82,13 @@ class MfiDashboard(models.TransientModel):
     # ------------------------------------------------------------------
 
     def _mfi_collected(self, start, end):
-        groups = self.env["mfi.payment"]._read_group(
-            [("state", "=", "allocated"), ("date", ">=", start), ("date", "<=", end)], [], ["amount:sum"])
+        groups = self.env["account.move.line"].sudo()._read_group(
+            COLLECTED + [("date", ">=", start), ("date", "<=", end)], [], ["credit:sum"])
         return groups[0][0] or 0.0
 
     def _mfi_due(self, start, end):
-        groups = self.env["mfi.loan.installment"]._read_group(
-            [("due_date", ">=", start), ("due_date", "<=", end),
-             ("loan_id.state", "in", ("active", "repaid", "written_off"))], [], ["amount_due:sum"])
+        groups = self.env["account.move.line"].sudo()._read_group(
+            DUE + [("date_maturity", ">=", start), ("date_maturity", "<=", end)], [], ["debit:sum"])
         return groups[0][0] or 0.0
 
     def _mfi_rate(self, start, end):
@@ -154,7 +159,7 @@ class MfiDashboard(models.TransientModel):
 
         def grouped(model, domain, date_field, measure):
             totals = defaultdict(float)
-            for when, amount in self.env[model]._read_group(
+            for when, amount in self.env[model].sudo()._read_group(
                     domain + [(date_field, ">=", buckets[0]), (date_field, "<=", end)],
                     [f"{date_field}:{grain}"], [f"{measure}:sum"]):
                 if when:
@@ -164,9 +169,8 @@ class MfiDashboard(models.TransientModel):
         label = "%b %Y" if monthly else "%d %b"
         return {
             "labels": [b.strftime(label) for b in buckets],
-            "collected": grouped("mfi.payment", [("state", "=", "allocated")], "date", "amount"),
-            "due": grouped("mfi.loan.installment",
-                           [("loan_id.state", "in", ("active", "repaid", "written_off"))], "due_date", "amount_due"),
+            "collected": grouped("account.move.line", COLLECTED, "date", "credit"),
+            "due": grouped("account.move.line", DUE, "date_maturity", "debit"),
             "disbursed": grouped("mfi.loan", [], "disbursed_date", "principal"),
         }
 
@@ -229,9 +233,11 @@ class MfiDashboard(models.TransientModel):
             "payments": [{
                 "id": pay.id, "client": pay.partner_id.name or self.env._("Unmatched"),
                 "amount": pay.amount, "date": fields.Date.to_string(pay.date),
-                "method": dict(pay._fields["method"].selection).get(pay.method, ""), "matched": bool(pay.loan_id),
-            } for pay in self.env["mfi.payment"].search(
-                [("state", "in", ("allocated", "unmatched"))], order="date desc, id desc", limit=6)],
+                "method": pay.journal_id.name, "matched": pay.is_reconciled,
+            } for pay in self.env["account.payment"].sudo().search(
+                [("payment_type", "=", "inbound"), ("state", "in", ("paid", "reconciled")),
+                 "|", ("partner_id", "=", False), ("partner_id.is_mfi_client", "=", True)],
+                order="date desc, id desc", limit=6)],
         }
 
     @api.model
@@ -257,7 +263,8 @@ class MfiDashboard(models.TransientModel):
                        fields.Datetime.to_datetime(end + timedelta(days=1))))]
         if key == "collected":
             return act("mfi_loan.action_mfi_payment", _("Collected"),
-                       [("state", "=", "allocated")] + [("date", op, d) for op, d in span])
+                       [("payment_type", "=", "inbound"), ("state", "in", ("paid", "reconciled"))]
+                       + [("date", op, d) for op, d in span])
         if key == "disbursed":
             return act(loans, _("Disbursed"), [("disbursed_date", op, d) for op, d in span])
         if key == "rate":

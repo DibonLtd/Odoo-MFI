@@ -115,6 +115,29 @@
         <field name="target">new</field>
     </record>
 
+    <record id="mfi_loan_payment_wizard_view_form" model="ir.ui.view">
+        <field name="name">mfi.loan.payment.wizard.form</field>
+        <field name="model">mfi.loan.payment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Record payment">
+                <p class="text-muted">The payment is applied to the oldest unpaid instalment or charge first.</p>
+                <group>
+                    <field name="loan_id" readonly="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="outstanding"/>
+                    <field name="amount"/>
+                    <field name="method" widget="radio" options="{'horizontal': true}"/>
+                    <field name="reference" required="method != 'cash'" placeholder="M-Pesa / bank transaction reference"/>
+                    <field name="date"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Record" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
     <record id="mfi_payment_match_wizard_view_form" model="ir.ui.view">
         <field name="name">mfi.payment.match.wizard.form</field>
         <field name="model">mfi.payment.match.wizard</field>

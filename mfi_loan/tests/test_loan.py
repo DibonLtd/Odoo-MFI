@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from freezegun import freeze_time
+
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
 
@@ -19,7 +21,7 @@ class TestLoan(MfiCase):
         self.assertTrue(loan.is_first_loan)
         self.assertEqual(loan.interest, 3000)  # 10,000 x 1% x 30 days
         self.assertEqual(loan.total_repayable, 13000)
-        self.assertEqual(loan.installment, 434)  # 13,000 / 30, rounded up
+        self.assertEqual(loan.installment, 433.33)  # 13,000 / 30, to the cent (DECISIONS D-019)
         self.assertEqual(loan.upfront_total, 600)  # membership 100 + application 500
         self.assertEqual(loan.deducted_total, 1320)  # LIF 200 + remittance 120 + chattels 1,000
         self.assertEqual(loan.net_disbursement, 8680)
@@ -143,16 +145,35 @@ class TestLoan(MfiCase):
             loan.with_user(self.head_office).action_disburse("mpesa", "SBX999")
 
     def test_schedule(self):
+        """The loan is an invoice; its daily payment term makes the instalments."""
         loan = self._active(self._new_loan())
-        schedule = loan.installment_ids.sorted("seq")
+        invoice = loan.invoice_id
+        self.assertEqual((invoice.move_type, invoice.state, invoice.mfi_kind), ("out_invoice", "posted", "loan"))
+        self.assertEqual(invoice.amount_total, 13000)
+        self.assertEqual(invoice.invoice_line_ids.product_id,
+                         loan.product_id.product_id | loan.product_id.interest_product_id)
+        schedule = loan.instalment_line_ids
         self.assertEqual(len(schedule), 30)
         self.assertEqual(loan.start_date, self.today + timedelta(days=1))
         self.assertEqual(loan.maturity_date, self.today + timedelta(days=30))
-        self.assertEqual(schedule[0].due_date, loan.start_date)
-        self.assertEqual(set(schedule[:-1].mapped("amount_due")), {434})
-        self.assertEqual(schedule[-1].amount_due, 414)  # 13,000 - 29 x 434
-        self.assertEqual(sum(schedule.mapped("amount_due")), 13000)
+        self.assertEqual(schedule[0].date_maturity, loan.start_date)
+        self.assertEqual(schedule[-1].date_maturity, loan.maturity_date)
+        self.assertEqual(set(schedule[:-1].mapped("balance")), {433.33})
+        self.assertAlmostEqual(schedule[-1].balance, 433.43, places=2)  # takes the remainder
+        self.assertAlmostEqual(sum(schedule.mapped("balance")), 13000, places=2)
         self.assertEqual(loan.health, "current")
+
+    def test_payout_and_fees_in_accounting(self):
+        loan = self._active(self._new_loan())
+        accounting = loan.company_id._mfi_accounting()
+        payout = loan.move_ids.filtered(lambda m: m.mfi_kind == "disbursement" and m.origin_payment_id)
+        self.assertEqual(payout.origin_payment_id.amount, 8680)  # net of the deducted fees
+        principal = loan.move_ids.line_ids.filtered(lambda l: l.account_id == accounting.principal)
+        self.assertTrue(all(principal.mapped("reconciled")))  # the principal account clears
+        fee_income = loan.move_ids.line_ids.filtered(lambda l: l.product_id in loan.fee_line_ids.fee_id.product_id)
+        self.assertEqual(sum(fee_income.mapped("credit")), 1920)  # 1,320 deducted + 600 paid upfront
+        upfront = loan.move_ids.filtered(lambda m: m.mfi_kind == "fee" and m.move_type == "out_invoice")
+        self.assertEqual(upfront.payment_state, "paid")
 
     # ------------------------------------------------------------------
     # Default interest, arrears and payments
@@ -160,31 +181,37 @@ class TestLoan(MfiCase):
 
     def test_default_interest_and_arrears(self):
         loan = self._active(self._new_loan(), days_ago=5)
-        # Due before each day: 1, 2, 3, 4 instalments of 434 at 1% a day
-        self.assertAlmostEqual(loan.penalty_accrued, 4.34 * (1 + 2 + 3 + 4), places=2)
+        # Due before each day: 1, 2, 3, 4 instalments of 433.33 at 1% a day
+        self.assertAlmostEqual(loan.penalty_accrued, 4.3333 * (1 + 2 + 3 + 4), places=2)
+        penalty = loan.move_ids.filtered(lambda m: m.mfi_kind == "penalty")
+        self.assertEqual(penalty.state, "posted")
         self.assertEqual(loan.health, "arrears")
-        self.assertEqual(loan.arrears_amount, 4 * 434)
+        self.assertAlmostEqual(loan.arrears_amount, 4 * 433.33, places=2)
         self.assertEqual(loan.days_past_due, 4)
-        self.assertAlmostEqual(loan.outstanding, 13000 + 43.40, places=2)
+        self.assertAlmostEqual(loan.outstanding, 13000 + 43.33, places=2)
 
     def test_overdue_after_maturity(self):
         loan = self._active(self._new_loan(term="two_weeks"))
-        loan._update_health(today=loan.maturity_date + timedelta(days=3))
-        self.assertEqual(loan.health, "overdue")
+        with freeze_time(loan.maturity_date + timedelta(days=3)):
+            loan._mfi_refresh()
+            self.assertEqual(loan.health, "overdue")
 
-    def test_payment_pays_default_interest_first_then_in_order(self):
+    def test_payment_pays_oldest_first(self):
+        """Oldest due first: the instalments before the default interest charged
+        today (CBK reg 56(3) order; DECISIONS D-019)."""
         loan = self._active(self._new_loan(), days_ago=5)
-        payment = self._pay(loan, 1000, "pay001")
-        self.assertAlmostEqual(payment.to_penalty, 43.40, places=2)
-        self.assertAlmostEqual(payment.to_installments, 956.60, places=2)
-        first, second, third = loan.installment_ids.sorted("seq")[:3]
-        self.assertEqual((first.amount_paid, second.amount_paid), (434, 434))
-        self.assertAlmostEqual(third.amount_paid, 88.60, places=2)
+        self._pay(loan, 1000, "pay001")
+        first, second, third = loan.instalment_line_ids[:3]
+        self.assertTrue(first.reconciled and second.reconciled)
+        self.assertAlmostEqual(third.amount_residual, 433.33 - (1000 - 2 * 433.33), places=2)
+        self.assertAlmostEqual(loan.amount_paid, 1000, places=2)
+        self.assertAlmostEqual(loan.penalty_due, 43.33, places=2)
 
     def test_full_payment_repays(self):
         loan = self._active(self._new_loan())
         self._pay(loan, 13000, "pay001")
         self.assertEqual(loan.state, "repaid")
+        self.assertEqual(loan.closed_date, self.today)
         self.assertEqual(loan.outstanding, 0)
 
     def test_who_records_payments(self):
@@ -196,42 +223,38 @@ class TestLoan(MfiCase):
 
     def test_reference_rules(self):
         loan = self._active(self._new_loan())
-        with self.assertRaises(UserError):
-            self.env["mfi.payment"].with_user(self.finance).create(
-                {"loan_id": loan.id, "amount": 500, "method": "mpesa"})
+        with self.assertRaisesRegex(UserError, "reference"):
+            self._pay(loan, 500, "")
         self._pay(loan, 500, "ABC123")
-        with self.assertRaisesRegex(UserError, "already recorded"):
+        with self.assertRaisesRegex(UserError, "already been recorded"):
             self._pay(loan, 500, "abc123")
+        self._pay(loan, 300, "", method="cash")  # cash needs no reference
 
-    def test_unmatched_lookup_and_match(self):
+    def test_unmatched_payment_applied_to_a_loan(self):
         loan = self._active(self._new_loan())
-        Payment = self.env["mfi.payment"].with_user(self.finance)
-        by_phone = Payment.create({"amount": 500, "method": "mpesa", "reference": "P1", "lookup": "254712345678"})
-        self.assertEqual(by_phone.loan_id, loan)
-        self.assertEqual(by_phone.state, "allocated")
-        stray = Payment.create({"amount": 500, "method": "mpesa", "reference": "P2", "lookup": "nobody"})
-        self.assertEqual(stray.state, "unmatched")
-        stray.action_match(loan)
-        self.assertEqual(stray.state, "allocated")
-        self.assertEqual(loan.amount_paid, 1000)
+        accounting = loan.company_id._mfi_accounting()
+        stray = self.env["account.payment"].with_user(self.finance).create({
+            "payment_type": "inbound", "partner_type": "customer", "amount": 500,
+            "journal_id": accounting.journals["mpesa"].id, "memo": "QX12UNKNOWN"})
+        stray.action_post()
+        self.assertFalse(stray.is_reconciled)
+        stray.with_user(self.finance).action_mfi_match(loan)
+        self.assertEqual(stray.partner_id, loan.partner_id)
+        self.assertTrue(stray.is_reconciled)
+        self.assertEqual(loan.amount_paid, 500)
 
-    def test_reversal_reapplies_and_reopens(self):
+    def test_reversal_reopens(self):
         loan = self._active(self._new_loan())
         first = self._pay(loan, 500, "P1")
         self._pay(loan, 12500, "P2")
         self.assertEqual(loan.state, "repaid")
         with self.assertRaises(AccessError):
-            first.with_user(self.officer).action_reverse("Bounced")
-        first.with_user(self.finance).action_reverse("Bounced")
-        self.assertEqual(first.state, "reversed")
+            first.with_user(self.officer).action_mfi_reverse("Bounced")
+        first.with_user(self.finance).action_mfi_reverse("Bounced")
+        self.assertEqual(first.state, "canceled")
         self.assertEqual(loan.state, "active")
         self.assertEqual(loan.amount_paid, 12500)
-
-    def test_recorded_payment_is_locked(self):
-        loan = self._active(self._new_loan())
-        payment = self._pay(loan, 500, "P1")
-        with self.assertRaises(UserError):
-            payment.sudo().write({"amount": 1})
+        self.assertAlmostEqual(loan.outstanding, 500, places=2)
 
     # ------------------------------------------------------------------
     # Early settlement and write-off
@@ -244,13 +267,15 @@ class TestLoan(MfiCase):
         self.assertEqual(settlement["interest_days"], 14)
         self.assertEqual(settlement["interest"], 1400)
         self.assertEqual(settlement["new_total_payable"], 11400)
-        self.assertAlmostEqual(settlement["penalty_due"], 4.34 * (1 + 2 + 3), places=2)
-        self.assertAlmostEqual(settlement["settlement_amount"], 11400 + 26.04, places=2)
+        self.assertAlmostEqual(settlement["penalty_due"], 4.3333 * (1 + 2 + 3), places=2)
+        self.assertAlmostEqual(settlement["settlement_amount"], 11400 + 26.00, places=2)
         with self.assertRaisesRegex(UserError, "at least"):
             loan.with_user(self.finance).action_settle(11000, "mpesa", "SET1")
         loan.with_user(self.finance).action_settle(settlement["settlement_amount"], "mpesa", "SET2")
         self.assertEqual(loan.state, "repaid")
         self.assertEqual(loan.total_repayable, 11400)
+        rebate = loan.move_ids.filtered(lambda m: m.mfi_kind == "settlement")
+        self.assertEqual((rebate.move_type, rebate.amount_total), ("out_refund", 1600))
 
     def test_write_off(self):
         loan = self._active(self._new_loan())
@@ -260,6 +285,10 @@ class TestLoan(MfiCase):
             loan.with_user(self.ceo).action_write_off("no")
         loan.with_user(self.ceo).action_write_off("Borrower absconded")
         self.assertEqual(loan.state, "written_off")
+        write_off = loan.move_ids.filtered(lambda m: m.mfi_kind == "write_off")
+        self.assertEqual(write_off.amount_total, 13000)
+        self.assertEqual(write_off.line_ids.filtered("debit").account_id, loan.company_id.mfi_bad_debt_account_id)
+        self.assertFalse(loan._receivable_lines().filtered(lambda l: not l.reconciled))
 
     # ------------------------------------------------------------------
     # Clients

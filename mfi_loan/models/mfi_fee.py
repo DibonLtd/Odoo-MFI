@@ -24,6 +24,20 @@ class MfiFee(models.Model):
     upfront_on_first_loan = fields.Boolean(
         help="On a first loan, paid before approval instead of deducted from the payout."
     )
+    product_id = fields.Many2one("product.product", "Product", copy=False,
+                                 help="Fee income in Accounting; one product per fee (all its bands). Made automatically.")
+
+    def _mfi_product(self):
+        """The fee's product: shared by every band of the same fee (same code)."""
+        self.ensure_one()
+        if not self.product_id:
+            band = self.sudo().with_context(active_test=False).search(
+                [("code", "=", self.code), ("product_id", "!=", False)], limit=1)
+            product = band.product_id or self.env["product.product"]._mfi_service(
+                self.env._("Loan fee: %s", self.name.split("(")[0].strip()),
+                self.env.company._mfi_accounting().fee)
+            self.sudo().product_id = product
+        return self.product_id
 
     def _applies(self, principal, category, first_loan):
         self.ensure_one()

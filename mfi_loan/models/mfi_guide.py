@@ -254,7 +254,7 @@ class MfiLoan(models.Model):
                          Markup(_("When money comes in, click %s.")) % b(_("Record payment"))],
                         "danger")
             return (_("Step 5 of 5: collect the repayments"),
-                    [Markup(_("Record each repayment with %s; it clears default interest first, then the instalments in order."))
+                    [Markup(_("Record each repayment with %s; it is applied to the oldest unpaid instalment or charge first."))
                      % b(_("Record payment")),
                      Markup(_("The client can close the loan early with %s.")) % b(_("Early settlement"))],
                     "success")

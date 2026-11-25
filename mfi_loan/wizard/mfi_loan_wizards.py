@@ -1,6 +1,8 @@
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
-METHODS = [("mpesa", "M-Pesa"), ("bank", "Bank"), ("cash", "Cash")]
+from ..models import rules
+from ..models.mfi_loan import METHODS
 
 
 def _active_id(self):
@@ -89,16 +91,42 @@ class MfiLoanWriteOff(models.TransientModel):
         return {"type": "ir.actions.act_window_close"}
 
 
+class MfiLoanPayment(models.TransientModel):
+    _name = "mfi.loan.payment.wizard"
+    _description = "Record a repayment"
+
+    loan_id = fields.Many2one("mfi.loan", required=True, default=_active_id)
+    currency_id = fields.Many2one(related="loan_id.currency_id")
+    outstanding = fields.Monetary(related="loan_id.outstanding")
+    amount = fields.Monetary(required=True)
+    method = fields.Selection(METHODS, required=True, default="mpesa")
+    reference = fields.Char(help="The M-Pesa or bank reference; not needed for cash.")
+    date = fields.Date(required=True, default=fields.Date.context_today)
+
+    def action_confirm(self):
+        self.ensure_one()
+        rules.check(self.env, "payments.record")
+        if self.loan_id.state != "active":
+            raise UserError(self.env._("Only active loans take repayments."))
+        payment = self.loan_id._mfi_register_payment(self.amount, self.method, self.reference, self.date)
+        self.loan_id.message_post(body=self.env._(
+            "Payment of KES %(amount)s received by %(method)s (%(ref)s).",
+            amount=f"{self.amount:,.2f}", method=self.method, ref=payment.memo))
+        rules.audit(self.env, "payment.recorded", self.loan_id, {
+            "amount": self.amount, "method": self.method, "reference": payment.memo})
+        return {"type": "ir.actions.act_window_close"}
+
+
 class MfiPaymentMatch(models.TransientModel):
     _name = "mfi.payment.match.wizard"
-    _description = "Match a payment to a loan"
+    _description = "Apply a received payment to a loan"
 
-    payment_id = fields.Many2one("mfi.payment", required=True, default=_active_id)
+    payment_id = fields.Many2one("account.payment", required=True, default=_active_id)
     loan_id = fields.Many2one("mfi.loan", required=True, domain=[("state", "=", "active")])
 
     def action_confirm(self):
         self.ensure_one()
-        self.payment_id.action_match(self.loan_id)
+        self.payment_id.action_mfi_match(self.loan_id)
         return {"type": "ir.actions.act_window_close"}
 
 
@@ -106,10 +134,10 @@ class MfiPaymentReverse(models.TransientModel):
     _name = "mfi.payment.reverse.wizard"
     _description = "Reverse a payment"
 
-    payment_id = fields.Many2one("mfi.payment", required=True, default=_active_id)
+    payment_id = fields.Many2one("account.payment", required=True, default=_active_id)
     reason = fields.Char(required=True)
 
     def action_confirm(self):
         self.ensure_one()
-        self.payment_id.action_reverse(self.reason)
+        self.payment_id.action_mfi_reverse(self.reason)
         return {"type": "ir.actions.act_window_close"}

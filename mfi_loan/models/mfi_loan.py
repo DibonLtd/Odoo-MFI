@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
 
 from . import rules
@@ -17,6 +17,11 @@ STATES = [
     ("written_off", "Written off"),
 ]
 DISBURSED_STATES = ("active", "repaid", "written_off")
+# One definition, used by the loan, the dashboard and the views.
+HEALTH = [("current", "On time"), ("arrears", "In arrears"), ("overdue", "Overdue")]
+BUCKETS = [("current", "Current"), ("1_7", "1-7 days"), ("8_14", "8-14 days"),
+           ("15_30", "15-30 days"), ("30_plus", "30+ days")]
+METHODS = [("mpesa", "M-Pesa"), ("bank", "Bank"), ("cash", "Cash")]
 EDITABLE_STATES = ("draft", "pending_information")
 # Changing these re-prices the loan.
 PRICING_FIELDS = {"principal", "product_id", "partner_id", "term"}
@@ -108,36 +113,34 @@ class MfiLoan(models.Model):
     )
 
     # Disbursement
-    disbursement_method = fields.Selection(
-        [("mpesa", "M-Pesa"), ("bank", "Bank"), ("cash", "Cash")], readonly=True, copy=False
-    )
+    disbursement_method = fields.Selection(METHODS, readonly=True, copy=False)
     disbursement_ref = fields.Char("Disbursement reference", readonly=True, copy=False)
     disbursed_date = fields.Date(readonly=True, copy=False)
     disbursed_by = fields.Many2one("res.users", readonly=True, copy=False)
     start_date = fields.Date("First instalment due", readonly=True, copy=False)
     maturity_date = fields.Date(readonly=True, copy=False)
 
-    # Repayment
-    installment_ids = fields.One2many("mfi.loan.installment", "loan_id", "Schedule", readonly=True, copy=False)
-    payment_ids = fields.One2many("mfi.payment", "loan_id", "Payments", readonly=True, copy=False)
+    # Accounting (DECISIONS D-017): the loan's journal entries, and what is read from them
+    move_ids = fields.One2many("account.move", "mfi_loan_id", "Journal entries", readonly=True, copy=False)
+    invoice_id = fields.Many2one("account.move", "Loan invoice", readonly=True, copy=False)
+    payment_ids = fields.One2many("account.payment", "mfi_loan_id", "Payments", readonly=True, copy=False)
+    instalment_line_ids = fields.Many2many("account.move.line", string="Instalments",
+                                           compute="_compute_instalment_lines")
     amount_paid = fields.Monetary("Paid to instalments", compute="_compute_balance", store=True)
-    penalty_accrued = fields.Monetary("Default interest charged", readonly=True, copy=False)
-    penalty_paid = fields.Monetary("Default interest paid", readonly=True, copy=False)
+    penalty_accrued = fields.Monetary("Default interest charged", compute="_compute_balance", store=True)
+    penalty_paid = fields.Monetary("Default interest paid", compute="_compute_balance", store=True)
     penalty_through = fields.Date("Default interest charged to", readonly=True, copy=False)
     penalty_due = fields.Monetary("Default interest due", compute="_compute_balance", store=True)
     outstanding = fields.Monetary(compute="_compute_balance", store=True)
     health = fields.Selection(
-        [("current", "Current"), ("arrears", "In arrears"), ("overdue", "Overdue")], readonly=True, copy=False,
+        HEALTH, compute="_compute_balance", store=True,
         help="In arrears: instalments due before today are unpaid. Overdue: past maturity with a balance.",
     )
-    days_past_due = fields.Integer("DPD", readonly=True, copy=False,
+    days_past_due = fields.Integer("DPD", compute="_compute_balance", store=True,
                                    help="Days since the oldest unpaid instalment fell due.")
-    arrears_amount = fields.Monetary(readonly=True, copy=False)
-    oldest_unpaid_due = fields.Date(readonly=True, copy=False)
-    ageing_bucket = fields.Selection(
-        [("current", "Current"), ("1_7", "1-7 days"), ("8_14", "8-14 days"),
-         ("15_30", "15-30 days"), ("30_plus", "30+ days")],
-        "Bucket", readonly=True, copy=False)
+    arrears_amount = fields.Monetary(compute="_compute_balance", store=True)
+    oldest_unpaid_due = fields.Date(compute="_compute_balance", store=True)
+    ageing_bucket = fields.Selection(BUCKETS, "Bucket", compute="_compute_balance", store=True)
     closed_date = fields.Date(readonly=True, copy=False)
     written_off_date = fields.Date(readonly=True, copy=False)
     write_off_reason = fields.Text(readonly=True, copy=False)
@@ -156,16 +159,61 @@ class MfiLoan(models.Model):
             loan.total_charges = r2(upfront + deducted)
             loan.net_disbursement = r2(loan.principal - deducted)
 
-    @api.depends("state", "total_repayable", "installment_ids.amount_paid", "penalty_accrued", "penalty_paid")
-    def _compute_balance(self):
+    def _receivable_lines(self, kinds=("loan", "penalty")):
+        """The loan's posted receivable lines of these kinds (sudo: figures for everyone)."""
+        self.ensure_one()
+        return self.sudo().move_ids.line_ids.filtered(
+            lambda l: l.parent_state == "posted" and l.account_id.account_type == "asset_receivable"
+            and l.move_id.mfi_kind in kinds and l.balance > 0)
+
+    @api.depends("move_ids.line_ids.amount_residual")
+    def _compute_instalment_lines(self):
         for loan in self:
-            paid = r2(sum(loan.installment_ids.mapped("amount_paid")))
-            penalty_due = r2(loan.penalty_accrued - loan.penalty_paid)
-            loan.amount_paid = paid
-            loan.penalty_due = penalty_due
-            loan.outstanding = (
-                r2(loan.total_repayable - paid + penalty_due) if loan.state == "active" else 0
-            )
+            loan.instalment_line_ids = loan._receivable_lines(("loan",)).sorted("date_maturity") if loan.id else False
+
+    @api.depends("state", "maturity_date", "move_ids.state", "move_ids.line_ids.amount_residual")
+    def _compute_balance(self):
+        today = fields.Date.context_today(self)
+        for loan in self:
+            lines = loan._receivable_lines() if loan.id else self.env["account.move.line"]
+            instalments = lines.filtered(lambda l: l.move_id.mfi_kind == "loan")
+            penalties = lines - instalments
+
+            def paid(lines_):
+                # Money received: what is matched by anything but a rebate or a write-off.
+                return sum(p.amount for line in lines_ for p in line.matched_credit_ids
+                           if p.credit_move_id.move_id.mfi_kind not in ("settlement", "write_off"))
+
+            loan.amount_paid = r2(paid(instalments))
+            loan.penalty_accrued = r2(sum(penalties.mapped("balance")))
+            loan.penalty_paid = r2(paid(penalties))
+            loan.penalty_due = r2(sum(penalties.mapped("amount_residual")))
+            if loan.state != "active":
+                loan.update({"outstanding": 0, "health": False, "days_past_due": 0, "arrears_amount": 0,
+                             "oldest_unpaid_due": False, "ageing_bucket": False})
+                continue
+            outstanding = r2(sum(lines.mapped("amount_residual")))
+            late = instalments.filtered(lambda l: l.date_maturity and l.date_maturity < today)
+            arrears = r2(sum(late.mapped("amount_residual")))
+            unpaid = [l.date_maturity for l in late if l.amount_residual > 0.005]
+            oldest = min(unpaid) if unpaid else False
+            if loan.maturity_date and today > loan.maturity_date and outstanding > 0.005:
+                health = "overdue"
+            elif arrears > 0.005:
+                health = "arrears"
+            else:
+                health = "current"
+            dpd = max((today - oldest).days, 0) if oldest else 0
+            loan.update({
+                "outstanding": outstanding,
+                "health": health,
+                "days_past_due": dpd,
+                "arrears_amount": arrears,
+                "oldest_unpaid_due": oldest,
+                "ageing_bucket": (
+                    "current" if health == "current" else
+                    "1_7" if dpd <= 7 else "8_14" if dpd <= 14 else "15_30" if dpd <= 30 else "30_plus"),
+            })
 
     @api.depends_context("uid")
     @api.depends("state", "approval_stage", "approval_ids")
@@ -442,7 +490,7 @@ class MfiLoan(models.Model):
     def action_disburse(self, method, reference, date=None):
         rules.check(self.env, "loans.disburse")
         reference = (reference or "").strip()
-        if method not in ("mpesa", "bank", "cash"):
+        if method not in dict(METHODS):
             raise UserError(self.env._("Choose a method."))
         if len(reference) < 3:
             raise UserError(self.env._("Enter the disbursement reference."))
@@ -453,42 +501,226 @@ class MfiLoan(models.Model):
                 raise UserError(self.env._("Only approved loans can be disbursed."))
             if loan.create_uid == user and not user.has_group(SA):
                 raise AccessError(self.env._("The creator of an application cannot disburse it."))
-            start = date + timedelta(days=1)
-            days, each, total = loan.term_days, loan.installment, loan.total_repayable
-            schedule = [(5, 0, 0)] + [
-                (0, 0, {
-                    "seq": seq,
-                    "due_date": start + timedelta(days=seq - 1),
-                    "amount_due": max(each if seq < days else r2(total - each * (days - 1)), 0),
-                })
-                for seq in range(1, days + 1)
-            ]
-            loan.sudo().write({
-                "state": "active",
-                "disbursement_method": method,
-                "disbursement_ref": reference,
-                "disbursed_date": date,
-                "disbursed_by": user.id,
-                "start_date": start,
-                "maturity_date": start + timedelta(days=days - 1),
-                "penalty_through": date,
-                "installment_ids": schedule,
-            })
+            loan.sudo()._mfi_post_loan(method, reference, date)
             loan.message_post(body=self.env._(
                 "Disbursed KES %(net)s by %(method)s, reference %(ref)s.",
                 net=f"{loan.net_disbursement:,.2f}", method=method, ref=reference))
             rules.audit(self.env, "loan.disbursed", loan, {
                 "method": method, "reference": reference, "date": date, "net": loan.net_disbursement})
-        self._accrue_penalty()
-        self._update_health()
+        # A payout recorded late: default interest for the days already past (unless a
+        # replay of history charges it day by day itself, as the sample data does).
+        if not self.env.context.get("mfi_skip_accrual"):
+            self._accrue_penalty()
+        self._mfi_refresh()
+
+    def _mfi_post_loan(self, method, reference, date):
+        """Book the loan in Accounting: its invoice (principal and interest, a daily
+        payment term: Odoo makes the instalments), the payout, and deducted fees.
+
+        The one place a loan is posted: the local workflow calls it today; a sync
+        from the lending service will call it with the loans it fetches (D-020)."""
+        self.ensure_one()
+        accounting = self.company_id._mfi_accounting()
+        principal_product, interest_product = self.product_id._mfi_products()
+        Move = self.env["account.move"].sudo()
+        self.write({
+            "state": "active",
+            "disbursement_method": method,
+            "disbursement_ref": reference,
+            "disbursed_date": date,
+            "disbursed_by": self.env.uid,
+            "start_date": date + timedelta(days=1),
+            "maturity_date": date + timedelta(days=self.term_days),
+            "penalty_through": date,
+        })
+        invoice = Move.create({
+            "move_type": "out_invoice",
+            "partner_id": self.partner_id.id,
+            "journal_id": accounting.loan_journal.id,
+            "invoice_date": date,
+            "date": date,
+            "invoice_payment_term_id": self.env["account.payment.term"]._mfi_daily(
+                self.term_days, self.company_id).id,
+            "payment_reference": self.name,
+            "ref": self.name,
+            "mfi_loan_id": self.id,
+            "mfi_kind": "loan",
+            "invoice_line_ids": [
+                Command.create({
+                    "product_id": principal_product.id, "name": self.env._("Principal"),
+                    "quantity": 1, "price_unit": self.principal,
+                    "account_id": accounting.principal.id, "tax_ids": [Command.clear()],
+                }),
+                Command.create({
+                    "product_id": interest_product.id,
+                    "name": self.env._("Interest: %(days)s days at %(rate)s%% a day",
+                                       days=self.term_days, rate=f"{self.daily_rate * 100:g}"),
+                    "quantity": 1, "price_unit": self.interest,
+                    "account_id": accounting.interest.id, "tax_ids": [Command.clear()],
+                }),
+            ],
+        })
+        invoice.action_post()
+        self.invoice_id = invoice
+        payout = self.env["account.payment"].sudo().create({
+            "payment_type": "outbound",
+            "partner_type": "customer",
+            "partner_id": self.partner_id.id,
+            "amount": self.net_disbursement,
+            "journal_id": accounting.journals[method].id,
+            "date": date,
+            "memo": f"{self.name} {reference}",
+            "destination_account_id": accounting.principal.id,
+            "mfi_loan_id": self.id,
+        })
+        payout.action_post()
+        payout.move_id.write({"mfi_loan_id": self.id, "mfi_kind": "disbursement"})
+        deducted = self.fee_line_ids.filtered(lambda f: f.timing == "deducted" and f.amount)
+        if deducted:
+            fee_lines = [Command.create({
+                "account_id": accounting.principal.id, "partner_id": self.partner_id.id,
+                "name": self.env._("Fees deducted from the payout"), "debit": sum(deducted.mapped("amount")),
+            })]
+            for fee in deducted:
+                product = fee.fee_id._mfi_product() if fee.fee_id else False
+                fee_lines.append(Command.create({
+                    "account_id": (product and product.property_account_income_id or accounting.fee).id,
+                    "product_id": product and product.id,
+                    "partner_id": self.partner_id.id, "name": fee.name, "credit": fee.amount,
+                }))
+            Move.create({
+                "move_type": "entry", "journal_id": accounting.loan_journal.id, "date": date,
+                "ref": self.env._("%s: fees deducted", self.name),
+                "mfi_loan_id": self.id, "mfi_kind": "disbursement", "line_ids": fee_lines,
+            }).action_post()
+        self._mfi_post_upfront_fees(date)
+        # The principal account clears: the invoice's principal against the payout and the fees.
+        self.move_ids.line_ids.filtered(
+            lambda l: l.account_id == accounting.principal and not l.reconciled and l.parent_state == "posted"
+        ).reconcile()
+
+    def _mfi_post_upfront_fees(self, date):
+        """Fees paid before approval (with their reference): an invoice of the fee
+        products, paid by that reference. Not part of the loan's balance."""
+        upfront = self.fee_line_ids.filtered(lambda f: f.timing == "upfront" and f.amount)
+        if not upfront:
+            return
+        accounting = self.company_id._mfi_accounting()
+        invoice = self.env["account.move"].sudo().create({
+            "move_type": "out_invoice", "partner_id": self.partner_id.id,
+            "journal_id": accounting.loan_journal.id, "invoice_date": date, "date": date,
+            "ref": self.name, "payment_reference": self.upfront_fee_ref or self.name,
+            "mfi_loan_id": self.id, "mfi_kind": "fee",
+            "invoice_line_ids": [Command.create({
+                "product_id": fee.fee_id._mfi_product().id if fee.fee_id else False,
+                "name": fee.name, "quantity": 1, "price_unit": fee.amount,
+                "account_id": (fee.fee_id._mfi_product().property_account_income_id
+                               if fee.fee_id else accounting.fee).id,
+                "tax_ids": [Command.clear()],
+            }) for fee in upfront],
+        })
+        invoice.action_post()
+        payment = self.env["account.payment"].sudo().create({
+            "payment_type": "inbound", "partner_type": "customer", "partner_id": self.partner_id.id,
+            "amount": invoice.amount_total, "journal_id": accounting.journals["mpesa"].id, "date": date,
+            "memo": self.upfront_fee_ref or self.env._("%s upfront fees", self.name), "mfi_loan_id": self.id,
+        })
+        payment.action_post()
+        payment.move_id.write({"mfi_loan_id": self.id, "mfi_kind": "fee"})  # not a repayment
+        (payment.move_id.line_ids | invoice.line_ids).filtered(
+            lambda l: l.account_id.account_type == "asset_receivable").reconcile()
 
     # ------------------------------------------------------------------
-    # Default interest, payments and balances
+    # Repayments: payments reconciled with the instalments, oldest first
+    # ------------------------------------------------------------------
+
+    def _mfi_register_payment(self, amount, method, reference=None, date=None, note=None):
+        """Receive money for this loan: a posted payment, applied to the oldest
+        instalment or charge first. The one place a repayment is booked (D-020)."""
+        self.ensure_one()
+        reference = (reference or "").strip().upper() or False
+        if method not in dict(METHODS):
+            raise UserError(self.env._("Choose a method."))
+        if amount <= 0:
+            raise UserError(self.env._("The amount must be positive."))
+        if method != "cash" and not reference:
+            raise UserError(self.env._("Enter the M-Pesa or bank reference."))
+        accounting = self.company_id._mfi_accounting()
+        journal = accounting.journals[method]
+        Payment = self.env["account.payment"].sudo()
+        if reference and Payment.search_count([("memo", "=", reference), ("journal_id", "=", journal.id),
+                                                ("state", "!=", "canceled")]):
+            raise UserError(self.env._("Reference %s has already been recorded.", reference))
+        payment = Payment.create({
+            "payment_type": "inbound",
+            "partner_type": "customer",
+            "partner_id": self.partner_id.id,
+            "amount": amount,
+            "journal_id": journal.id,
+            "date": fields.Date.to_date(date) or fields.Date.context_today(self),
+            "memo": reference or note or self.name,
+            "payment_reference": self.name,
+            "mfi_loan_id": self.id,
+        })
+        payment.action_post()
+        self._mfi_apply(payment)
+        return payment
+
+    def _mfi_apply(self, payment):
+        """Reconcile a payment with the loan's open lines, oldest due first."""
+        self.ensure_one()
+        credit = payment.sudo().move_id.line_ids.filtered(
+            lambda l: l.account_id.account_type == "asset_receivable" and not l.reconciled)
+        for line in self._receivable_lines().filtered(lambda l: not l.reconciled).sorted(
+                lambda l: (l.date_maturity or l.date, l.id)):
+            if credit.reconciled:
+                break
+            (credit | line).reconcile()
+
+    def _mfi_follow_receivable(self):
+        """After any reconciliation: repaid when nothing is left, active again if a
+        payment was undone."""
+        for loan in self.sudo():
+            if loan.state == "active" and loan.outstanding <= 0.005 and loan.invoice_id:
+                dates = [p.credit_move_id.date for line in loan._receivable_lines() for p in line.matched_credit_ids
+                         if p.credit_move_id.move_id.mfi_kind not in ("settlement", "write_off")]
+                loan.write({"state": "repaid", "closed_date": max(dates) if dates else fields.Date.context_today(self)})
+                loan.message_post(body=self.env._("Repaid in full."))
+            elif loan.state == "repaid":
+                open_lines = loan._receivable_lines().filtered(lambda l: l.amount_residual > 0.005)
+                if open_lines:
+                    loan.write({"state": "active", "closed_date": False})
+                    loan.message_post(body=self.env._("Reopened: a payment was undone."))
+
+    def action_record_payment(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Record payment"),
+            "res_model": "mfi.loan.payment.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_loan_id": self.id},
+        }
+
+    def action_open_entries(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Journal entries of %s", self.name),
+            "res_model": "account.move",
+            "view_mode": "list,form",
+            "domain": [("mfi_loan_id", "=", self.id)],
+            "context": {"create": False},
+        }
+
+    # ------------------------------------------------------------------
+    # Default interest
     # ------------------------------------------------------------------
 
     def _accrue_penalty(self, today=None):
         """Charge default interest for each day since last charged: the rate on every
-        instalment past its due date and still unpaid."""
+        instalment past its due date and still unpaid. Posted as one invoice."""
         today = fields.Date.to_date(today) or fields.Date.context_today(self)
         for loan in self.sudo():
             if loan.state != "active" or not loan.penalty_through:
@@ -496,107 +728,61 @@ class MfiLoan(models.Model):
             days = (today - loan.penalty_through).days
             if days <= 0:
                 continue
-            unpaid = [(i.due_date, i.amount_due - i.amount_paid)
-                      for i in loan.installment_ids if i.amount_due > i.amount_paid]
+            unpaid = [(l.date_maturity, l.amount_residual) for l in loan._receivable_lines(("loan",))
+                      if l.amount_residual > 0.005]
             charge = 0.0
             for offset in range(1, days + 1):
                 day = loan.penalty_through + timedelta(days=offset)
                 charge += sum(amount for due, amount in unpaid if due < day) * loan.penalty_rate
-            loan.write({"penalty_accrued": r2(loan.penalty_accrued + charge), "penalty_through": today})
+            charge = r2(charge)
+            if charge > 0:
+                loan._mfi_post_charge("penalty", charge, today, self.env._(
+                    "Default interest to %s", fields.Date.to_string(today)))
+            loan.penalty_through = today
 
-    def _allocate(self, amount, when):
-        """Apply money to default interest first, then instalments in order.
-        Returns (to default interest, to instalments, overpayment)."""
+    def _mfi_post_charge(self, kind, amount, date, label, refund=False, account=None, product=None):
+        """A posted invoice (or credit note) on the loan: default interest, a
+        settlement rebate or a write-off. Credit notes are applied at once."""
         self.ensure_one()
-        loan = self.sudo()
-        remaining = r2(amount)
-        to_penalty = min(remaining, max(r2(loan.penalty_accrued - loan.penalty_paid), 0))
-        remaining = r2(remaining - to_penalty)
-        to_installments = 0.0
-        for inst in loan.installment_ids.sorted("seq"):
-            if remaining <= 0:
-                break
-            if inst.amount_paid >= inst.amount_due:
-                continue
-            part = min(remaining, r2(inst.amount_due - inst.amount_paid))
-            paid = r2(inst.amount_paid + part)
-            inst.write({"amount_paid": paid, "paid_date": when if paid >= inst.amount_due else False})
-            remaining = r2(remaining - part)
-            to_installments = r2(to_installments + part)
-        loan.penalty_paid = r2(loan.penalty_paid + to_penalty)
-        return to_penalty, to_installments, remaining
-
-    def _close_if_repaid(self, when=None):
-        for loan in self.sudo():
-            open_installments = any(i.amount_paid < i.amount_due - 0.005 for i in loan.installment_ids)
-            if loan.state == "active" and not open_installments and loan.penalty_accrued - loan.penalty_paid < 0.005:
-                loan.write({"state": "repaid", "closed_date": when or fields.Date.context_today(self)})
-                loan.message_post(body=self.env._("Repaid in full."))
-
-    def _reallocate(self):
-        """Re-apply every allocated payment from scratch, after a reversal."""
-        for loan in self.sudo():
-            loan.installment_ids.write({"amount_paid": 0, "paid_date": False})
-            vals = {"penalty_paid": 0}
-            if loan.state == "repaid":
-                vals.update(state="active", closed_date=False)
-            loan.write(vals)
-            payments = loan.payment_ids.filtered(lambda p: p.state == "allocated").sorted(lambda p: (p.date, p.id))
-            for payment in payments:
-                to_penalty, to_installments, over = loan._allocate(payment.amount, payment.date)
-                payment.with_context(mfi_payment_internal=True).write({
-                    "to_penalty": to_penalty, "to_installments": to_installments, "overpayment": over,
-                })
-            loan._close_if_repaid(payments[-1:].date or None)
-        self._update_health()
-
-    def _update_health(self, today=None):
-        today = fields.Date.to_date(today) or fields.Date.context_today(self)
-        for loan in self.sudo():
-            if loan.state != "active":
-                vals = {"health": False, "days_past_due": 0, "arrears_amount": 0, "oldest_unpaid_due": False,
-                        "ageing_bucket": False}
-            else:
-                past = loan.installment_ids.filtered(lambda i: i.due_date < today)
-                arrears = r2(sum(past.mapped("amount_due")) - sum(past.mapped("amount_paid")))
-                unpaid = [i.due_date for i in past if i.amount_paid < i.amount_due - 0.005]
-                oldest = min(unpaid) if unpaid else False
-                if loan.maturity_date and today > loan.maturity_date and loan.outstanding > 0.005:
-                    health = "overdue"
-                elif arrears > 0.005:
-                    health = "arrears"
-                else:
-                    health = "current"
-                dpd = max((today - oldest).days, 0) if oldest else 0
-                vals = {
-                    "health": health,
-                    "days_past_due": dpd,
-                    "arrears_amount": arrears,
-                    "oldest_unpaid_due": oldest,
-                    "ageing_bucket": (
-                        "current" if health == "current" else
-                        "1_7" if dpd <= 7 else "8_14" if dpd <= 14 else "15_30" if dpd <= 30 else "30_plus"
-                    ),
-                }
-            if any(loan[k] != v for k, v in vals.items()):
-                loan.write(vals)
+        accounting = self.company_id._mfi_accounting()
+        product = product or accounting.penalty_product
+        move = self.env["account.move"].sudo().create({
+            "move_type": "out_refund" if refund else "out_invoice",
+            "partner_id": self.partner_id.id,
+            "journal_id": accounting.loan_journal.id,
+            "invoice_date": date,
+            "date": date,
+            "payment_reference": self.name,
+            "ref": self.name,
+            "mfi_loan_id": self.id,
+            "mfi_kind": kind,
+            "invoice_line_ids": [Command.create({
+                "product_id": product.id, "name": label, "quantity": 1, "price_unit": amount,
+                "account_id": (account or product.property_account_income_id).id, "tax_ids": [Command.clear()],
+            })],
+        })
+        move.action_post()
+        if refund:
+            credit = move.line_ids.filtered(lambda l: l.account_id.account_type == "asset_receivable")
+            for line in self._receivable_lines().filtered(lambda l: not l.reconciled).sorted(
+                    lambda l: (l.date_maturity or l.date, l.id), reverse=True):
+                if credit.reconciled:
+                    break
+                (credit | line).reconcile()
+        return move
 
     @api.model
     def _cron_daily(self):
         loans = self.search([("state", "=", "active")])
         loans._accrue_penalty()
-        loans._update_health()
+        loans._mfi_refresh()
 
-    def action_record_payment(self):
-        self.ensure_one()
-        return {
-            "type": "ir.actions.act_window",
-            "name": self.env._("Record payment"),
-            "res_model": "mfi.payment",
-            "view_mode": "form",
-            "target": "new",
-            "context": {"default_loan_id": self.id},
-        }
+    def _mfi_refresh(self):
+        """The figures depend on today's date: recompute them (the nightly run)."""
+        for name in ("outstanding", "health", "days_past_due", "arrears_amount", "oldest_unpaid_due",
+                     "ageing_bucket", "amount_paid", "penalty_accrued", "penalty_paid", "penalty_due"):
+            self.env.add_to_compute(self._fields[name], self)
+        self.flush_recordset()
 
     # ------------------------------------------------------------------
     # Early settlement and write-off
@@ -607,17 +793,18 @@ class MfiLoan(models.Model):
         minimum, at most the term), less what is paid, plus default interest due."""
         self.ensure_one()
         today = fields.Date.to_date(today) or fields.Date.context_today(self)
-        self._accrue_penalty(today)
         if self.state != "active":
             raise UserError(self.env._("Loan is not active."))
+        self._accrue_penalty(today)
         days = max((today - self.start_date).days + 1, 0)
         interest_days = min(max(days, self.min_interest_days), self.term_days)
         interest = r2(self.principal * self.daily_rate * interest_days)
         new_total = r2(self.principal + interest)
-        penalty_due = r2(self.penalty_accrued - self.penalty_paid)
+        penalty_due = self.penalty_due
         return {
             "interest_days": interest_days,
             "interest": interest,
+            "rebate": r2(max(self.interest - interest, 0)),
             "new_total_payable": new_total,
             "penalty_due": penalty_due,
             "amount_paid": self.amount_paid,
@@ -633,24 +820,12 @@ class MfiLoan(models.Model):
             raise UserError(self.env._(
                 "Amount must be at least KES %s to settle early", f"{settlement['settlement_amount']:,.2f}"))
         loan = self.sudo()
-        loan.installment_ids.filtered(
-            lambda i: i.due_date > today and i.amount_paid == 0 and i.seq > 1
-        ).unlink()
-        remaining = loan.installment_ids.sorted("seq")
-        if remaining:
-            before_last = sum(remaining[:-1].mapped("amount_due"))
-            last = remaining[-1]
-            last.amount_due = max(r2(settlement["new_total_payable"] - before_last), last.amount_paid)
-        loan.write({
-            "interest": settlement["interest"],
-            "total_repayable": settlement["new_total_payable"],
-            "term_days": len(remaining),
-            "maturity_date": remaining[-1].due_date if remaining else loan.maturity_date,
-        })
-        payment = self.env["mfi.payment"].create({
-            "loan_id": self.id, "amount": amount, "method": method, "reference": reference,
-            "date": today, "note": self.env._("Early settlement."),
-        })
+        if settlement["rebate"]:
+            loan._mfi_post_charge("settlement", settlement["rebate"], today, self.env._(
+                "Interest not charged: settled after %s days", settlement["interest_days"]),
+                refund=True, product=loan.product_id._mfi_products()[1])
+        loan.write({"interest": settlement["interest"], "total_repayable": settlement["new_total_payable"]})
+        payment = loan._mfi_register_payment(amount, method, reference, today, note=self.env._("Early settlement"))
         rules.audit(self.env, "loan.settled_early", self, {
             "amount": amount, "reference": reference, "interest_days": settlement["interest_days"]})
         return payment
@@ -660,21 +835,26 @@ class MfiLoan(models.Model):
         reason = (reason or "").strip()
         if len(reason) < 5:
             raise UserError(self.env._("Give a reason."))
+        today = fields.Date.context_today(self)
         for loan in self:
             if loan.state != "active":
                 raise UserError(self.env._("Only active loans can be written off."))
             loan._accrue_penalty()
             outstanding = loan.outstanding
+            if outstanding > 0:
+                accounting = loan.company_id._mfi_accounting()
+                loan.sudo()._mfi_post_charge(
+                    "write_off", outstanding, today, self.env._("Written off: %s", reason), refund=True,
+                    account=accounting.bad_debt, product=loan.product_id._mfi_products()[0])
             loan.sudo().write({
                 "state": "written_off",
-                "written_off_date": fields.Date.context_today(self),
+                "written_off_date": today,
                 "write_off_reason": reason,
             })
             loan.message_post(body=self.env._(
                 "Written off with KES %(amount)s outstanding: %(reason)s",
                 amount=f"{outstanding:,.2f}", reason=reason))
             rules.audit(self.env, "loan.written_off", loan, {"outstanding": outstanding, "reason": reason})
-        self._update_health()
 
 
 class MfiLoanFee(models.Model):
@@ -700,28 +880,6 @@ class MfiLoanChattel(models.Model):
     quantity = fields.Float(default=1)
     currency_id = fields.Many2one(related="loan_id.currency_id")
     value = fields.Monetary()
-
-
-class MfiLoanInstallment(models.Model):
-    _name = "mfi.loan.installment"
-    _description = "Daily instalment"
-    _order = "loan_id, seq"
-
-    loan_id = fields.Many2one("mfi.loan", required=True, ondelete="cascade", index=True)
-    partner_id = fields.Many2one(related="loan_id.partner_id", string="Client")
-    loan_state = fields.Selection(related="loan_id.state", string="Loan status")
-    seq = fields.Integer("No.", required=True)
-    due_date = fields.Date(required=True, index=True)
-    currency_id = fields.Many2one(related="loan_id.currency_id")
-    amount_due = fields.Monetary(required=True)
-    amount_paid = fields.Monetary()
-    amount_open = fields.Monetary("Still to pay", compute="_compute_amount_open")
-    paid_date = fields.Date()
-
-    @api.depends("amount_due", "amount_paid")
-    def _compute_amount_open(self):
-        for inst in self:
-            inst.amount_open = max(r2(inst.amount_due - inst.amount_paid), 0)
 
 
 class MfiLoanApproval(models.Model):

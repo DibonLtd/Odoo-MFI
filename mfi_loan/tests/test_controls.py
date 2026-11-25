@@ -36,9 +36,9 @@ class TestControls(MfiCase, SMSCase):
         self.assertEqual(actions.count("document.uploaded"), 2)
         self.assertEqual([a for a in actions if a != "document.uploaded"], [
             "loan.created", "loan.sent_to_officer", "loan.agreement_generated", "loan.submitted",
-            "loan.approved", "loan.approved", "loan.approved", "loan.disbursed",
+            "loan.approved", "loan.approved", "loan.approved", "loan.disbursed", "payment.recorded",
         ])
-        self.assertEqual(self._actions(payment), ["payment.recorded"])
+        self.assertEqual(payment.mfi_loan_id, loan)
         entry = self.env["mfi.audit.log"].search([("action", "=", "loan.disbursed"), ("res_id", "=", loan.id)])
         self.assertEqual(entry.user_id, self.finance)
         self.assertIn("mpesa", entry.detail)
@@ -114,7 +114,7 @@ class TestControls(MfiCase, SMSCase):
             late.with_user(self.finance).action_send_reminder_sms()
         with self.mockSMSGateway():
             late.with_user(self.collections).action_send_reminder_sms()
-        self.assertEqual(late.last_contact_kind, "sms")
+        self.assertTrue(late.message_ids.filtered(lambda m: m.message_type == "sms"))
         sms = self.env["sms.sms"].search([("number", "=", "+254798765432")])
         self.assertTrue(sms)
         self.assertIn(late.name, sms[0].body)
@@ -125,7 +125,7 @@ class TestControls(MfiCase, SMSCase):
         action = late.with_user(self.collections).action_whatsapp_reminder()
         self.assertTrue(action["url"].startswith("https://wa.me/254712345678?text="))
         self.assertIn("Dear Test,", unquote(action["url"]))
-        self.assertEqual(late.last_contact_kind, "whatsapp")
+        self.assertIn("WhatsApp reminder opened", late.message_ids[0].body)
 
     def test_agreement_by_email(self):
         self.env.company.email = "loans@example.com"

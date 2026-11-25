@@ -34,6 +34,10 @@ old one *Superseded by D-xxx*.
 | D-014 | Missing API planning documents are tracked as questions | Accepted |
 | D-015 | Files pass through Odoo's own call, never a route of their own | Accepted |
 | D-016 | Service account by client secret for now; signed client assertion is the target | Accepted, temporary |
+| D-017 | Local loans are booked in Odoo Accounting, Odoo's own objects instead of custom ones | Accepted, deviation |
+| D-018 | Enterprise apps are used: Accounting, Follow-up (Documents and Sign next) | Accepted, deviation |
+| D-019 | Three of the portal's rules changed to fit Accounting | Accepted, Roan Capital to confirm |
+| D-020 | One posting function per event, so a sync from the lending service reuses it | Accepted |
 
 ---
 
@@ -265,3 +269,81 @@ Odoo.
 **Consequences.**
 - access-keycloak §4 asks service accounts to use a signed client assertion, with the key in OpenBao.
 - That change is tracked as LA-44. It touches only `services/auth.py`.
+
+## D-017 · Local loans are booked in Odoo Accounting, Odoo's own objects instead of custom ones
+
+**Decision.** Until loans move to the lending service, a local loan is booked in
+Accounting, following the pattern of Odoo's `account_loans` but on the lending
+side. Nobody computes a schedule: everything comes from the loan type's defaults.
+
+| Event | Odoo object |
+|---|---|
+| Loan type | `mfi.product` holds the defaults. It links a principal product and an interest product (`product.product`, no tax), so reports group by loan type |
+| Disbursement | A customer invoice (`mfi_kind = loan`): principal on the principal account, interest on interest income. Its payment term, "Daily over N days", made once per term, splits the receivable into one dated line per day. Then an outbound payment of the net amount into the principal account, and deducted fees moved to fee income. The principal account then clears |
+| Upfront fees | A fee invoice (`fee`) paid by the recorded reference |
+| Repayment | An `account.payment`, reconciled with the loan's open receivable lines, oldest due first |
+| Unmatched money | A payment with no client. **Apply to a loan** reconciles it later; bank statements reconcile in Accounting |
+| Reversal | The payment goes back to draft and its entry is cancelled, never deleted. The loan reopens |
+| Default interest | A daily invoice (`penalty`) for the days accrued |
+| Early settlement | A credit note (`settlement`) for the interest not charged |
+| Write-off | A credit note (`write_off`) to the write-off account |
+| Arrears, ageing, PAR | Computed from the open receivable lines; Accounting's Aged Receivable |
+| Reminders | Accounting's follow-up levels (SMS), whose daily run is the "send automatically" switch |
+| Contacts, promises | Activities on the loan (Visit, Promise to pay, Call) and the chatter |
+
+**Deleted:**
+- `mfi.loan.installment`, `mfi.payment` and `mfi.collection.note`;
+- the allocation and reallocation engine;
+- the reminder cron;
+- the report wizard (income is Accounting's Profit and Loss);
+- a planned M-Pesa reconciliation model. Not needed: each loan invoice's payment reference is the loan number, which Odoo's standard statement matching already uses.
+
+Accounts, journals and products are made per company the first time they are
+needed (`res.company._mfi_accounting`), from its chart.
+
+**Why.**
+- The product owner asked to reuse Odoo instead of building our own (2026-11-25).
+- `account_loans` books borrowing only (interest as an expense, monthly `pyloan` schedules), so its pattern is reused and the module is not.
+
+**Consequences.**
+- Odoo holds loan balances, against architecture §2. This is interim: when loans move to the lending service (LA-60), the core holds them, and Odoo receives what is fetched for analysis (D-020).
+- Microfinance roles read only the journal entries that carry a loan (an `ir.access` domain). Finance gets invoicing rights; Auditors get read-only Accounting.
+
+## D-018 · Enterprise apps are used: Accounting, Follow-up (Documents and Sign next)
+
+**Decision.** `mfi_loan` depends on `account_accountant` and `account_followup`.
+Documents and Sign come with the client clean-up (TASKLIST LR-20 onwards).
+
+**Why.** Roan Capital runs Enterprise. The product owner chose them (2026-11-25).
+
+**Consequences.** This deviates from staff-workspace rule 7 (Community only). The
+connector, `mfi_lending_api`, stays Community-only.
+
+## D-019 · Three of the portal's rules changed to fit Accounting
+
+These are rules from the old portal's code, questioned rather than copied.
+**Roan Capital's finance lead to confirm.**
+
+1. **Instalments.** They are equal to the cent, with the last taking the remainder (433.33 × 29 + 433.43 on KES 13,000 over 30 days). Before, they were rounded up to whole shillings (434 × 29 + 414). Odoo's payment term computes them this way. A KES 1 cash rounding was rejected: it needs a rounding account and changes what is owed.
+2. **Order of payment.** A payment now goes to the oldest due line first, so instalments before the default interest charged on them. The portal took default interest first. CBK's lender regulations (reg 56(3)) ask for principal, then fees and charges, then interest, which the new order follows more closely.
+3. **Interest recognised at disbursement.** Interest is credited to income when the loan is booked, not day by day. This is simple and fits 14- and 30-day loans. Deferring it (unearned interest, recognised monthly) is a task to add if the accountant asks.
+
+The loan's priced fees (`mfi.loan.fee`) are kept, not cut as planned. The quote
+and the agreement need them before any invoice exists, so they are a snapshot,
+not a duplicate.
+
+## D-020 · One posting function per event, so a sync from the lending service reuses it
+
+**Decision.** Each money event is posted by one method of the loan:
+- `_mfi_post_loan` (disbursement);
+- `_mfi_register_payment` and `_mfi_apply` (repayments);
+- `_accrue_penalty` and `_mfi_post_charge` (default interest, settlement rebate, write-off).
+
+Screens, wizards and the sample data call only these.
+
+**Why.**
+- The data will come from the MFI backend: once loans move to the lending service, Odoo stops deciding and keeps what it fetches, for analysis (product owner, 2026-11-25).
+- A sync then calls the same functions with the fetched loans and repayments, and every report keeps reading one ledger.
+
+**Consequences.** When the sync arrives, the local workflow's checks are bypassed
+for fetched loans (the service has already decided). The postings stay the same.

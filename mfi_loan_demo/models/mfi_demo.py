@@ -18,15 +18,15 @@ from odoo import api, fields, models
 from odoo.tools import BinaryBytes
 
 from . import mfi_demo_data as D
-from .mfi_demo_apps import AppsLoader, unload_apps
+from .mfi_demo_apps import AppsLoader, delete_records, unload_apps
 
 MODULE = "mfi_loan_demo"
 PASSWORD_PARAM = "mfi_loan_demo.password"
 SAMPLE_FILE = BinaryBytes(b"Sample document for the Microfinance sample data.")
 # Tables whose dates the loader moves back to the day an event happened.
 DATED = [
-    ("mail.message", "date"), ("mfi.audit.log", "date"), ("mfi.collection.note", "create_date"),
-    ("res.partner", "create_date"), ("mfi.loan", "create_date"), ("mfi.payment", "create_date"),
+    ("mail.message", "date"), ("mfi.audit.log", "date"),
+    ("res.partner", "create_date"), ("mfi.loan", "create_date"), ("account.payment", "create_date"),
     ("mfi.loan.approval", "decided_at"), ("crm.lead", "create_date"), ("helpdesk.ticket", "create_date"),
     ("hr.employee", "create_date"), ("mail.activity", "create_date"),
 ]
@@ -80,16 +80,18 @@ class MfiDemo(models.AbstractModel):
         clients |= env["res.partner"].browse(ids.get("res.partner", [])).exists()
         loans = env["mfi.loan"].search([("partner_id", "in", clients.ids)])
         loans |= env["mfi.loan"].browse(ids.get("mfi.loan", [])).exists()
-        payments = env["mfi.payment"].search([("loan_id", "in", loans.ids)])
-        payments |= env["mfi.payment"].browse(ids.get("mfi.payment", [])).exists()
+        payments = env["account.payment"].search([("mfi_loan_id", "in", loans.ids)])
+        payments |= env["account.payment"].browse(ids.get("account.payment", [])).exists()
+        moves = env["account.move"].search([("mfi_loan_id", "in", loans.ids)]) - payments.move_id
 
         Log = env["mfi.audit.log"].with_context(mfi_audit_purge=True)
         logs = Log.search([("user_id", "in", users.ids)])
-        for model, records in (("mfi.loan", loans), ("res.partner", clients), ("mfi.payment", payments),
-                               ("res.users", users)):
+        for model, records in (("mfi.loan", loans), ("res.partner", clients), ("res.users", users)):
             logs |= Log.search([("res_model", "=", model), ("res_id", "in", records.ids)])
         logs.unlink()
-        payments.unlink()
+        env["account.payment.register"].search([("partner_id", "in", clients.ids)]).unlink()
+        delete_records(env, "account.payment", payments)
+        delete_records(env, "account.move", moves)
         loans.unlink()
         clients.unlink()
         user_partners = users.partner_id
@@ -293,7 +295,7 @@ class _Loader:
     def _mpesa_ref(self):
         def make():
             return self._rng.choice("TU") + "".join(self._rng.choices(string.ascii_uppercase + string.digits, k=9))
-        return self._unique(make, "mfi.payment", "reference")
+        return self._unique(make, "account.payment", "memo")
 
     def _create_loan(self, client, category, amount, term, plan, days_ago, details):
         officer, finance = self._staff["officer"], self._staff["finance"]
@@ -358,23 +360,20 @@ class _Loader:
         with self._on(disbursed, hour=12):
             method = self._rng.choice(["mpesa", "mpesa", "mpesa", "bank"])
             ref = self._mpesa_ref() if method == "mpesa" else f"FT{disbursed:%y%j}{self._rng.randint(10000, 99999)}"
-            loan.with_user(finance).action_disburse(method, ref, disbursed)
-        # Disbursing charges default interest up to today; start again from the payout day.
-        loan.sudo().write({"penalty_accrued": 0, "penalty_through": disbursed})
+            # Default interest is charged day by day as the history is replayed, not at once.
+            loan.with_user(finance).with_context(mfi_skip_accrual=True).action_disburse(method, ref, disbursed)
         self._repay(loan, plan, details)
         return loan
 
     def _pay(self, loan, amount, day, method="mpesa"):
         with self._on(day):
-            return self.env["mfi.payment"].with_user(self._staff["finance"]).create({
-                "loan_id": loan.id, "amount": amount, "method": method, "date": day,
-                "reference": self._mpesa_ref() if method == "mpesa" else f"EQ{self._rng.randint(10 ** 8, 10 ** 9)}",
-                "payer_phone": loan.partner_id.phone,
-            })
+            reference = self._mpesa_ref() if method == "mpesa" else f"EQ{self._rng.randint(10 ** 8, 10 ** 9)}"
+            return loan.with_user(self._staff["finance"])._mfi_register_payment(amount, method, reference, day)
 
     def _due_through(self, loan, day):
-        loan._accrue_penalty(day)
-        due = sum(max(i.amount_due - i.amount_paid, 0) for i in loan.installment_ids if i.due_date <= day)
+        with self._on(day, hour=6):
+            loan._accrue_penalty(day)
+        due = sum(line.amount_residual for line in loan._receivable_lines(("loan",)) if line.date_maturity <= day)
         return due + loan.penalty_due
 
     def _repay(self, loan, plan, details):
@@ -423,53 +422,50 @@ class _Loader:
         day = self._day(3)
         duplicate = self._pay(loan, loan.installment, day)
         with self._on(day, hour=16):
-            duplicate.with_user(self._staff["headoffice"]).action_reverse(
+            duplicate.with_user(self._staff["headoffice"]).action_mfi_reverse(
                 "Duplicate entry: same M-Pesa payment recorded twice.")
 
     def _follow_up(self, loan, plan):
-        Note = self.env["mfi.collection.note"].with_user(self._staff["collections"])
+        """Contacts in the chatter; promises as activities (an overdue one was not kept)."""
+        loan = loan.with_user(self._staff["collections"])
+        promise = self.env.ref("mfi_loan.mail_activity_promise")
         stopped = loan.oldest_unpaid_due or self._day(5)
         first_call = min(stopped + timedelta(days=2), self._today)
         with self._on(first_call, hour=10):
-            Note.create({"loan_id": loan.id, "kind": "call",
-                         "note": "Called client; says sales are slow this week. Reminded of the daily instalment."})
+            loan.message_post(body="Called client; says sales are slow this week. Reminded of the daily instalment.",
+                              subtype_xmlid="mail.mt_note")
         with self._on(min(first_call + timedelta(days=1), self._today), hour=11):
-            Note.create({"loan_id": loan.id, "kind": "sms", "note": loan.reminder_sms})
+            loan.message_post(body=f"Reminder SMS: {loan.reminder_sms}", subtype_xmlid="mail.mt_note")
         if plan == "overdue":
             visit = min(first_call + timedelta(days=4), self._today)
             with self._on(visit, hour=14):
-                Note.create({"loan_id": loan.id, "kind": "visit",
-                             "note": "Visited the business with the guarantor. Chattels still at the premises."})
-                broken = Note.create({"loan_id": loan.id, "kind": "promise", "note": "Promised to clear arrears.",
-                                      "promise_date": visit + timedelta(days=3),
-                                      "promise_amount": math.ceil(loan.arrears_amount / 100) * 100})
-            with self._on(min(visit + timedelta(days=4), self._today), hour=9):
-                broken.action_broken()
+                loan.message_post(body="Visited the business with the guarantor. Chattels still at the premises.",
+                                  subtype_xmlid="mail.mt_note")
+                loan.activity_schedule(
+                    activity_type_id=promise.id, date_deadline=visit + timedelta(days=3),
+                    summary=f"Promised to clear arrears (KES {math.ceil(loan.arrears_amount / 100) * 100:,.0f})",
+                    user_id=self._staff["collections"].id)
         with self._on(self._today, hour=9):
-            Note.create({"loan_id": loan.id, "kind": "promise", "note": "Client promised to pay on Friday.",
-                         "promise_date": self._today + timedelta(days=self._rng.randint(1, 4)),
-                         "promise_amount": math.ceil(min(loan.arrears_amount, 5000) / 100) * 100 or 500})
+            amount = math.ceil(min(loan.arrears_amount, 5000) / 100) * 100 or 500
+            loan.activity_schedule(
+                activity_type_id=promise.id, date_deadline=self._today + timedelta(days=self._rng.randint(1, 4)),
+                summary=f"Client promised to pay KES {amount:,.0f} on Friday", user_id=self._staff["collections"].id)
 
     def _unmatched_payments(self):
+        """Money in with no loan found: standard payments with no client yet."""
         finance = self._staff["finance"]
-        Payment = self.env["mfi.payment"].with_user(finance)
-        with self._on(self._day(1), hour=19):
-            self._register(Payment.create({
-                "amount": 1500, "method": "mpesa", "reference": self._mpesa_ref(),
-                "payer_phone": "0799" + "".join(self._rng.choices(string.digits, k=6)),
-                "lookup": "Mama Wanjiru", "note": "Paybill account entered as a name.",
-            }), "payment")
-        with self._on(self._today, hour=8):
-            self._register(Payment.create({
-                "amount": 2300, "method": "bank", "reference": f"FT{self._today:%y%j}88231",
-                "lookup": "RCL 12", "note": "Bank transfer with an incomplete loan number.",
-            }), "payment")
+        journals = self.env.company._mfi_accounting().journals
+        Payment = self.env["account.payment"].with_user(finance)
+        for day, hour, amount, journal, memo in (
+                (self._day(1), 19, 1500, journals["mpesa"], f"{self._mpesa_ref()} Mama Wanjiru"),
+                (self._today, 8, 2300, journals["bank"], f"FT{self._today:%y%j}88231 RCL 12")):
+            with self._on(day, hour=hour):
+                payment = Payment.create({"payment_type": "inbound", "partner_type": "customer", "amount": amount,
+                                          "journal_id": journal.id, "date": day, "memo": memo})
+                payment.action_post()
+                self._register(payment, "payment")
 
     def _finish(self, loans):
         active = loans.filtered(lambda loan: loan.state == "active")
         active._accrue_penalty(self._today)
-        loans._update_health(self._today)
-        Loan = self.env["mfi.loan"]
-        for name in ("last_contact_date", "last_contact_kind", "last_contact_note", "open_promise_date"):
-            self.env.add_to_compute(Loan._fields[name], loans)
-        self.env.flush_all()
+        loans._mfi_refresh()

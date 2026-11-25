@@ -161,3 +161,4 @@ KAPU_LENDING_STUB_URL=http://localhost:8094 … --test-tags /mfi_lending_api:Tes
 | Date | Change |
 |---|---|
 | 2026-11-25 | Planning documents. `mfi_lending_api` connector. Onboarding in `mfi_loan`: fields, push (one and bulk), onboarding screen, live list. 55 new tests (28 connector, 24 onboarding, 3 browser); 122 in all |
+| 2026-11-25 | Reuse Odoo, first part (D-017 to D-020; TASKLIST LR-01 to LR-09): local loans booked in Accounting (loan invoice with a daily payment term, payouts, fees, default interest, settlement and write-off credit notes); repayments are standard payments applied oldest first; collections are activities; reminders are Accounting's follow-up; dashboard figures from the ledger. Deleted: instalment, payment and collection-note models, the allocation engine, the reminder cron, the report wizard. Fresh database: 119 tests pass |

@@ -16,7 +16,7 @@
     <p>Your loan agreement <strong t-out="object.name or ''">RC-L-000001</strong> for
         KES <t t-out="'{:,.0f}'.format(object.principal)">10,000</t> is attached.</p>
     <p>Please read it, sign it and send the signed copy back to us. You will repay
-        KES <t t-out="'{:,.0f}'.format(object.installment)">434</t> a day for
+        KES <t t-out="'{:,.2f}'.format(object.installment)">434</t> a day for
         <t t-out="object.term_days or ''">30</t> days.</p>
     <t t-if="object.company_id.mfi_repay_paybill">
         <p>Repay through M-Pesa Paybill <strong t-out="object.company_id.mfi_repay_paybill">123456</strong>,

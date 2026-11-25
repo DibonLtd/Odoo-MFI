@@ -66,7 +66,7 @@
     <record id="group_mfi_finance" model="res.groups">
         <field name="name">Finance / Cashier</field>
         <field name="privilege_id" ref="privilege_mfi_finance"/>
-        <field name="implied_ids" eval="[(4, ref('group_mfi_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_mfi_user')), (4, ref('account.group_account_invoice'))]"/>
     </record>
 
     <record id="privilege_mfi_collections" model="res.groups.privilege">
@@ -88,7 +88,7 @@
     <record id="group_mfi_auditor" model="res.groups">
         <field name="name">Auditor</field>
         <field name="privilege_id" ref="privilege_mfi_auditor"/>
-        <field name="implied_ids" eval="[(4, ref('group_mfi_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_mfi_user')), (4, ref('account.group_account_readonly'))]"/>
     </record>
 
     <record id="privilege_mfi_admin" model="res.groups.privilege">

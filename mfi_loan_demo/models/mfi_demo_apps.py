@@ -268,7 +268,7 @@ class AppsLoader:
     def _accounting(self, clients, loans):
         company = self.env.company
         Account = self.env["account.account"].with_company(company)
-        in_company = Account._check_company_domain(company)
+        in_company = Domain(Account._check_company_domain(company))
         income = Account.search(in_company & Domain("account_type", "=", "income"), limit=1)
         expense = Account.search(in_company & Domain("account_type", "=", "expense"), limit=1)
         if not (income and expense):
@@ -283,18 +283,11 @@ class AppsLoader:
                     return candidate
             raise ValueError("No free journal code")
 
-        sales = self._register(Journal.create({
-            "name": "Loan fees (sample)", "code": code("SFEE"), "type": "sale",
-            "default_account_id": income.id, "company_id": company.id,
-        }), "journal")
         bills = self._register(Journal.create({
             "name": "Supplier bills (sample)", "code": code("SBIL"), "type": "purchase",
             "default_account_id": expense.id, "company_id": company.id,
         }), "journal")
-        mpesa = Journal.create({"name": "M-Pesa Paybill (sample)", "code": code("SMPS"), "type": "bank",
-                                "company_id": company.id})
-        self._register(mpesa.default_account_id, "account")  # deleted after the journal
-        self._register(mpesa, "journal")
+        mpesa = company._mfi_accounting().journals["mpesa"]
         vat = self.env["account.tax"].search([
             ("company_id", "=", company.id), ("type_tax_use", "=", "purchase"),
             ("amount", "=", 16), ("amount_type", "=", "percent")], limit=1)
@@ -306,22 +299,9 @@ class AppsLoader:
                 active_model="account.move", active_ids=move.ids).create({
                     "payment_date": day, "journal_id": mpesa.id, "communication": memo})
             self._register(wizard._create_payments(), "payment")
+            wizard.unlink()  # a transient record that would otherwise hold on to the partner
 
-        # Fees on each disbursed sample loan, invoiced on the payout day and paid at once.
-        for loan in loans.filtered(lambda loan: loan.disbursed_date and loan.fee_line_ids):
-            day = loan.disbursed_date
-            invoice = Move.create({
-                "move_type": "out_invoice", "journal_id": sales.id, "partner_id": loan.partner_id.id,
-                "invoice_date": day, "date": day, "ref": loan.name,
-                "invoice_line_ids": [Command.create({
-                    "name": f"{fee.name}, {loan.name}", "quantity": 1, "price_unit": fee.amount,
-                    "account_id": income.id, "tax_ids": [Command.clear()],  # financial services: VAT exempt
-                }) for fee in loan.fee_line_ids],
-            })
-            invoice.action_post()
-            self._register(invoice, "invoice")
-            pay(invoice, day, f"{loan.name} fees, {loan.disbursement_ref}")
-
+        # Loan fees are booked by Microfinance itself, with each loan (DECISIONS D-017).
         # Three months of supplier bills; this month's are still open.
         sample = self.env["res.partner"]
         for name, what, amount, with_vat in D.VENDORS:
@@ -350,6 +330,29 @@ class AppsLoader:
             self.loader._register(vendor, "vendor")
 
 
+def delete_records(env, model, records):
+    """Delete sample records; posted entries go back to draft first. What cannot be
+    deleted (an entry inside a journal's sequence) is cancelled or archived instead."""
+    env = env(context=dict(env.context, **QUIET, force_delete=True, active_test=False))
+    records = env[model].browse(records.ids).exists()
+    if model == "account.payment":
+        records.filtered(lambda p: p.state != "draft").action_draft()
+    elif model == "account.move":
+        records.filtered(lambda m: m.state != "draft").button_draft()
+    for record in records:
+        try:
+            with env.cr.savepoint():
+                record.unlink()
+        except Exception:
+            _logger.info("Sample %s %s kept, cancelled", model, record.id)
+            if model == "account.move":
+                record.button_cancel()
+            elif model == "account.payment":
+                record.move_id.button_cancel()
+            elif "active" in record._fields:
+                record.write({"active": False})
+
+
 def unload_apps(env):
     """Delete the other apps' sample records, in an order that respects their links."""
     data = env["ir.model.data"].search([("module", "=", "mfi_loan_demo"), ("name", "=like", "sample_%"),
@@ -362,20 +365,9 @@ def unload_apps(env):
         if model not in env or model not in by_model:
             continue
         records = env[model].browse(by_model[model]).exists()
-        if model == "account.payment":
-            records.filtered(lambda p: p.state != "draft").action_draft()
-        elif model == "account.move":
-            records.filtered(lambda m: m.state != "draft").button_draft()
-        elif model == "hr.employee":
+        if model == "hr.employee":
             contacts = records.work_contact_id - records.user_id.partner_id
-        for record in records:
-            try:
-                with env.cr.savepoint():
-                    record.unlink()
-            except Exception:
-                _logger.warning("Could not delete sample %s %s", model, record.id, exc_info=True)
-                if "active" in record._fields:
-                    record.write({"active": False})
+        delete_records(env, model, records)
         if model == "hr.employee":
             for contact in contacts.exists():
                 try:

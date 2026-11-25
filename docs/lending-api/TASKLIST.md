@@ -138,6 +138,32 @@ number.
 - [x] **LA-54** Headless browser test of the onboarding screen and the bulk push against the stub. (uncommitted, 2026-11-25)
 - [ ] **LA-55** A screen opens within 2 seconds at the 95th percentile against the stub (staff-workspace §8).
 
+## Reuse Odoo · Odoo's own objects instead of ours (D-017 to D-020)
+
+Delete before you build: each task removes custom machinery in favour of
+standard Odoo 20, with the loan type's defaults. Nobody computes anything by hand.
+
+- [x] **LR-01** Loans booked in Accounting: loan invoice with a daily payment term, payout, deducted and upfront fees; accounts, journals and products made per company. (uncommitted, 2026-11-25)
+- [x] **LR-02** Loan types and fees linked to products, so Accounting groups by loan type. (uncommitted, 2026-11-25)
+- [x] **LR-03** Repayments are `account.payment`, applied oldest first. `mfi.payment`, the allocation engine and the reallocation after a reversal are deleted. (uncommitted, 2026-11-25)
+- [x] **LR-04** Unmatched money: standard payments, then **Apply to a loan**; reversal cancels the payment's entry. (uncommitted, 2026-11-25)
+- [x] **LR-05** Default interest, early settlement and write-off posted as invoices and credit notes. Health, arrears, ageing and PAR read from the receivable lines. (uncommitted, 2026-11-25)
+- [x] **LR-06** Collections: activities (Visit, Promise to pay, Call) and the chatter. `mfi.collection.note` is deleted. (uncommitted, 2026-11-25)
+- [x] **LR-07** Reminders: the SMS template, and Accounting's follow-up level for automatic SMS. The custom reminder cron is deleted. (uncommitted, 2026-11-25)
+- [x] **LR-08** Dashboard figures from the ledger; duplicate selections defined once; the report wizard is replaced by Profit and Loss and Aged Receivable menus. (uncommitted, 2026-11-25)
+- [x] **LR-09** Sample data loads through the new postings; its fee-invoice loader is removed. (uncommitted, 2026-11-25)
+- [ ] **LR-10** Roan Capital confirms D-019: instalments to the cent, oldest-first order, interest at disbursement.
+- [ ] **LR-11** Deferred interest recognition, only if the accountant asks (D-019).
+- [ ] **LR-20** Next of kin and business contact person as child contacts. `mfi.next.of.kin` and the contact-person fields are deleted; the lending push mapping is updated.
+- [ ] **LR-21** KRA PIN as `vat`; bank account as `res.partner.bank`; client number as `ref`.
+- [ ] **LR-22** One phone normaliser: `phone_validation` (KE) replaces `kenyan_msisdn`, `_phones` and `e164`. One masking helper.
+- [ ] **LR-23** Client documents in the Documents app: a folder per client, tags as kinds, "request a document". `mfi.client.document` is deleted.
+- [ ] **LR-24** Loan agreements through Odoo Sign; "mark as sent" is deleted.
+- [ ] **LR-25** Personal details revealed with `@check_identity` (the reveal wizard's own lockout is deleted); `@check_identity` on disburse, write-off and payment reversal.
+- [ ] **LR-26** Session limits through `auth_timeout`; the `ir.http` override and its settings are deleted.
+- [ ] **LR-27** The audit log keeps security events only. Field changes go to `tracking` and `mail_tracking`; business events to the chatter.
+- [ ] **LR-28** The next-step box reads `_application_problems` and `_checklist_problems` instead of repeating them.
+
 ## Phase 6 and later · Slices still to come
 
 Each stays as **local Odoo records until its API exists** (D-001). Each moves

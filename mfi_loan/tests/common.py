@@ -87,6 +87,10 @@ class MfiCase(TransactionCase):
             "mpesa", f"DSB{loan.id}", self.today - timedelta(days=days_ago))
         return loan
 
-    def _pay(self, loan, amount, ref, by=None, **kw):
-        return self.env["mfi.payment"].with_user(by or self.finance).create(
-            {"loan_id": loan.id, "amount": amount, "method": "mpesa", "reference": ref, **kw})
+    def _pay(self, loan, amount, ref, by=None, method="mpesa", date=None):
+        """A repayment through the loan's Record payment (a posted, reconciled account.payment)."""
+        wizard = self.env["mfi.loan.payment.wizard"].with_user(by or self.finance).create({
+            "loan_id": loan.id, "amount": amount, "method": method, "reference": ref,
+            "date": date or self.today})
+        wizard.action_confirm()
+        return loan.payment_ids.sorted("id")[-1:]

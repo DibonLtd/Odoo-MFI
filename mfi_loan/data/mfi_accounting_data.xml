@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Collections and reminders on Odoo's own tools (DECISIONS D-017). Accounts,
+         journals and products are made per company when first needed
+         (res.company._mfi_accounting), since they depend on its chart. -->
+    <data noupdate="1">
+        <record id="mail_activity_visit" model="mail.activity.type">
+            <field name="name">Visit</field>
+            <field name="summary">Visit the client</field>
+            <field name="res_model">mfi.loan</field>
+            <field name="icon">directions_walk</field>
+            <field name="delay_count">0</field>
+        </record>
+        <record id="mail_activity_promise" model="mail.activity.type">
+            <field name="name">Promise to pay</field>
+            <field name="summary">Promised payment</field>
+            <field name="res_model">mfi.loan</field>
+            <field name="icon">handshake</field>
+            <field name="delay_count">1</field>
+        </record>
+
+        <!-- The reminder for one late loan: sent from the loan, or opened in WhatsApp -->
+        <record id="sms_template_loan_reminder" model="sms.template">
+            <field name="name">Microfinance: loan in arrears</field>
+            <field name="model_id" ref="model_mfi_loan"/>
+            <field name="body">Dear {{ (object.partner_id.mfi_first_name or (object.partner_id.name or '').split(' ')[0]) }}, your {{ object.company_id.name }} loan {{ object.name }} has KES {{ '{:,.0f}'.format(object.arrears_amount) }} in arrears ({{ object.days_past_due }} days). Please pay{{ (' via Paybill %s, account %s' % (object.company_id.mfi_repay_paybill, object.name)) if object.company_id.mfi_repay_paybill else '' }} today to avoid {{ '%g' % (object.penalty_rate * 100) }}% daily default interest. Thank you.</field>
+        </record>
+
+        <!-- Automatic reminders: Accounting's follow-up, on overdue instalments -->
+        <record id="sms_template_followup" model="sms.template">
+            <field name="name">Microfinance: overdue instalments</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="body">Dear {{ (object.mfi_first_name or (object.name or '').split(' ')[0]) }}, you have KES {{ '{:,.0f}'.format(object.total_overdue) }} in overdue loan instalments with {{ object.company_id.name or user.company_id.name }}. Please pay{{ (' via Paybill %s, using your loan number as the account' % user.company_id.mfi_repay_paybill) if user.company_id.mfi_repay_paybill else '' }} today to avoid daily default interest. Thank you.</field>
+        </record>
+        <record id="followup_line_sms" model="account_followup.followup.line">
+            <field name="delay">1</field>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="send_email">False</field>
+            <field name="send_sms">True</field>
+            <field name="sms_template_id" ref="sms_template_followup"/>
+            <field name="create_activity">True</field>
+            <field name="activity_type_id" ref="mail.mail_activity_data_call"/>
+            <field name="activity_summary">Call: instalments overdue</field>
+        </record>
+    </data>
+</odoo>

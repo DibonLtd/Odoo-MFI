@@ -1,7 +1,5 @@
 """Roan Capital's rules, as the loan portal (roan-loan-app.vercel.app) has them."""
 
-import math
-
 from odoo.exceptions import AccessError
 from odoo.tools import float_round
 
@@ -69,7 +67,9 @@ def kenyan_msisdn(phone):
 
 
 def quote(principal, daily_rate, term_days):
+    """Flat daily interest. The instalment is what the loan's daily payment term
+    gives: equal to the cent, the last one taking the remainder (DECISIONS D-019)."""
     interest = r2(principal * daily_rate * term_days)
     total = r2(principal + interest)
-    installment = math.ceil(total / term_days) if term_days else 0
+    installment = r2(total / term_days) if term_days else 0
     return {"interest": interest, "total_repayable": total, "installment": installment}

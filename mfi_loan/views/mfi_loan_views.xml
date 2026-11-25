@@ -59,7 +59,11 @@
                            statusbar_visible="draft,pending_information,pending_approval,approved,active,repaid"/>
                 </header>
                 <sheet>
-                    <div class="oe_button_box" name="button_box"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_entries" type="object" class="oe_stat_button" icon="receipt_long"
+                                invisible="not invoice_id" string="Journal entries"/>
+                    </div>
+                    <field name="invoice_id" invisible="1"/>
                     <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger" invisible="state != 'rejected'"/>
                     <widget name="web_ribbon" title="Repaid" bg_color="text-bg-success" invisible="state != 'repaid'"/>
                     <widget name="web_ribbon" title="Written off" bg_color="text-bg-dark" invisible="state != 'written_off'"/>
@@ -212,7 +216,6 @@
                                     <field name="partner_phone_masked"/>
                                     <field name="guarantor_name" string="Guarantor"/>
                                     <field name="guarantor_phone_masked"/>
-                                    <field name="open_promise_date"/>
                                 </group>
                                 <group string="Reminder">
                                     <field name="reminder_sms" nolabel="1" colspan="2"/>
@@ -223,23 +226,11 @@
                                                 icon="oi_whatsapp" class="btn-secondary"/>
                                         <button name="action_unlock_phone" type="object" string="Unlock phones"
                                                 icon="lock_open" class="btn-link"/>
-                                        <button name="action_log_contact" type="object" string="Log a contact"
-                                                icon="edit" icon_class="oi-filled" class="btn-link"/>
                                     </div>
                                 </group>
                             </group>
-                            <field name="collection_note_ids" readonly="1">
-                                <list>
-                                    <field name="create_date" string="Logged"/>
-                                    <field name="kind"/>
-                                    <field name="note"/>
-                                    <field name="currency_id" column_invisible="True"/>
-                                    <field name="promise_date"/>
-                                    <field name="promise_amount"/>
-                                    <field name="promise_status"/>
-                                    <field name="user_id"/>
-                                </list>
-                            </field>
+                            <p class="text-muted">Calls, visits and promises to pay are activities on this loan (the clock
+                                icon in the chatter); what was said goes in the chatter. A promise still open after its date was not kept.</p>
                         </page>
                         <page string="Repayment" name="repayment" invisible="state not in ('active', 'repaid', 'written_off')">
                             <group>
@@ -267,28 +258,26 @@
                             </group>
                             <separator string="Payments"/>
                             <field name="payment_ids">
-                                <list decoration-muted="state == 'reversed'">
+                                <list decoration-muted="state == 'canceled'" create="0" delete="0">
                                     <field name="date"/>
-                                    <field name="method"/>
-                                    <field name="reference"/>
+                                    <field name="journal_id" string="Method"/>
+                                    <field name="memo" string="Reference"/>
                                     <field name="currency_id" column_invisible="True"/>
                                     <field name="amount" sum="Total"/>
-                                    <field name="to_penalty" optional="show"/>
-                                    <field name="to_installments" optional="show"/>
-                                    <field name="overpayment" optional="hide"/>
                                     <field name="state" widget="badge"/>
                                     <field name="create_uid" string="Recorded by" optional="hide"/>
                                 </list>
                             </field>
-                            <separator string="Schedule"/>
-                            <field name="installment_ids">
-                                <list decoration-success="amount_paid &gt;= amount_due">
-                                    <field name="seq"/>
-                                    <field name="due_date"/>
+                            <separator string="Instalments"/>
+                            <p class="text-muted small">The loan invoice's daily instalments, from its payment term. A payment
+                                is applied to the oldest unpaid instalment first.</p>
+                            <field name="instalment_line_ids">
+                                <list decoration-success="reconciled" create="0" delete="0" edit="0">
+                                    <field name="date_maturity" string="Due"/>
                                     <field name="currency_id" column_invisible="True"/>
-                                    <field name="amount_due" sum="Total"/>
-                                    <field name="amount_paid" sum="Total"/>
-                                    <field name="paid_date"/>
+                                    <field name="balance" string="Instalment" sum="Total"/>
+                                    <field name="amount_residual" string="Still to pay" sum="Total"/>
+                                    <field name="reconciled" string="Paid"/>
                                 </list>
                             </field>
                         </page>
