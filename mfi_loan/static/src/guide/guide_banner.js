@@ -2,17 +2,16 @@ import { ControlPanel } from "@web/search/control_panel/control_panel";
 import { useService } from "@web/core/utils/hooks";
 import { patch } from "@web/core/utils/patch";
 
-import { Component, markup, onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
+import { Component, markup, onWillStart, onWillUpdateProps, proxy } from "@odoo/owl";
 
 /** Green "What to do here" box under the control panel of any Microfinance page. */
 export class MfiGuideBanner extends Component {
     static template = "mfi_loan.GuideBanner";
-    static props = {};
 
     setup() {
         this.guideService = useService("mfi_guide");
         this.action = useService("action");
-        this.state = useState({ guide: null });
+        this.state = proxy({ guide: null });
         onWillStart(() => this.refresh());
         onWillUpdateProps(() => this.refresh());
     }

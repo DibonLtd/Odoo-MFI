@@ -1,6 +1,6 @@
 {
     "name": "Microfinance Loans: sample data",
-    "version": "19.0.0.2.0",
+    "version": "20.0.0.2.0",
     "summary": "Kenyan sample data for Microfinance, CRM, Helpdesk, Employees and Accounting; uninstall to remove it",
     "description": """
 Loads sample data into any database, live ones included, so the Microfinance

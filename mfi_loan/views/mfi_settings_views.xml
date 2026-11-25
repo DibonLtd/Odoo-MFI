@@ -13,7 +13,7 @@
                             <field name="mfi_show_guides"/>
                             <div class="mt-2">
                                 <button name="%(mfi_loan.action_mfi_guide)d" type="action" string="Edit the guides"
-                                        class="btn-link" icon="oi-arrow-right"/>
+                                        class="btn-link" icon="east"/>
                             </div>
                         </setting>
                     </block>
@@ -81,8 +81,8 @@
                         </setting>
                         <setting string="Loan types, rates and fees"
                                  help="Rate, default interest, minimum interest days and limits are set per loan type.">
-                            <button name="%(mfi_loan.action_mfi_product)d" type="action" string="Loan types" class="btn-link" icon="oi-arrow-right"/>
-                            <button name="%(mfi_loan.action_mfi_fee)d" type="action" string="Fees" class="btn-link" icon="oi-arrow-right"/>
+                            <button name="%(mfi_loan.action_mfi_product)d" type="action" string="Loan types" class="btn-link" icon="east"/>
+                            <button name="%(mfi_loan.action_mfi_fee)d" type="action" string="Fees" class="btn-link" icon="east"/>
                         </setting>
                     </block>
                 </app>

@@ -2,7 +2,8 @@ import { browser } from "@web/core/browser/browser";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
-import { Component, onWillStart, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onWillStart, onWillUnmount, proxy, useProps } from "@odoo/owl";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 const PLAY_MS = 4500; // how long Play stays on each step of the journey
 const reduceMotion = () => Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
@@ -26,7 +27,7 @@ const PARTS = [
  */
 const JOURNEY = [
     {
-        key: "client", icon: "fa-user-plus", tone: "indigo", title: "Onboard the client",
+        key: "client", icon: "person_add", tone: "indigo", title: "Onboard the client",
         who: "Loan Officer, Credit Manager, Head Office",
         say: "Every loan starts with a client, an individual or a business, captured once and reused for every loan.",
         points: [
@@ -38,7 +39,7 @@ const JOURNEY = [
         button: "Onboard client", open: "mfi_loan.action_mfi_client",
     },
     {
-        key: "draft", state: "draft", icon: "fa-pencil-square-o", tone: "cyan", title: "Capture the application",
+        key: "draft", state: "draft", icon: "edit_square", tone: "cyan", title: "Capture the application",
         who: "Loan Officer, Credit Manager, Head Office",
         say: "The officer picks the client, loan type, amount and term. Odoo prices the loan on the spot: interest, fees and the daily instalment.",
         points: [
@@ -49,7 +50,7 @@ const JOURNEY = [
         button: "Send to officer",
     },
     {
-        key: "pending_information", state: "pending_information", icon: "fa-folder-open", tone: "teal",
+        key: "pending_information", state: "pending_information", icon: "folder_open", tone: "teal",
         title: "Collect the documents", who: "Loan Officer",
         say: "Odoo refuses to move on while anything is missing, and says exactly what is outstanding.",
         points: [
@@ -61,7 +62,7 @@ const JOURNEY = [
         button: "Send for approval",
     },
     {
-        key: "pending_approval", state: "pending_approval", icon: "fa-gavel", tone: "amber",
+        key: "pending_approval", state: "pending_approval", icon: "gavel", tone: "amber",
         title: "Three approvals", who: "Credit Manager, then Credit Manager, then CEO",
         say: "Three people sign off, one after the other. Each sees the loan in their Approvals list and on the dashboard.",
         points: [
@@ -72,7 +73,7 @@ const JOURNEY = [
         button: "Approve / Reject",
     },
     {
-        key: "approved", state: "approved", icon: "fa-money", tone: "green", title: "Pay out",
+        key: "approved", state: "approved", icon: "payments", tone: "green", title: "Pay out",
         who: "Finance, Head Office (never the loan's creator)",
         say: "Finance pays the client by M-Pesa, bank or cash, with its reference. Fees come off the payout.",
         points: [
@@ -83,7 +84,7 @@ const JOURNEY = [
         button: "Disburse",
     },
     {
-        key: "active", state: "active", icon: "fa-refresh", tone: "orange", title: "Collect every day",
+        key: "active", state: "active", icon: "refresh", tone: "orange", title: "Collect every day",
         who: "Finance, Collections, Loan Officer",
         say: "Payments come in daily. Late loans go to Collections, who call, visit, send reminders and record promises to pay.",
         points: [
@@ -95,7 +96,7 @@ const JOURNEY = [
         button: "Record payment",
     },
     {
-        key: "repaid", state: "repaid", icon: "fa-check-circle", tone: "purple", title: "Repaid",
+        key: "repaid", state: "repaid", icon: "check_circle", tone: "purple", title: "Repaid",
         who: "Automatic",
         say: "When the last instalment is paid the loan closes by itself. The client is ready for the next loan.",
         points: [
@@ -109,46 +110,46 @@ const JOURNEY = [
 /** Side roads off the journey. */
 const BRANCHES = [
     {
-        key: "rejected", state: "rejected", from: "pending_approval", icon: "fa-times-circle", tone: "red",
+        key: "rejected", state: "rejected", from: "pending_approval", icon: "cancel", tone: "red",
         title: "Rejected", text: "With a reason. Can be reopened and sent again.",
     },
     {
-        key: "written_off", state: "written_off", from: "active", icon: "fa-ban", tone: "slate",
+        key: "written_off", state: "written_off", from: "active", icon: "block", tone: "slate",
         title: "Written off", text: "Super Admin or CEO, with a reason. Closes the loan.",
     },
 ];
 
 const ROLES = [
-    { name: "Loan Officer", icon: "fa-handshake-o", tone: "cyan",
+    { name: "Loan Officer", icon: "handshake", tone: "cyan",
       does: ["Onboards clients", "Captures applications", "Collects documents", "Records payments", "Follows up late loans"] },
-    { name: "Credit Manager", icon: "fa-search", tone: "amber",
+    { name: "Credit Manager", icon: "search", tone: "amber",
       does: ["Approves stages 1 and 2", "Captures applications", "Can blacklist a client", "Records payments"] },
-    { name: "CEO", icon: "fa-star", tone: "purple",
+    { name: "CEO", icon: "star", tone: "purple",
       does: ["Final approval (stage 3)", "Reverses payments", "Writes off loans", "Reads the audit log"] },
-    { name: "Finance / Cashier", icon: "fa-money", tone: "green",
+    { name: "Finance / Cashier", icon: "payments", tone: "green",
       does: ["Disburses approved loans", "Records and matches payments", "Reverses payments"] },
-    { name: "Collections Officer", icon: "fa-phone", tone: "orange",
+    { name: "Collections Officer", icon: "phone", tone: "orange",
       does: ["Works the late loans list", "Sends reminders by SMS or WhatsApp", "Logs calls, visits and promises"] },
-    { name: "Head Office", icon: "fa-building", tone: "indigo",
+    { name: "Head Office", icon: "business", tone: "indigo",
       does: ["Everything an officer does", "Disburses", "Reverses payments", "Reads the audit log"] },
-    { name: "Auditor", icon: "fa-eye", tone: "slate",
+    { name: "Auditor", icon: "visibility", tone: "slate",
       does: ["Sees everything, changes nothing", "Reads the audit log"] },
-    { name: "Super Admin", icon: "fa-key", tone: "red",
+    { name: "Super Admin", icon: "key", tone: "red",
       does: ["Every action", "Loan types, fees and settings", "Users and roles"] },
 ];
 
 const SAFEGUARDS = [
-    { icon: "fa-user-secret", title: "Personal details masked",
+    { icon: "oi_user-secret", title: "Personal details masked",
       text: "ID number, phones, email, KRA PIN and bank account show as ••••. To see them, staff type their own password again; they show for 60 seconds." },
-    { icon: "fa-lock", title: "Lock after wrong passwords",
+    { icon: "lock", title: "Lock after wrong passwords",
       text: "Five wrong passwords lock the details for five minutes." },
-    { icon: "fa-list-alt", title: "Audit log nobody can edit",
+    { icon: "list_alt", title: "Audit log nobody can edit",
       text: "Every sign-in, approval, payout, payment, reversal, write-off, client change and view of personal details: who, when and from which IP address." },
-    { icon: "fa-users", title: "Four eyes on every loan",
+    { icon: "group", title: "Four eyes on every loan",
       text: "Nobody approves their own application, and the person who created a loan never pays it out." },
-    { icon: "fa-clone", title: "No double payments",
+    { icon: "content_copy", title: "No double payments",
       text: "An M-Pesa or bank reference is accepted once. A reversal re-applies the loan's other payments from the start." },
-    { icon: "fa-clock-o", title: "Sessions that end",
+    { icon: "schedule", title: "Sessions that end",
       text: "Sign out after 60 idle minutes and after 10 hours; two-factor sign-in can be enforced." },
 ];
 
@@ -157,7 +158,7 @@ const EXAMPLE = { principal: 10000, rate: 0.01, days: 30, today: 4, shown: 6 };
 
 export class MfiHowItWorks extends Component {
     static template = "mfi_loan.HowItWorks";
-    static props = ["*"];
+    props = useProps({ ...standardActionServiceProps });
 
     setup() {
         this.orm = useService("orm");
@@ -167,7 +168,7 @@ export class MfiHowItWorks extends Component {
         this.branches = BRANCHES;
         this.roles = ROLES;
         this.safeguards = SAFEGUARDS;
-        this.state = useState({
+        this.state = proxy({
             data: null,
             step: 0,
             playing: false,

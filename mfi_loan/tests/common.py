@@ -1,10 +1,10 @@
-import base64
 from datetime import timedelta
 
 from odoo import fields
 from odoo.tests.common import TransactionCase, new_test_user
+from odoo.tools import BinaryBytes
 
-FILE = base64.b64encode(b"test document")
+FILE = BinaryBytes(b"test document")
 
 
 class MfiCase(TransactionCase):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Set up Dibon SSO (Keycloak, through OCA auth_oidc) in an Odoo 19 database.
+"""Set up Dibon SSO (Keycloak, through OCA auth_oidc) in an Odoo 20 database.
 
 The provider and the user links are data in the database, not code, so run
 this once per database: staging first, then production.
@@ -24,8 +24,8 @@ Environment:
     KEYCLOAK_CLIENT_SECRET   (provider)
     KEYCLOAK_CLIENT_ID       optional, default "odoo"
 
-Uses only the standard library. Odoo 19 deprecates XML-RPC in favour of its
-JSON-2 API, but XML-RPC still works in 19.
+Uses only the standard library. Odoo deprecates XML-RPC in favour of its
+JSON-2 API, but XML-RPC still works in 20 (the auto-installed rpc module).
 """
 
 import argparse
@@ -103,7 +103,7 @@ def setup_provider(odoo):
         new_id = odoo.call("auth.oauth.provider", "create", values)
         print(f"Created provider {PROVIDER_NAME} (id {new_id})")
     # "On invitation": no free sign-up, so an unlinked Keycloak user is refused.
-    odoo.call("ir.config_parameter", "set_param", "auth_signup.invitation_scope", "b2b")
+    odoo.call("ir.config_parameter", "set_str", "auth_signup.invitation_scope", "b2b")
     print("Sign-up set to on invitation")
     print(f"Redirect URI for Keycloak: {odoo.url}/auth_oauth/signin")
 

@@ -1,12 +1,12 @@
 # Odoo-MFI
 
-Dibon's Odoo 19 Enterprise add-ons for microfinance, deployed on Odoo.sh.
+Dibon's Odoo 20 Enterprise add-ons for microfinance, deployed on Odoo.sh.
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `server-auth/` | OCA server-auth, branch 19.0, as a git submodule. Provides `auth_oidc` (Keycloak sign-in) |
+| `server-auth/` | OCA server-auth, branch 20.0, as a git submodule. Provides `auth_oidc` (Keycloak sign-in) |
 | `requirements.txt` | Python packages Odoo.sh installs on build (`python-jose` for `auth_oidc`) |
 | `mfi_loan/` | Microfinance Loans (prototype): clients, loan applications, approvals, disbursement, repayments |
 | `mfi_loan_demo/` | Kenyan sample data for `mfi_loan`; install to load it, uninstall to remove it |
@@ -229,4 +229,4 @@ an Odoo user.
 
 Services that call Odoo's API use an Odoo user per service, with only the
 groups it needs and its own API key; they have no Keycloak link. Odoo 19
-deprecates `/xmlrpc` and `/jsonrpc` in favour of the JSON-2 API (`/json/2`).
+and 20 deprecate `/xmlrpc` and `/jsonrpc` in favour of the JSON-2 API (`/json/2`).

@@ -2,26 +2,26 @@
 <templates xml:space="preserve">
 
     <t t-name="mfi_loan.GuideBanner">
-        <div t-if="state.guide" class="o_mfi_guide alert alert-success d-flex gap-3 align-items-start mb-0 py-2" role="status">
-            <i class="fa fa-lightbulb-o fs-4 mt-1" aria-hidden="true"/>
+        <div t-if="this.state.guide" class="o_mfi_guide alert alert-success d-flex gap-3 align-items-start mb-0 py-2" role="status">
+            <i class="oi fs-4 mt-1" data-icon="lightbulb" aria-hidden="true"/>
             <div class="flex-grow-1">
-                <div class="fw-bold o_mfi_guide_title" t-out="state.guide.title"/>
-                <div t-if="state.guide.body" class="o_mfi_guide_body small" t-out="bodyMarkup"/>
-                <div t-if="state.guide.buttons.length" class="d-flex flex-wrap gap-2 mt-2">
-                    <t t-foreach="state.guide.buttons" t-as="button" t-key="button_index">
+                <div class="fw-bold o_mfi_guide_title" t-out="this.state.guide.title"/>
+                <div t-if="this.state.guide.body" class="o_mfi_guide_body small" t-out="this.bodyMarkup"/>
+                <div t-if="this.state.guide.buttons.length" class="d-flex flex-wrap gap-2 mt-2">
+                    <t t-foreach="this.state.guide.buttons" t-as="button" t-key="button_index">
                         <button type="button" class="btn btn-sm btn-success o_mfi_guide_button"
                                 t-on-click="() => this.onButton(button)" t-out="button.label"/>
                     </t>
                 </div>
             </div>
             <button type="button" class="btn-close o_mfi_guide_close" title="Hide this guide"
-                    aria-label="Hide this guide" t-on-click="onClose"/>
+                    aria-label="Hide this guide" t-on-click="this.onClose"/>
         </div>
     </t>
 
     <t t-inherit="web.ControlPanel" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('o_control_panel')]" position="inside">
-            <t t-component="MfiGuideBanner"/>
+            <t t-component="this.MfiGuideBanner"/>
         </xpath>
     </t>
 

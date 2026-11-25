@@ -7,7 +7,6 @@ a lender three months into business. Each record the loader creates directly is
 registered under this module, so uninstalling finds and deletes all of it.
 """
 
-import base64
 import math
 import random
 import secrets
@@ -16,13 +15,14 @@ from contextlib import contextmanager
 from datetime import datetime, time, timedelta
 
 from odoo import api, fields, models
+from odoo.tools import BinaryBytes
 
 from . import mfi_demo_data as D
 from .mfi_demo_apps import AppsLoader, unload_apps
 
 MODULE = "mfi_loan_demo"
 PASSWORD_PARAM = "mfi_loan_demo.password"
-SAMPLE_FILE = base64.b64encode(b"Sample document for the Microfinance sample data.")
+SAMPLE_FILE = BinaryBytes(b"Sample document for the Microfinance sample data.")
 # Tables whose dates the loader moves back to the day an event happened.
 DATED = [
     ("mail.message", "date"), ("mfi.audit.log", "date"), ("mfi.collection.note", "create_date"),
@@ -47,7 +47,7 @@ class ResConfigSettings(models.TransientModel):
     mfi_demo_password = fields.Char("Sample staff password", compute="_compute_mfi_demo_password")
 
     def _compute_mfi_demo_password(self):
-        password = self.env["ir.config_parameter"].sudo().get_param(PASSWORD_PARAM)
+        password = self.env["ir.config_parameter"].sudo().get_str(PASSWORD_PARAM)
         for settings in self:
             settings.mfi_demo_password = password
 
@@ -178,7 +178,7 @@ class _Loader:
 
     def _create_staff(self):
         password = secrets.token_urlsafe(12)
-        self.env["ir.config_parameter"].sudo().set_param(PASSWORD_PARAM, password)
+        self.env["ir.config_parameter"].sudo().set_str(PASSWORD_PARAM, password)
         staff = {}
         for key, name, role in D.STAFF:
             login = f"{key}@{D.STAFF_DOMAIN}"

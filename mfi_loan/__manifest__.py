@@ -1,6 +1,6 @@
 {
     "name": "Microfinance Loans (prototype)",
-    "version": "19.0.0.6.0",
+    "version": "20.0.0.6.0",
     "summary": "Clients, loan applications, approvals, disbursement and repayments for a lender",
     "description": """
 Prototype that replaces the Roan Capital loan portal with screens inside Odoo.
@@ -15,7 +15,7 @@ Odoo SMS; WhatsApp opens a wa.me link. Sample data: the mfi_loan_demo module.
     "depends": ["mail", "contacts", "sms", "auth_totp_mail"],
     "data": [
         "security/mfi_security.xml",
-        "security/ir.model.access.csv",
+        "security/ir.access.csv",
         "data/mfi_data.xml",
         "wizard/mfi_loan_wizard_views.xml",
         "wizard/mfi_report_wizard_views.xml",

@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_mfi_loans" type="object" class="oe_stat_button" icon="fa-money"
+                <button name="action_view_mfi_loans" type="object" class="oe_stat_button" icon="payments"
                         invisible="not is_mfi_client" groups="mfi_loan.group_mfi_user">
                     <field name="mfi_loan_count" widget="statinfo" string="Loans"/>
                 </button>
@@ -24,7 +24,7 @@
         <field name="arch" type="xml">
             <form string="Client">
                 <header>
-                    <button name="action_mfi_reveal" type="object" string="View personal details" icon="fa-eye"
+                    <button name="action_mfi_reveal" type="object" string="View personal details" icon="visibility"
                             invisible="not id"/>
                     <button name="action_new_mfi_loan" type="object" string="New application" class="oe_highlight"
                             invisible="not id or mfi_blacklisted"
@@ -32,7 +32,7 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_mfi_loans" type="object" class="oe_stat_button" icon="fa-money">
+                        <button name="action_view_mfi_loans" type="object" class="oe_stat_button" icon="payments">
                             <field name="mfi_loan_count" widget="statinfo" string="Loans"/>
                         </button>
                     </div>

@@ -14,7 +14,7 @@
                 <field name="res_name"/>
                 <field name="detail" optional="show"/>
                 <field name="ip" optional="hide"/>
-                <button name="action_open_record" type="object" string="Open" icon="fa-external-link"
+                <button name="action_open_record" type="object" string="Open" icon="open_in_new"
                         invisible="not res_id"/>
             </list>
         </field>

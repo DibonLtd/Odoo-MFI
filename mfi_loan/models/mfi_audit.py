@@ -155,11 +155,9 @@ class IrHttp(models.AbstractModel):
     def _mfi_enforce_session_limits(cls):
         session = request.session
         params = request.env["ir.config_parameter"].sudo()
-        try:
-            idle = int(params.get_param("mfi_loan.session_idle_minutes") or 0)
-            hours = int(params.get_param("mfi_loan.session_max_hours") or 0)
-        except ValueError:
-            return
+        # get_int returns the default (0) for a missing or non-numeric value.
+        idle = params.get_int("mfi_loan.session_idle_minutes")
+        hours = params.get_int("mfi_loan.session_max_hours")
         if not (idle or hours):
             return
         now = time.time()

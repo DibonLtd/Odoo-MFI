@@ -2,13 +2,13 @@
 <templates xml:space="preserve">
 
     <t t-name="mfi_loan.CountUp">
-        <span t-esc="display"/>
+        <span t-out="this.display"/>
     </t>
 
     <t t-name="mfi_loan.Sparkline">
         <svg class="o_mfi_spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-            <path t-att-d="area" class="o_mfi_spark_area"/>
-            <path t-att-d="line" class="o_mfi_spark_line" vector-effect="non-scaling-stroke"/>
+            <path t-att-d="this.area" class="o_mfi_spark_area"/>
+            <path t-att-d="this.line" class="o_mfi_spark_line" vector-effect="non-scaling-stroke"/>
         </svg>
     </t>
 
@@ -17,49 +17,49 @@
         <button type="button" t-attf-class="o_mfi_card o_mfi_card_{{tone}}" t-on-click="() => this.open(key)"
                 t-att-title="hint">
             <div class="o_mfi_card_top">
-                <span t-attf-class="o_mfi_card_icon fa {{icon}}" aria-hidden="true"/>
-                <span class="o_mfi_card_label" t-esc="label"/>
+                <span class="oi o_mfi_card_icon" t-att-data-icon="icon" aria-hidden="true"/>
+                <span class="o_mfi_card_label" t-out="label"/>
                 <t t-set="chip" t-value="this.trend(kpi)"/>
                 <span t-if="chip" t-attf-class="o_mfi_chip o_mfi_chip_{{chip.tone}} ms-auto"
                       t-att-title="'vs previous ' + this.periodLabel">
-                    <i t-attf-class="fa {{chip.icon}}" aria-hidden="true"/> <t t-esc="chip.label"/>
+                    <i class="oi" t-att-data-icon="chip.icon" aria-hidden="true"/> <t t-out="chip.label"/>
                 </span>
             </div>
             <div class="o_mfi_card_value">
                 <MfiCountUp value="kpi.value" format="format"/>
             </div>
-            <div class="o_mfi_card_sub" t-esc="sub"/>
+            <div class="o_mfi_card_sub" t-out="sub"/>
             <MfiSparkline t-if="kpi.spark" values="kpi.spark"/>
         </button>
     </t>
 
     <t t-name="mfi_loan.Dashboard">
         <div class="o_action o_mfi_dash_action">
-        <div class="o_content o_mfi_dash" t-ref="root" t-att-class="{ 'o_mfi_loading': state.loading }">
-            <t t-set="d" t-value="state.data"/>
+        <div class="o_content o_mfi_dash" t-ref="this.root" t-att-class="{ 'o_mfi_loading': this.state.loading }">
+            <t t-set="d" t-value="this.state.data"/>
 
             <!-- Header: greeting, period picker, refresh -->
             <header class="o_mfi_dash_header">
                 <div class="o_mfi_dash_hello">
-                    <h1 t-esc="greeting"/>
+                    <h1 t-out="this.greeting"/>
                     <div class="o_mfi_dash_date">
-                        <t t-esc="todayLabel"/> · <t t-esc="d.company"/>
+                        <t t-out="this.todayLabel"/> · <t t-out="d.company"/>
                     </div>
                 </div>
                 <div class="o_mfi_dash_tools">
                     <div class="o_mfi_periods" role="group" aria-label="Period">
                         <t t-foreach="d.periods" t-as="p" t-key="p.key">
-                            <button type="button" t-attf-class="o_mfi_period {{ p.key === state.period ? 'active' : '' }}"
-                                    t-on-click="() => this.setPeriod(p.key)" t-esc="p.label"/>
+                            <button type="button" t-attf-class="o_mfi_period {{ p.key === this.state.period ? 'active' : '' }}"
+                                    t-on-click="() => this.setPeriod(p.key)" t-out="p.label"/>
                         </t>
                     </div>
                     <button type="button" class="o_mfi_refresh" t-on-click="() => this.load()"
                             title="Refresh now" aria-label="Refresh now">
-                        <i t-attf-class="fa fa-refresh {{ state.loading ? 'fa-spin' : '' }}" aria-hidden="true"/>
+                        <i t-attf-class="oi {{ this.state.loading ? 'oi-spin' : '' }}" data-icon="refresh" aria-hidden="true"/>
                     </button>
                     <span class="o_mfi_updated d-none d-lg-inline">
-                        <span t-if="state.error" class="text-danger">Could not refresh · </span>
-                        <t t-esc="updatedLabel"/>
+                        <span t-if="this.state.error" class="text-danger">Could not refresh · </span>
+                        <t t-out="this.updatedLabel"/>
                     </span>
                 </div>
             </header>
@@ -68,85 +68,80 @@
             <button t-if="d.pipeline.mine" type="button" class="o_mfi_yourturn" t-on-click="() => this.open('mine')">
                 <span class="o_mfi_pulse" aria-hidden="true"/>
                 <span>
-                    <b><t t-esc="d.pipeline.mine"/> <t t-if="d.pipeline.mine === 1">loan is</t><t t-else="">loans are</t></b>
+                    <b><t t-out="d.pipeline.mine"/> <t t-if="d.pipeline.mine === 1">loan is</t><t t-else="">loans are</t></b>
                     waiting for your decision.
                 </span>
-                <span class="ms-auto fw-semibold">Review now <i class="fa fa-arrow-right" aria-hidden="true"/></span>
+                <span class="ms-auto fw-semibold">Review now <i class="oi" data-icon="arrow_forward" aria-hidden="true"/></span>
             </button>
 
             <!-- Period figures -->
             <section class="o_mfi_grid o_mfi_grid_5">
-                <t t-call="mfi_loan.Dashboard.Kpi">
-                    <t t-set="key" t-value="'collected'"/>
-                    <t t-set="kpi" t-value="d.kpis.collected"/>
-                    <t t-set="label" t-value="'Collected'"/>
-                    <t t-set="icon" t-value="'fa-download'"/>
-                    <t t-set="tone" t-value="'green'"/>
-                    <t t-set="format" t-value="formatMoney"/>
-                    <t t-set="sub" t-value="'Repayments ' + this.periodLabel"/>
-                    <t t-set="hint" t-value="this.money(d.kpis.collected.value, false)"/>
-                </t>
-                <t t-call="mfi_loan.Dashboard.Kpi">
-                    <t t-set="key" t-value="'disbursed'"/>
-                    <t t-set="kpi" t-value="d.kpis.disbursed"/>
-                    <t t-set="label" t-value="'Disbursed'"/>
-                    <t t-set="icon" t-value="'fa-paper-plane'"/>
-                    <t t-set="tone" t-value="'purple'"/>
-                    <t t-set="format" t-value="formatMoney"/>
-                    <t t-set="sub" t-value="this.number(d.kpis.disbursed.count) + ' loans paid out'"/>
-                    <t t-set="hint" t-value="this.money(d.kpis.disbursed.value, false)"/>
-                </t>
-                <t t-call="mfi_loan.Dashboard.Kpi">
-                    <t t-set="key" t-value="'rate'"/>
-                    <t t-set="kpi" t-value="d.kpis.rate"/>
-                    <t t-set="label" t-value="'Collection rate'"/>
-                    <t t-set="icon" t-value="'fa-bullseye'"/>
-                    <t t-set="tone" t-value="'teal'"/>
-                    <t t-set="format" t-value="formatPercent"/>
-                    <t t-set="sub" t-value="'of ' + this.money(d.kpis.rate.due) + ' due'"/>
-                    <t t-set="hint" t-value="'Collected ÷ instalments due in the period'"/>
-                </t>
-                <t t-call="mfi_loan.Dashboard.Kpi">
-                    <t t-set="key" t-value="'clients'"/>
-                    <t t-set="kpi" t-value="d.kpis.clients"/>
-                    <t t-set="label" t-value="'New clients'"/>
-                    <t t-set="icon" t-value="'fa-user-plus'"/>
-                    <t t-set="tone" t-value="'cyan'"/>
-                    <t t-set="format" t-value="formatNumber"/>
-                    <t t-set="sub" t-value="this.number(d.kpis.clients.total) + ' clients in all'"/>
-                    <t t-set="hint" t-value="'Clients onboarded ' + this.periodLabel"/>
-                </t>
-                <t t-call="mfi_loan.Dashboard.Kpi">
-                    <t t-set="key" t-value="'applications'"/>
-                    <t t-set="kpi" t-value="d.kpis.applications"/>
-                    <t t-set="label" t-value="'Applications'"/>
-                    <t t-set="icon" t-value="'fa-file-text-o'"/>
-                    <t t-set="tone" t-value="'indigo'"/>
-                    <t t-set="format" t-value="formatNumber"/>
-                    <t t-set="sub" t-value="'New loan applications'"/>
-                    <t t-set="hint" t-value="'Applications captured ' + this.periodLabel"/>
-                </t>
+                <t t-call="mfi_loan.Dashboard.Kpi"
+                    key="'collected'"
+                    kpi="d.kpis.collected"
+                    label="'Collected'"
+                    icon="'download'"
+                    tone="'green'"
+                    format="this.formatMoney"
+                    sub="'Repayments ' + this.periodLabel"
+                    hint="this.money(d.kpis.collected.value, false)"/>
+                <t t-call="mfi_loan.Dashboard.Kpi"
+                    key="'disbursed'"
+                    kpi="d.kpis.disbursed"
+                    label="'Disbursed'"
+                    icon="'send'"
+                    tone="'purple'"
+                    format="this.formatMoney"
+                    sub="this.number(d.kpis.disbursed.count) + ' loans paid out'"
+                    hint="this.money(d.kpis.disbursed.value, false)"/>
+                <t t-call="mfi_loan.Dashboard.Kpi"
+                    key="'rate'"
+                    kpi="d.kpis.rate"
+                    label="'Collection rate'"
+                    icon="'crisis_alert'"
+                    tone="'teal'"
+                    format="this.formatPercent"
+                    sub="'of ' + this.money(d.kpis.rate.due) + ' due'"
+                    hint="'Collected ÷ instalments due in the period'"/>
+                <t t-call="mfi_loan.Dashboard.Kpi"
+                    key="'clients'"
+                    kpi="d.kpis.clients"
+                    label="'New clients'"
+                    icon="'person_add'"
+                    tone="'cyan'"
+                    format="this.formatNumber"
+                    sub="this.number(d.kpis.clients.total) + ' clients in all'"
+                    hint="'Clients onboarded ' + this.periodLabel"/>
+                <t t-call="mfi_loan.Dashboard.Kpi"
+                    key="'applications'"
+                    kpi="d.kpis.applications"
+                    label="'Applications'"
+                    icon="'article'"
+                    tone="'indigo'"
+                    format="this.formatNumber"
+                    sub="'New loan applications'"
+                    hint="'Applications captured ' + this.periodLabel"/>
             </section>
 
             <!-- The book as it stands -->
             <section class="o_mfi_grid o_mfi_grid_4">
                 <button type="button" class="o_mfi_tile o_mfi_tile_indigo" t-on-click="() => this.open('active')">
-                    <i class="fa fa-briefcase o_mfi_tile_icon" aria-hidden="true"/>
+                    <i class="oi o_mfi_tile_icon" data-icon="work" aria-hidden="true"/>
                     <span class="o_mfi_tile_label">Active portfolio</span>
-                    <span class="o_mfi_tile_value"><MfiCountUp value="d.book.active.amount" format="formatMoney"/></span>
-                    <span class="o_mfi_tile_sub"><t t-esc="this.number(d.book.active.count)"/> active loans</span>
+                    <span class="o_mfi_tile_value"><MfiCountUp value="d.book.active.amount" format="this.formatMoney"/></span>
+                    <span class="o_mfi_tile_sub"><t t-out="this.number(d.book.active.count)"/> active loans</span>
                 </button>
                 <button type="button" class="o_mfi_tile o_mfi_tile_amber" t-on-click="() => this.open('arrears')">
-                    <i class="fa fa-clock-o o_mfi_tile_icon" aria-hidden="true"/>
+                    <i class="oi o_mfi_tile_icon" data-icon="schedule" aria-hidden="true"/>
                     <span class="o_mfi_tile_label">In arrears</span>
-                    <span class="o_mfi_tile_value"><MfiCountUp value="d.book.arrears.count" format="formatNumber"/></span>
-                    <span class="o_mfi_tile_sub"><t t-esc="this.money(d.book.arrears.amount)"/> missed</span>
+                    <span class="o_mfi_tile_value"><MfiCountUp value="d.book.arrears.count" format="this.formatNumber"/></span>
+                    <span class="o_mfi_tile_sub"><t t-out="this.money(d.book.arrears.amount)"/> missed</span>
                 </button>
                 <button type="button" class="o_mfi_tile o_mfi_tile_red" t-on-click="() => this.open('overdue')">
-                    <i class="fa fa-exclamation-triangle o_mfi_tile_icon" aria-hidden="true"/>
+                    <i class="oi o_mfi_tile_icon" data-icon="warning" aria-hidden="true"/>
                     <span class="o_mfi_tile_label">Overdue</span>
-                    <span class="o_mfi_tile_value"><MfiCountUp value="d.book.overdue.count" format="formatNumber"/></span>
-                    <span class="o_mfi_tile_sub"><t t-esc="this.money(d.book.overdue.amount)"/> to recover</span>
+                    <span class="o_mfi_tile_value"><MfiCountUp value="d.book.overdue.count" format="this.formatNumber"/></span>
+                    <span class="o_mfi_tile_sub"><t t-out="this.money(d.book.overdue.amount)"/> to recover</span>
                 </button>
                 <div class="o_mfi_tile o_mfi_tile_plain">
                     <span class="o_mfi_tile_label">Portfolio at risk</span>
@@ -155,8 +150,8 @@
                         <div t-attf-class="o_mfi_par o_mfi_tone_{{ this.parTone(value, par[2], par[3]) }}"
                              t-att-title="par[1] + ': outstanding on loans ' + par[0] + '+ days late'">
                             <div class="d-flex justify-content-between">
-                                <span t-esc="par[1]"/>
-                                <b t-esc="this.percent(value)"/>
+                                <span t-out="par[1]"/>
+                                <b t-out="this.percent(value)"/>
                             </div>
                             <div class="o_mfi_meter"><span t-attf-style="width: {{ this.meter(value) }}%"/></div>
                         </div>
@@ -168,29 +163,29 @@
             <section class="o_mfi_grid o_mfi_grid_charts">
                 <div class="o_mfi_panel">
                     <div class="o_mfi_panel_head">
-                        <span><i class="fa fa-line-chart text-success" aria-hidden="true"/> Money in vs money due</span>
+                        <span><i class="oi text-success" data-icon="show_chart" aria-hidden="true"/> Money in vs money due</span>
                         <small class="text-muted">Hover for figures</small>
                     </div>
-                    <div class="o_mfi_chart o_mfi_chart_tall"><canvas t-ref="trend"/></div>
+                    <div class="o_mfi_chart o_mfi_chart_tall"><canvas t-ref="this.trendCanvas"/></div>
                 </div>
                 <div class="o_mfi_panel">
                     <div class="o_mfi_panel_head">
-                        <span><i class="fa fa-pie-chart text-primary" aria-hidden="true"/> Portfolio health</span>
+                        <span><i class="oi text-primary" data-icon="pie_chart" aria-hidden="true"/> Portfolio health</span>
                         <small class="text-muted">Click a slice</small>
                     </div>
                     <div class="o_mfi_donut">
-                        <div class="o_mfi_chart"><canvas t-ref="health"/></div>
+                        <div class="o_mfi_chart"><canvas t-ref="this.healthCanvas"/></div>
                         <div class="o_mfi_donut_center">
-                            <span class="o_mfi_donut_value" t-esc="this.money(d.book.active.amount)"/>
+                            <span class="o_mfi_donut_value" t-out="this.money(d.book.active.amount)"/>
                             <span class="o_mfi_donut_label">outstanding</span>
                         </div>
                     </div>
                     <ul class="o_mfi_legend">
                         <li t-foreach="d.health" t-as="h" t-key="h.key" t-on-click="() => this.open('health', h.key)">
                             <span t-attf-class="o_mfi_dot o_mfi_dot_{{h.key}}"/>
-                            <span class="flex-grow-1" t-esc="h.label"/>
-                            <span class="text-muted me-2"><t t-esc="h.count"/> loans</span>
-                            <b><t t-esc="this.share(h.amount)"/>%</b>
+                            <span class="flex-grow-1" t-out="h.label"/>
+                            <span class="text-muted me-2"><t t-out="h.count"/> loans</span>
+                            <b><t t-out="this.share(h.amount)"/>%</b>
                         </li>
                     </ul>
                 </div>
@@ -200,23 +195,23 @@
                 <!-- Pipeline -->
                 <div class="o_mfi_panel">
                     <div class="o_mfi_panel_head">
-                        <span><i class="fa fa-tasks text-warning" aria-hidden="true"/> Loans moving through</span>
-                        <small class="text-muted"><t t-esc="pipelineTotal"/> waiting</small>
+                        <span><i class="oi text-warning" data-icon="checklist" aria-hidden="true"/> Loans moving through</span>
+                        <small class="text-muted"><t t-out="this.pipelineTotal"/> waiting</small>
                     </div>
                     <div class="o_mfi_steps">
                         <t t-foreach="[
-                                ['pending_information', 'Need information', 'Officer completes the checklist', 'fa-folder-open-o', 'cyan'],
-                                ['pending_approval', 'To approve', 'Credit managers, then the CEO', 'fa-gavel', 'amber'],
-                                ['approved', 'To disburse', 'Finance pays out', 'fa-paper-plane', 'purple']]"
+                                ['pending_information', 'Need information', 'Officer completes the checklist', 'folder_open', 'cyan'],
+                                ['pending_approval', 'To approve', 'Credit managers, then the CEO', 'gavel', 'amber'],
+                                ['approved', 'To disburse', 'Finance pays out', 'send', 'purple']]"
                            t-as="step" t-key="step[0]">
                             <button type="button" t-attf-class="o_mfi_step o_mfi_step_{{step[4]}}"
                                     t-on-click="() => this.open(step[0])">
-                                <span class="o_mfi_step_icon"><i t-attf-class="fa {{step[3]}}" aria-hidden="true"/></span>
+                                <span class="o_mfi_step_icon"><i class="oi" t-att-data-icon="step[3]" aria-hidden="true"/></span>
                                 <span class="o_mfi_step_text">
-                                    <b t-esc="step[1]"/>
-                                    <small class="text-muted" t-esc="step[2]"/>
+                                    <b t-out="step[1]"/>
+                                    <small class="text-muted" t-out="step[2]"/>
                                 </span>
-                                <span class="o_mfi_step_count" t-esc="d.pipeline[step[0]]"/>
+                                <span class="o_mfi_step_count" t-out="d.pipeline[step[0]]"/>
                             </button>
                         </t>
                     </div>
@@ -224,10 +219,10 @@
                 <!-- Ageing -->
                 <div class="o_mfi_panel">
                     <div class="o_mfi_panel_head">
-                        <span><i class="fa fa-hourglass-half text-danger" aria-hidden="true"/> Arrears ageing</span>
+                        <span><i class="oi text-danger" data-icon="hourglass_bottom" aria-hidden="true"/> Arrears ageing</span>
                         <small class="text-muted">Click a bar</small>
                     </div>
-                    <div class="o_mfi_chart"><canvas t-ref="ageing"/></div>
+                    <div class="o_mfi_chart"><canvas t-ref="this.ageingCanvas"/></div>
                 </div>
             </section>
 
@@ -235,67 +230,67 @@
             <section class="o_mfi_grid o_mfi_grid_3">
                 <div class="o_mfi_panel">
                     <div class="o_mfi_panel_head">
-                        <span><i class="fa fa-bell text-danger" aria-hidden="true"/> Follow up first</span>
+                        <span><i class="oi oi-filled text-danger" data-icon="notifications" aria-hidden="true"/> Follow up first</span>
                         <a href="#" class="o_mfi_link" t-on-click.prevent="() => this.open('late')">All late loans</a>
                     </div>
                     <ul class="o_mfi_list">
                         <li t-foreach="d.late" t-as="loan" t-key="loan.id" t-on-click="() => this.openRecord('mfi.loan', loan.id)">
                             <span t-attf-class="o_mfi_days o_mfi_days_{{loan.health}}">
-                                <b t-esc="loan.days"/><small>days</small>
+                                <b t-out="loan.days"/><small>days</small>
                             </span>
                             <span class="o_mfi_list_main">
-                                <b t-esc="loan.client"/>
-                                <small class="text-muted" t-esc="loan.name"/>
+                                <b t-out="loan.client"/>
+                                <small class="text-muted" t-out="loan.name"/>
                             </span>
-                            <span class="o_mfi_list_amount" t-esc="this.money(loan.amount)"/>
+                            <span class="o_mfi_list_amount" t-out="this.money(loan.amount)"/>
                         </li>
                         <li t-if="!d.late.length" class="o_mfi_empty">
-                            <i class="fa fa-check-circle text-success" aria-hidden="true"/> Nobody is late. Well done!
+                            <i class="oi oi-filled text-success" data-icon="check_circle" aria-hidden="true"/> Nobody is late. Well done!
                         </li>
                     </ul>
                 </div>
                 <div class="o_mfi_panel">
                     <div class="o_mfi_panel_head">
-                        <span><i class="fa fa-gavel text-warning" aria-hidden="true"/> Approval queue</span>
+                        <span><i class="oi text-warning" data-icon="gavel" aria-hidden="true"/> Approval queue</span>
                         <a href="#" class="o_mfi_link" t-on-click.prevent="() => this.open('pending_approval')">See all</a>
                     </div>
                     <ul class="o_mfi_list">
                         <li t-foreach="d.approvals" t-as="loan" t-key="loan.id" t-on-click="() => this.openRecord('mfi.loan', loan.id)">
                             <span class="o_mfi_stage_ring" t-att-title="'Stage ' + loan.stage + ' of 3'">
-                                <t t-esc="loan.stage"/><small>/3</small>
+                                <t t-out="loan.stage"/><small>/3</small>
                             </span>
                             <span class="o_mfi_list_main">
-                                <b t-esc="loan.client"/>
+                                <b t-out="loan.client"/>
                                 <small class="text-muted">
-                                    <t t-esc="loan.name"/> · waiting <t t-esc="loan.days"/> <t t-if="loan.days === 1">day</t><t t-else="">days</t>
+                                    <t t-out="loan.name"/> · waiting <t t-out="loan.days"/> <t t-if="loan.days === 1">day</t><t t-else="">days</t>
                                 </small>
                             </span>
                             <span t-if="loan.mine" class="o_mfi_chip o_mfi_chip_turn">Your turn</span>
-                            <span class="o_mfi_list_amount" t-esc="this.money(loan.amount)"/>
+                            <span class="o_mfi_list_amount" t-out="this.money(loan.amount)"/>
                         </li>
                         <li t-if="!d.approvals.length" class="o_mfi_empty">
-                            <i class="fa fa-inbox text-muted" aria-hidden="true"/> No applications waiting.
+                            <i class="oi text-muted" data-icon="inbox" aria-hidden="true"/> No applications waiting.
                         </li>
                     </ul>
                 </div>
                 <div class="o_mfi_panel">
                     <div class="o_mfi_panel_head">
-                        <span><i class="fa fa-money text-success" aria-hidden="true"/> Latest repayments</span>
+                        <span><i class="oi text-success" data-icon="payments" aria-hidden="true"/> Latest repayments</span>
                         <a href="#" class="o_mfi_link" t-on-click.prevent="() => this.open('payments')">All repayments</a>
                     </div>
                     <ul class="o_mfi_list">
                         <li t-foreach="d.payments" t-as="pay" t-key="pay.id" t-on-click="() => this.openRecord('mfi.payment', pay.id)">
                             <span t-attf-class="o_mfi_pay_icon {{ pay.matched ? '' : 'o_mfi_pay_unmatched' }}">
-                                <i t-attf-class="fa {{ pay.matched ? 'fa-check' : 'fa-question' }}" aria-hidden="true"/>
+                                <i class="oi" t-att-data-icon="pay.matched ? 'check' : 'question_mark'" aria-hidden="true"/>
                             </span>
                             <span class="o_mfi_list_main">
-                                <b t-esc="pay.client"/>
-                                <small class="text-muted"><t t-esc="pay.method"/> · <t t-esc="pay.date"/></small>
+                                <b t-out="pay.client"/>
+                                <small class="text-muted"><t t-out="pay.method"/> · <t t-out="pay.date"/></small>
                             </span>
-                            <span class="o_mfi_list_amount text-success" t-esc="'+ ' + this.money(pay.amount)"/>
+                            <span class="o_mfi_list_amount text-success" t-out="'+ ' + this.money(pay.amount)"/>
                         </li>
                         <li t-if="!d.payments.length" class="o_mfi_empty">
-                            <i class="fa fa-inbox text-muted" aria-hidden="true"/> No repayments yet.
+                            <i class="oi text-muted" data-icon="inbox" aria-hidden="true"/> No repayments yet.
                         </li>
                     </ul>
                 </div>

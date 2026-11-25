@@ -1,3 +1,4 @@
+import unittest
 from datetime import timedelta
 from urllib.parse import unquote
 
@@ -16,6 +17,13 @@ class TestControls(MfiCase, SMSCase):
     def _actions(self, record):
         return self.env["mfi.audit.log"].search(
             [("res_model", "=", record._name), ("res_id", "=", record.id)], order="id").mapped("action")
+
+    def _refused(self, wizard, password):
+        """A wrong password, without Odoo's assertRaises savepoint: in tests the
+        refusal's own "committed" log shares this transaction, and that savepoint's
+        rollback would erase it."""
+        with unittest.TestCase.assertRaisesRegex(self, UserError, "Incorrect password"):
+            wizard.with_context(password=password).action_reveal()
 
     # ------------------------------------------------------------------
     # Audit log
@@ -67,10 +75,9 @@ class TestControls(MfiCase, SMSCase):
         wizard = self.env["mfi.client.reveal.wizard"].with_user(self.ceo).browse(action["res_id"])
         self.assertFalse(wizard.is_shown)
         self.assertFalse(wizard.details_html)
-        with self.assertRaisesRegex(UserError, "Incorrect password"):
-            wizard.with_context(password="wrong").action_reveal()
+        self._refused(wizard, "wrong")
         self.assertEqual(self._actions(self.client)[-1], "pii.view_denied")
-        wizard.with_context(password="mfi_ceo").action_reveal()
+        wizard.with_context(password="mfi_ceox").action_reveal()  # new_test_user pads to 8 characters
         wizard.invalidate_recordset()
         self.assertTrue(wizard.is_shown)
         self.assertIn("12345678", wizard.details_html)
@@ -80,8 +87,7 @@ class TestControls(MfiCase, SMSCase):
     def test_wrong_passwords_lock(self):
         wizard = self.env["mfi.client.reveal.wizard"].with_user(self.officer).create({"partner_id": self.client.id})
         for _attempt in range(5):
-            with self.assertRaisesRegex(UserError, "Incorrect password"):
-                wizard.with_context(password="wrong").action_reveal()
+            self._refused(wizard, "wrong")
         with self.assertRaisesRegex(UserError, "Too many wrong passwords"):
             wizard.with_context(password="mfi_officer").action_reveal()
 
@@ -151,10 +157,10 @@ class TestControls(MfiCase, SMSCase):
 
     def test_session_settings(self):
         params = self.env["ir.config_parameter"].sudo()
-        self.assertEqual(params.get_param("mfi_loan.session_idle_minutes"), "60")
-        self.assertEqual(params.get_param("mfi_loan.session_max_hours"), "10")
+        self.assertEqual(params.get_int("mfi_loan.session_idle_minutes"), 60)
+        self.assertEqual(params.get_int("mfi_loan.session_max_hours"), 10)
         self.env["res.config.settings"].create({"mfi_session_idle_minutes": 30}).execute()
-        self.assertEqual(params.get_param("mfi_loan.session_idle_minutes"), "30")
+        self.assertEqual(params.get_int("mfi_loan.session_idle_minutes"), 30)
 
     def test_repaid_on_the_payment_date(self):
         loan = self._active(self._new_loan(), days_ago=5)

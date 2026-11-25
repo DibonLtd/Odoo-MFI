@@ -20,7 +20,7 @@ class TestSampleData(TransactionCase):
         self.assertTrue(env["mfi.collection.note"].search_count([("loan_id", "in", loans.ids)]))
         staff = env["res.users"].search([("login", "=like", "%@demo.roancapital.co.ke")])
         self.assertEqual(len(staff), 9)
-        self.assertTrue(env["ir.config_parameter"].get_param("mfi_loan_demo.password"))
+        self.assertTrue(env["ir.config_parameter"].get_str("mfi_loan_demo.password"))
         board = env["mfi.dashboard"].create({})
         self.assertGreater(board.par_1, 0)
         self.assertTrue(all(c._mfi_messaging_blocked() for c in clients))
@@ -77,7 +77,7 @@ class TestSampleData(TransactionCase):
         self.assertFalse(env["mfi.audit.log"].search_count([("user_id", "in", staff.ids)]))
         self.assertFalse(env["ir.model.data"].search_count([("module", "=", "mfi_loan_demo"),
                                                            ("name", "=like", "sample_%")]))
-        self.assertFalse(env["ir.config_parameter"].get_param("mfi_loan_demo.password"))
+        self.assertFalse(env["ir.config_parameter"].get_str("mfi_loan_demo.password"))
         if "account.journal" in env:
             self.assertFalse(env["account.journal"].search_count([("name", "like", "(sample)")]))
         if "crm.lead" in env:

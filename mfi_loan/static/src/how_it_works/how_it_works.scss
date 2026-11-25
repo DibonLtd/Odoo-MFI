@@ -305,7 +305,7 @@ $mfi-how-tones: (
         border: 1px dashed var(--mfi-tone);
         border-radius: 0.7rem;
 
-        > .fa { color: var(--mfi-tone); font-size: 1.1rem; margin-top: 0.1rem; }
+        > .oi { color: var(--mfi-tone); font-size: 1.1rem; margin-top: 0.1rem; }
         &:hover, &:focus-visible { background: rgba(var(--mfi-rgb), 0.16); }
         // hang each side road under the step it leaves from
         &.o_from_pending_approval { grid-column: 4; }
@@ -360,8 +360,10 @@ $mfi-how-tones: (
             padding-left: 1.5rem;
         }
         li::before {
-            content: "\f00c"; // fa-check
-            font-family: FontAwesome;
+            content: "check"; // Material Symbols ligature
+            font-family: "Material Symbols Outlined";
+            text-rendering: geometricPrecision;
+            line-height: inherit;
             position: absolute;
             left: 0;
             color: var(--mfi-tone);
@@ -392,7 +394,7 @@ $mfi-how-tones: (
         border-radius: 0.9rem;
         background: var(--mfi-soft);
 
-        > .fa { color: $text-muted; }
+        > .oi { color: $text-muted; }
     }
     .o_mfi_how_chain_label {
         font-weight: 600;
@@ -734,7 +736,7 @@ $mfi-how-tones: (
         border-radius: 0.9rem;
         transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
 
-        > .fa {
+        > .oi {
             display: inline-flex;
             align-items: center;
             justify-content: center;

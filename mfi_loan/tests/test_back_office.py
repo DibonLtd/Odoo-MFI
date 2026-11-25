@@ -27,7 +27,7 @@ class TestBackOffice(MfiCase):
         ]
         for extra, message in cases:
             with self.subTest(message=message), self.assertRaisesRegex(ValidationError, message):
-                self._new_client("Another Client", "99999999", "0711111111", **extra)
+                self._new_client("Another Client", "99999999", **({"phone": "0711111111"} | extra))
 
     def test_business_needs_contact_person(self):
         with self.assertRaisesRegex(ValidationError, "contact person"):

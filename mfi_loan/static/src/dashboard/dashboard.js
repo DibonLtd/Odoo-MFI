@@ -10,10 +10,13 @@ import {
     onWillStart,
     onWillUnmount,
     onWillUpdateProps,
-    useEffect,
-    useRef,
-    useState,
+    proxy,
+    signal,
+    t,
+    useProps,
 } from "@odoo/owl";
+import { useLayoutEffect } from "@web/owl2/utils";
+import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 
 const PERIOD_KEY = "mfi_loan.dashboard.period";
 const REFRESH_MS = 5 * 60 * 1000; // figures reload on their own every 5 minutes
@@ -37,10 +40,10 @@ const AGEING_COLORS = [COLORS.green, COLORS.cyan, COLORS.amber, COLORS.orange, C
 /** A number that counts up to its value, and glides to the next one on refresh. */
 export class MfiCountUp extends Component {
     static template = "mfi_loan.CountUp";
-    static props = { value: Number, format: Function };
+    props = useProps({ value: t.number(), format: t.function() });
 
     setup() {
-        this.state = useState({ current: reduceMotion() ? this.props.value : 0 });
+        this.state = proxy({ current: reduceMotion() ? this.props.value : 0 });
         onMounted(() => this.animate(this.state.current, this.props.value));
         onWillUpdateProps((next) => {
             if (next.value !== this.props.value) {
@@ -75,7 +78,7 @@ export class MfiCountUp extends Component {
 /** A tiny line chart of a series, drawn as SVG. */
 export class MfiSparkline extends Component {
     static template = "mfi_loan.Sparkline";
-    static props = { values: Array, color: { type: String, optional: true } };
+    props = useProps({ values: t.array(), color: t.string().optional() });
 
     get points() {
         const values = this.props.values.length ? this.props.values : [0];
@@ -94,15 +97,15 @@ export class MfiSparkline extends Component {
 export class MfiDashboard extends Component {
     static template = "mfi_loan.Dashboard";
     static components = { MfiCountUp, MfiSparkline };
-    static props = ["*"];
+    props = useProps({ ...standardActionServiceProps });
 
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
-        this.root = useRef("root");
-        this.trendCanvas = useRef("trend");
-        this.healthCanvas = useRef("health");
-        this.ageingCanvas = useRef("ageing");
+        this.root = signal.ref();
+        this.trendCanvas = signal.ref();
+        this.healthCanvas = signal.ref();
+        this.ageingCanvas = signal.ref();
         this.charts = [];
         let period = "30d";
         try {
@@ -110,7 +113,7 @@ export class MfiDashboard extends Component {
         } catch {
             // private window: keep the default
         }
-        this.state = useState({ period, data: null, loading: true, error: false, updatedAt: 0, now: Date.now() });
+        this.state = proxy({ period, data: null, loading: true, error: false, updatedAt: 0, now: Date.now() });
 
         onWillStart(async () => {
             await loadBundle("web.chartjs_lib");
@@ -120,7 +123,7 @@ export class MfiDashboard extends Component {
             this.refreshTimer = browser.setInterval(() => this.load(), REFRESH_MS);
             this.clockTimer = browser.setInterval(() => (this.state.now = Date.now()), 30000);
         });
-        useEffect(
+        useLayoutEffect(
             () => {
                 this.renderCharts();
                 return () => this.destroyCharts();
@@ -238,16 +241,16 @@ export class MfiDashboard extends Component {
     /** Trend chip: up is good for every period figure on this page. */
     trend(kpi) {
         if (kpi.trend === null || kpi.trend === undefined) {
-            return kpi.value ? { label: _t("New"), tone: "up", icon: "fa-star" } : null;
+            return kpi.value ? { label: _t("New"), tone: "up", icon: "star" } : null;
         }
         if (Math.abs(kpi.trend) < 0.5) {
-            return { label: _t("Steady"), tone: "flat", icon: "fa-minus" };
+            return { label: _t("Steady"), tone: "flat", icon: "remove" };
         }
         const up = kpi.trend > 0;
         return {
             label: `${Math.abs(Math.round(kpi.trend))}%`,
             tone: up ? "up" : "down",
-            icon: up ? "fa-arrow-up" : "fa-arrow-down",
+            icon: up ? "arrow_upward" : "arrow_downward",
         };
     }
 
@@ -284,23 +287,23 @@ export class MfiDashboard extends Component {
 
     renderCharts() {
         const data = this.state.data;
-        if (!data || !window.Chart || !this.root.el) {
+        if (!data || !window.Chart || !this.root()) {
             return;
         }
-        const style = getComputedStyle(this.root.el);
+        const style = getComputedStyle(this.root());
         const text = style.color;
         const grid = "rgba(127, 127, 127, 0.15)";
         const animation = reduceMotion() ? false : { duration: 900, easing: "easeOutQuart" };
         const moneyTick = (value) => this.money(value);
         const tooltipMoney = (ctx) => ` ${ctx.dataset.label || ctx.label}: ${this.money(ctx.parsed.y ?? ctx.parsed, false)}`;
 
-        if (this.trendCanvas.el) {
-            const ctx = this.trendCanvas.el.getContext("2d");
-            const fill = ctx.createLinearGradient(0, 0, 0, this.trendCanvas.el.clientHeight || 280);
+        if (this.trendCanvas()) {
+            const ctx = this.trendCanvas().getContext("2d");
+            const fill = ctx.createLinearGradient(0, 0, 0, this.trendCanvas().clientHeight || 280);
             fill.addColorStop(0, "rgba(22, 163, 74, 0.35)");
             fill.addColorStop(1, "rgba(22, 163, 74, 0)");
             this.charts.push(
-                new window.Chart(this.trendCanvas.el, {
+                new window.Chart(this.trendCanvas(), {
                     type: "line",
                     data: {
                         labels: data.series.labels,
@@ -356,10 +359,10 @@ export class MfiDashboard extends Component {
             );
         }
 
-        if (this.healthCanvas.el) {
+        if (this.healthCanvas()) {
             const health = data.health;
             this.charts.push(
-                new window.Chart(this.healthCanvas.el, {
+                new window.Chart(this.healthCanvas(), {
                     type: "doughnut",
                     data: {
                         labels: health.map((h) => h.label),
@@ -394,10 +397,10 @@ export class MfiDashboard extends Component {
             );
         }
 
-        if (this.ageingCanvas.el) {
+        if (this.ageingCanvas()) {
             const ageing = data.ageing;
             this.charts.push(
-                new window.Chart(this.ageingCanvas.el, {
+                new window.Chart(this.ageingCanvas(), {
                     type: "bar",
                     data: {
                         labels: ageing.map((a) => a.label),

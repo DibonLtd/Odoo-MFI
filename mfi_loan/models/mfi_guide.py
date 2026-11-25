@@ -1,11 +1,11 @@
 """Step-by-step guides: a green "What to do here" box on each Microfinance page,
 and a "Next step" box on the loan form that follows the loan along.
 
-Ported from the Dibon Events guides (dibon_event, dbe.guide) to Odoo 19.
+Ported from the Dibon Events guides (dibon_event, dbe.guide) to Odoo 20.
 """
 from markupsafe import Markup, escape
 
-from odoo import api, fields, models, tools
+from odoo import api, fields, models
 
 from .rules import APPROVAL_CHAIN
 
@@ -19,19 +19,19 @@ VIEW_TYPES = [
     ("activity", "Activity"),
 ]
 SHOW_GUIDES_PARAM = "mfi_loan.show_guides"
-# Next step box: tone -> (Bootstrap alert class, Font Awesome icon)
+# Next step box: tone -> (Bootstrap alert class, Material Symbols icon)
 NEXT_STEP_TONES = {
-    "info": ("alert-info", "fa-flag"),
-    "success": ("alert-success", "fa-check-circle"),
-    "warning": ("alert-warning", "fa-hourglass-half"),
-    "danger": ("alert-danger", "fa-exclamation-triangle"),
-    "muted": ("alert-secondary", "fa-flag-checkered"),
+    "info": ("alert-info", "flag"),
+    "success": ("alert-success", "check_circle"),
+    "warning": ("alert-warning", "hourglass_bottom"),
+    "danger": ("alert-danger", "warning"),
+    "muted": ("alert-secondary", "sports_score"),
 }
 
 
 def guides_enabled(env):
     """On unless an administrator switched them off in Settings."""
-    return env["ir.config_parameter"].sudo().get_param(SHOW_GUIDES_PARAM, "True") != "False"
+    return env["ir.config_parameter"].sudo().get_bool(SHOW_GUIDES_PARAM, True)
 
 
 class MfiGuide(models.Model):
@@ -64,7 +64,7 @@ class MfiGuide(models.Model):
         return [guide for guide in self._mfi_guides_data() if guide["id"] not in hidden]
 
     @api.model
-    @tools.ormcache("self.env.lang")
+    @api.ormcache("self.env.lang")
     def _mfi_guides_data(self):
         result = []
         for guide in self.sudo().search([]):
@@ -93,15 +93,15 @@ class MfiGuide(models.Model):
     # The guide list is cached per language: any change clears it.
     @api.model_create_multi
     def create(self, vals_list):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return super().create(vals_list)
 
     def write(self, vals):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return super().write(vals)
 
     def unlink(self):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return super().unlink()
 
 
@@ -117,15 +117,15 @@ class MfiGuideButton(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return super().create(vals_list)
 
     def write(self, vals):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return super().write(vals)
 
     def unlink(self):
-        self.env.registry.clear_cache()
+        self.env.transaction.invalidate_ormcache()
         return super().unlink()
 
 
@@ -160,10 +160,8 @@ class ResConfigSettings(models.TransientModel):
 
     def set_values(self):
         super().set_values()
-        # Stored as text: a boolean config_parameter deletes the key when off,
-        # which would read back as the default (on).
-        self.env["ir.config_parameter"].sudo().set_param(
-            SHOW_GUIDES_PARAM, "True" if self.mfi_show_guides else "False")
+        # Stored explicitly so "off" is kept; a missing key reads as on.
+        self.env["ir.config_parameter"].sudo().set_bool(SHOW_GUIDES_PARAM, self.mfi_show_guides)
 
 
 class MfiLoan(models.Model):
@@ -195,7 +193,7 @@ class MfiLoan(models.Model):
         items = Markup("").join(Markup("<li>%s</li>") % step for step in steps)
         return Markup(
             '<div class="alert %s o_mfi_next_step d-flex gap-3 align-items-start py-2 mb-3" role="status">'
-            '<i class="fa %s fs-4 mt-1" aria-hidden="true"></i>'
+            '<i class="oi fs-4 mt-1" data-icon="%s" aria-hidden="true"></i>'
             '<div class="flex-grow-1"><div class="fw-bold">%s</div>%s</div></div>'
         ) % (alert, icon, title, Markup('<ol class="small mb-0">%s</ol>') % items if steps else "")
 
