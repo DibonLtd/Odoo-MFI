@@ -1,0 +1,17 @@
+.o_mfi_lending {
+    .o_mfi_lending_content {
+        max-width: 1200px;
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    .card-header .oi,
+    .list-group-item .oi {
+        vertical-align: -0.15em;
+    }
+}
+.o_mfi_lending_push {
+    .table td {
+        overflow-wrap: anywhere;
+    }
+}

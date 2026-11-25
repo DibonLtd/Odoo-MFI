@@ -1,0 +1,1137 @@
+openapi: 3.1.0
+info:
+  title: Kapu lending staff API
+  version: 1.0.0-draft.1
+  summary: The calls the Odoo staff workspace makes to Kapu lending. Slice 1, individual onboarding.
+  description: |
+    Draft for review (staff-api-plan.md, slice 1; conventions in docs/tasks/step-2-conventions.md).
+    Made-up people only in every example.
+
+    **Who calls.** Staff sign in to Odoo. For each call Odoo exchanges the person's token at Keycloak
+    for one addressed to `lending-service`, still naming the person (access-keycloak §7). Only
+    `staff`-realm tokens with that audience are accepted; anything else gets 401. An exchanged token
+    never counts as step-up.
+
+    **Commands.** Every write is accepted, refused with a reason, or (later slices) sent to the
+    approval engine with 202. Odoo never sets a state. Each read lists the commands this person may
+    take now in `actions`; show only those.
+
+    **Idempotency-Key.** Every POST carries one. Choose one key (a UUID) per action the person means to
+    take, and send the same key, unchanged, every time you retry that action. A retry then returns the
+    first answer and never acts twice. A new key means a new action. The same key with a different body
+    is refused (422 `idempotency_key_reused`).
+
+    **If-Match.** Editing a draft and submitting it send the `ETag` from the last read. If the client
+    changed since, the answer is 412 `stale_version`: read it again and show the person what changed.
+
+    **Errors** are problem details (RFC 9457). Branch on `code`, show text for it in English or Swahili,
+    and highlight `field` when there is one. `detail` is for developers and never holds personal data.
+    Quote `traceId` when reporting a problem.
+
+    **Reads** are live: never store them. Each carries `fetchedAt`. Personal data is masked in lists
+    and default reads: ID number, phone and KRA PIN keep their last 3 characters (`•••••345`), a date of
+    birth is fully masked, an email keeps its first letter and domain.
+
+    **Paging.** `limit` (default 50, at most 200) and the opaque `cursor` from the last page's
+    `nextCursor`; no `nextCursor` means the last page.
+
+    **The stub** (http://localhost:8094, local docker-compose) answers every call with the examples in
+    this file. Without a header it gives the first success example; to get another, send
+    `X-Stub-Example: <example name>`, for example `X-Stub-Example: phone_not_confirmed`. It keeps no
+    state: a client you create does not appear in a later read. It refuses a POST without
+    `Idempotency-Key`, and an edit or submit without `If-Match`, as the service does.
+servers:
+  - url: http://localhost:8080
+    description: Kapu lending, run locally
+  - url: http://localhost:8094
+    description: The WireMock stub generated from this file
+security:
+  - staffToken: []
+tags:
+  - name: Clients
+  - name: Phone verification
+  - name: Documents
+  - name: Verifications
+
+paths:
+  /v1/clients:
+    get:
+      tags: [Clients]
+      operationId: listClients
+      summary: List clients, newest first, personal data masked
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - name: state
+          in: query
+          description: Only clients in this state
+          schema: { $ref: '#/components/schemas/ClientState' }
+        - name: leadRef
+          in: query
+          description: The client made from this Odoo lead
+          schema: { type: string }
+      responses:
+        '200':
+          description: One page of clients
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClientPage' }
+              examples:
+                page: { $ref: '#/components/examples/ClientPage' }
+        '400': { $ref: '#/components/responses/BadCursor' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+    post:
+      tags: [Clients]
+      operationId: createClient
+      summary: Create a draft client
+      description: |
+        An officer's command, never automatic (BS-20). Refused without consent to the checks. Refused
+        when a client that is not `LAPSED` already has the same ID, or was already made from the same
+        lead: the problem names that client in `existingClientId`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateClient' }
+            examples:
+              individual: { $ref: '#/components/examples/CreateClient' }
+      responses:
+        '201':
+          description: The draft client
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+            Location: { $ref: '#/components/headers/Location' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Client' }
+              examples:
+                draft: { $ref: '#/components/examples/ClientDraft' }
+        '400':
+          description: A field is missing or invalid, or the Idempotency-Key is missing
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                missing_field: { $ref: '#/components/examples/MissingField' }
+                invalid_field: { $ref: '#/components/examples/InvalidField' }
+                idempotency_key_required: { $ref: '#/components/examples/IdempotencyKeyRequired' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '409':
+          description: The client already exists, or the first request with this key is still running
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                client_already_exists: { $ref: '#/components/examples/ClientAlreadyExists' }
+                request_in_progress: { $ref: '#/components/examples/RequestInProgress' }
+        '422':
+          description: No consent to the checks, or the key was used with a different body
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                consent_required: { $ref: '#/components/examples/ConsentRequired' }
+                idempotency_key_reused: { $ref: '#/components/examples/IdempotencyKeyReused' }
+
+  /v1/clients/{clientId}:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    get:
+      tags: [Clients]
+      operationId: getClient
+      summary: One client, personal data masked
+      responses:
+        '200':
+          description: The client, with the commands this person may take now
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Client' }
+              examples:
+                draft: { $ref: '#/components/examples/ClientDraft' }
+                verifying: { $ref: '#/components/examples/ClientVerifying' }
+                held: { $ref: '#/components/examples/ClientHeld' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Clients]
+      operationId: updateClient
+      summary: Update a draft client's contact and business details
+      description: |
+        Only while `DRAFT`. JSON merge patch (RFC 7396): send only what changes; `null` clears a field.
+        A changed phone must be confirmed again. Whether names, ID and date of birth can be changed here
+        is plan proposal A1, not yet decided.
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: '#/components/schemas/UpdateClient' }
+            examples:
+              contact: { $ref: '#/components/examples/UpdateClient' }
+      responses:
+        '200':
+          description: The updated client
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Client' }
+              examples:
+                draft: { $ref: '#/components/examples/ClientDraftUpdated' }
+        '400': { $ref: '#/components/responses/BadInput' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/WrongState' }
+        '412': { $ref: '#/components/responses/StaleVersion' }
+        '428': { $ref: '#/components/responses/IfMatchRequired' }
+
+  /v1/clients/{clientId}/phone-verification:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    post:
+      tags: [Phone verification]
+      operationId: sendPhoneCode
+      summary: Send a one-time code to the client's phone
+      description: ID-11. Resends are limited; the limits are configuration.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: The code is on its way
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PhoneCodeSent' }
+              examples:
+                sent: { $ref: '#/components/examples/PhoneCodeSent' }
+        '400': { $ref: '#/components/responses/IdempotencyKeyRequired' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/WrongState' }
+        '429':
+          description: Too many codes sent; try again after `retryAfterSeconds`
+          headers:
+            Retry-After: { $ref: '#/components/headers/RetryAfter' }
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                too_many_requests: { $ref: '#/components/examples/TooManyRequests' }
+
+  /v1/clients/{clientId}/phone-verification/confirm:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    post:
+      tags: [Phone verification]
+      operationId: confirmPhoneCode
+      summary: Check the code the client read out
+      description: Submit is refused until the phone is confirmed (JN-01 §3 k).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfirmPhoneCode' }
+            examples:
+              code: { $ref: '#/components/examples/ConfirmPhoneCode' }
+      responses:
+        '200':
+          description: The phone is confirmed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PhoneConfirmed' }
+              examples:
+                confirmed: { $ref: '#/components/examples/PhoneConfirmed' }
+        '400': { $ref: '#/components/responses/BadInput' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/WrongState' }
+        '422':
+          description: The code is wrong or has expired
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                code_incorrect: { $ref: '#/components/examples/CodeIncorrect' }
+                code_expired: { $ref: '#/components/examples/CodeExpired' }
+
+  /v1/clients/{clientId}/documents:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    get:
+      tags: [Documents]
+      operationId: listDocuments
+      summary: The client's documents and their state
+      description: Only `STORED` counts towards the checklist.
+      responses:
+        '200':
+          description: The client's documents
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentList' }
+              examples:
+                documents: { $ref: '#/components/examples/DocumentList' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Documents]
+      operationId: requestDocumentUpload
+      summary: Get an upload address for one document
+      description: |
+        Proposal, pending plan question 2. Send the file to `uploadUrl` with a PUT before
+        `uploadExpiresAt`, then call `.../complete`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestDocumentUpload' }
+            examples:
+              idFront: { $ref: '#/components/examples/RequestDocumentUpload' }
+      responses:
+        '201':
+          description: Where to send the file
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentUpload' }
+              examples:
+                upload: { $ref: '#/components/examples/DocumentUpload' }
+        '400': { $ref: '#/components/responses/BadInput' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/WrongState' }
+        '422':
+          description: A KRA PIN certificate for a client with no KRA PIN keyed in
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                kra_pin_missing: { $ref: '#/components/examples/KraPinMissing' }
+
+  /v1/clients/{clientId}/documents/{documentId}/complete:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+      - $ref: '#/components/parameters/DocumentId'
+    post:
+      tags: [Documents]
+      operationId: completeDocumentUpload
+      summary: Say the file has been sent
+      description: The vault checks the file in quarantine; it becomes `STORED` or `REJECTED` (vault §4).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: The document, now received
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+              examples:
+                received: { $ref: '#/components/examples/DocumentReceived' }
+        '400': { $ref: '#/components/responses/IdempotencyKeyRequired' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/WrongState' }
+
+  /v1/clients/{clientId}/upload-links:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    post:
+      tags: [Documents]
+      operationId: sendUploadLink
+      summary: Send the client a single-use upload link by SMS or email
+      description: Vault `POST /upload-links`; never WhatsApp attachments (vault §5).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendUploadLink' }
+            examples:
+              sms: { $ref: '#/components/examples/SendUploadLink' }
+      responses:
+        '202':
+          description: The link is on its way
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadLinkSent' }
+              examples:
+                sent: { $ref: '#/components/examples/UploadLinkSent' }
+        '400': { $ref: '#/components/responses/BadInput' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/WrongState' }
+
+  /v1/clients/{clientId}/submit:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    post:
+      tags: [Clients]
+      operationId: submitClient
+      summary: Run the checks
+      description: |
+        `DRAFT` to `VERIFYING`. Refused while the phone is unconfirmed or a required document is not
+        stored (the completeness gate, MF-02, never overridden). Follow progress with `GET .../verifications`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '202':
+          description: The checks have started
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Client' }
+              examples:
+                verifying: { $ref: '#/components/examples/ClientVerifying' }
+        '400': { $ref: '#/components/responses/IdempotencyKeyRequired' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Not ready to submit, or not a draft
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                phone_not_confirmed: { $ref: '#/components/examples/PhoneNotConfirmed' }
+                documents_missing: { $ref: '#/components/examples/DocumentsMissing' }
+                wrong_state: { $ref: '#/components/examples/WrongState' }
+        '412': { $ref: '#/components/responses/StaleVersion' }
+        '428': { $ref: '#/components/responses/IfMatchRequired' }
+
+  /v1/clients/{clientId}/verifications:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    get:
+      tags: [Verifications]
+      operationId: getVerifications
+      summary: Each check's outcome as the officer may see it, and the next step
+      description: |
+        A held client shows only that it is held: no checks, no reason (JN-01 §3 a, no tipping off).
+        What a failed check shows is plan question 6; `CORRECTION_NEEDED` follows proposal A2.
+      responses:
+        '200':
+          description: The checks
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Verifications' }
+              examples:
+                running: { $ref: '#/components/examples/VerificationsRunning' }
+                correction: { $ref: '#/components/examples/VerificationsCorrection' }
+                held: { $ref: '#/components/examples/VerificationsHeld' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/clients/{clientId}/reveal:
+    parameters:
+      - $ref: '#/components/parameters/ClientId'
+    post:
+      tags: [Clients]
+      operationId: revealClientFields
+      summary: Show named fields unmasked (not built in slice 1)
+      description: |
+        Audited against the person and needs step-up, which has no contract yet (plan question 3).
+        Until then the service answers 501.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RevealRequest' }
+            examples:
+              idNumber: { $ref: '#/components/examples/RevealRequest' }
+      responses:
+        '200':
+          description: The named fields, unmasked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RevealedFields' }
+              examples:
+                revealed: { $ref: '#/components/examples/RevealedFields' }
+        '400': { $ref: '#/components/responses/IdempotencyKeyRequired' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/NotPermitted' }
+        '501':
+          description: Not built yet
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+              examples:
+                not_implemented: { $ref: '#/components/examples/NotImplemented' }
+
+components:
+  securitySchemes:
+    staffToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A `staff`-realm access token with audience `lending-service`, obtained by token exchange
+        from the person's Odoo session. Tokens from any other realm (including `ops`) get 401.
+
+  parameters:
+    ClientId:
+      name: clientId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        One key per action the person means to take; the same key, unchanged, on every retry of it.
+        A UUID is a good choice. A retry returns the first answer and never acts twice.
+      schema: { type: string, minLength: 8, maxLength: 128 }
+      example: 6f1c2b8e-3d4a-4e5f-9a7b-1c2d3e4f5a6b
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: The `ETag` from the last read of this client.
+      schema: { type: string }
+      example: '"3"'
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Cursor:
+      name: cursor
+      in: query
+      description: The `nextCursor` from the previous page, unchanged.
+      schema: { type: string }
+
+  headers:
+    ETag:
+      description: The client's version; send it back in `If-Match`.
+      schema: { type: string }
+      example: '"1"'
+    Location:
+      description: The new client's address.
+      schema: { type: string }
+      example: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11
+    RetryAfter:
+      description: Seconds to wait before trying again.
+      schema: { type: integer }
+      example: 60
+
+  responses:
+    Unauthenticated:
+      description: No token, or not a staff-realm token for `lending-service`
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            unauthenticated: { $ref: '#/components/examples/Unauthenticated' }
+    NotPermitted:
+      description: This person's roles don't allow this command
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            not_permitted: { $ref: '#/components/examples/NotPermitted' }
+    NotFound:
+      description: No such client or document
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            not_found: { $ref: '#/components/examples/NotFound' }
+    BadInput:
+      description: A field is missing or invalid, or the Idempotency-Key is missing
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            invalid_field: { $ref: '#/components/examples/InvalidField' }
+            missing_field: { $ref: '#/components/examples/MissingField' }
+            idempotency_key_required: { $ref: '#/components/examples/IdempotencyKeyRequired' }
+    IdempotencyKeyRequired:
+      description: The Idempotency-Key is missing
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            idempotency_key_required: { $ref: '#/components/examples/IdempotencyKeyRequired' }
+    BadCursor:
+      description: The cursor is not one this service gave
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            invalid_cursor: { $ref: '#/components/examples/InvalidCursor' }
+    WrongState:
+      description: The client's state doesn't allow this command now
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            wrong_state: { $ref: '#/components/examples/WrongState' }
+    StaleVersion:
+      description: The client changed since your last read
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            stale_version: { $ref: '#/components/examples/StaleVersion' }
+    IfMatchRequired:
+      description: The If-Match header is missing
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            if_match_required: { $ref: '#/components/examples/IfMatchRequired' }
+
+  schemas:
+    ClientState:
+      type: string
+      enum: [DRAFT, VERIFYING, VERIFIED, ACTIVE, HELD, LAPSED]
+      description: |
+        DRAFT being captured; VERIFYING checks running; VERIFIED checks passed, the core client being
+        created; ACTIVE a client in Kapu Core; HELD under compliance review (nothing more is shown);
+        LAPSED a draft left untouched for 30 days.
+    IdType:
+      type: string
+      enum: [NATIONAL_ID, ALIEN_ID, PASSPORT]
+    Action:
+      type: string
+      enum: [update, send_phone_code, confirm_phone, request_document_upload, send_upload_link, submit]
+      description: A command this person may take on this client now. Show only these.
+    RefusalCode:
+      type: string
+      enum:
+        - unauthenticated
+        - not_permitted
+        - not_found
+        - invalid_field
+        - missing_field
+        - idempotency_key_required
+        - invalid_cursor
+        - consent_required
+        - kra_pin_missing
+        - idempotency_key_reused
+        - client_already_exists
+        - wrong_state
+        - phone_not_confirmed
+        - documents_missing
+        - request_in_progress
+        - code_incorrect
+        - code_expired
+        - stale_version
+        - if_match_required
+        - too_many_requests
+        - not_implemented
+    Problem:
+      type: object
+      description: RFC 9457 problem details. Branch on `code`.
+      required: [type, title, status, code, instance, traceId]
+      properties:
+        type: { type: string, description: '`urn:kapu:problem:` followed by the code' }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, description: For developers; never holds personal data }
+        instance: { type: string, description: The path of the request that was refused }
+        code: { $ref: '#/components/schemas/RefusalCode' }
+        field: { type: [string, 'null'], description: The request field at fault, when there is one }
+        traceId: { type: string, description: Quote it when reporting a problem }
+        existingClientId:
+          type: string
+          format: uuid
+          description: With `client_already_exists`, the client that already exists
+        missingDocuments:
+          type: array
+          items: { type: string }
+          description: With `documents_missing`, the document types still needed
+        retryAfterSeconds:
+          type: integer
+          description: With `too_many_requests`, how long to wait
+    Address:
+      type: object
+      properties:
+        county: { type: string }
+        town: { type: string }
+        street: { type: [string, 'null'] }
+        landmark: { type: [string, 'null'] }
+    NextOfKin:
+      type: object
+      properties:
+        name: { type: string }
+        relationship: { type: string }
+        phone: { type: string, description: Masked in reads }
+    Business:
+      type: object
+      properties:
+        type: { type: string, description: What the business does }
+        location: { $ref: '#/components/schemas/Address' }
+    CreateClient:
+      type: object
+      required: [type, firstName, lastName, idType, idNumber, dateOfBirth, phone, consentToChecks]
+      properties:
+        leadRef: { type: [string, 'null'], description: The Odoo lead this client is made from }
+        type: { type: string, enum: [INDIVIDUAL] }
+        firstName: { type: string, maxLength: 100 }
+        middleName: { type: [string, 'null'], maxLength: 100 }
+        lastName: { type: string, maxLength: 100 }
+        idType: { $ref: '#/components/schemas/IdType' }
+        idNumber: { type: string, maxLength: 20, description: As keyed from the ID document }
+        dateOfBirth: { type: string, format: date }
+        kraPin:
+          type: [string, 'null']
+          pattern: '^[A-Z][0-9]{9}[A-Z]$'
+          description: |
+            Optional: not everyone has one. When given, the KRA PIN certificate becomes a required
+            document and identity checks the PIN at submit, as it does the ID (plan question 18).
+        phone: { type: string, description: 'E.164, for example +254712345678' }
+        consentToChecks:
+          type: boolean
+          description: The client agreed to the identity checks. Must be true.
+    UpdateClient:
+      type: object
+      description: Send only what changes; null clears a field.
+      properties:
+        phone: { type: string, description: A changed phone must be confirmed again }
+        email: { type: [string, 'null'] }
+        address: { oneOf: [ { $ref: '#/components/schemas/Address' }, { type: 'null' } ] }
+        nextOfKin: { oneOf: [ { $ref: '#/components/schemas/NextOfKin' }, { type: 'null' } ] }
+        business: { oneOf: [ { $ref: '#/components/schemas/Business' }, { type: 'null' } ] }
+    ChecklistItem:
+      type: object
+      required: [item, done]
+      properties:
+        item: { type: string, description: 'consent_to_checks, phone_confirmed, or document:<type>' }
+        required: { type: boolean }
+        done: { type: boolean }
+    Client:
+      type: object
+      required: [id, type, state, actions, checklist, createdAt, fetchedAt]
+      properties:
+        id: { type: string, format: uuid, description: Our client id; Kapu Core's external id once ACTIVE }
+        type: { type: string, enum: [INDIVIDUAL] }
+        state: { $ref: '#/components/schemas/ClientState' }
+        leadRef: { type: [string, 'null'] }
+        firstName: { type: [string, 'null'] }
+        middleName: { type: [string, 'null'] }
+        lastName: { type: [string, 'null'] }
+        idType: { $ref: '#/components/schemas/IdType' }
+        idNumber: { type: [string, 'null'], description: Masked }
+        dateOfBirth: { type: [string, 'null'], description: Masked }
+        kraPin: { type: [string, 'null'], description: Masked; null when the client has none }
+        phone: { type: [string, 'null'], description: Masked }
+        phoneConfirmed: { type: boolean }
+        email: { type: [string, 'null'], description: Masked }
+        address: { oneOf: [ { $ref: '#/components/schemas/Address' }, { type: 'null' } ] }
+        nextOfKin: { oneOf: [ { $ref: '#/components/schemas/NextOfKin' }, { type: 'null' } ] }
+        business: { oneOf: [ { $ref: '#/components/schemas/Business' }, { type: 'null' } ] }
+        tier: { type: [integer, 'null'], description: Set from the evidence when VERIFIED (ID-19) }
+        checklist:
+          type: array
+          items: { $ref: '#/components/schemas/ChecklistItem' }
+        actions:
+          type: array
+          items: { $ref: '#/components/schemas/Action' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        fetchedAt: { type: string, format: date-time }
+    ClientSummary:
+      type: object
+      required: [id, state]
+      properties:
+        id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/ClientState' }
+        leadRef: { type: [string, 'null'] }
+        firstName: { type: [string, 'null'] }
+        lastName: { type: [string, 'null'] }
+        idNumber: { type: [string, 'null'], description: Masked }
+        phone: { type: [string, 'null'], description: Masked }
+        createdAt: { type: string, format: date-time }
+    ClientPage:
+      type: object
+      required: [items, fetchedAt]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ClientSummary' }
+        nextCursor: { type: [string, 'null'], description: Absent or null on the last page }
+        fetchedAt: { type: string, format: date-time }
+    PhoneCodeSent:
+      type: object
+      required: [sentTo, expiresAt]
+      properties:
+        sentTo: { type: string, description: The phone, masked }
+        expiresAt: { type: string, format: date-time }
+        resendAfter: { type: string, format: date-time }
+    ConfirmPhoneCode:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, pattern: '^[0-9]{6}$' }
+    PhoneConfirmed:
+      type: object
+      required: [phoneConfirmed, confirmedAt]
+      properties:
+        phoneConfirmed: { type: boolean }
+        confirmedAt: { type: string, format: date-time }
+    DocumentState:
+      type: string
+      enum: [AWAITING_UPLOAD, RECEIVED, STORED, REJECTED]
+      description: |
+        AWAITING_UPLOAD until `.../complete`; then the vault's states (vault §4). Only STORED
+        counts towards the checklist.
+    Document:
+      type: object
+      required: [id, documentType, state]
+      properties:
+        id: { type: string, format: uuid }
+        documentType: { type: string, description: 'A document catalogue type, for example ID_DOCUMENT, CLIENT_PHOTO, KRA_PIN_CERTIFICATE' }
+        state: { $ref: '#/components/schemas/DocumentState' }
+        rejectedReason: { type: [string, 'null'] }
+        updatedAt: { type: string, format: date-time }
+    DocumentList:
+      type: object
+      required: [items, fetchedAt]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Document' }
+        fetchedAt: { type: string, format: date-time }
+    RequestDocumentUpload:
+      type: object
+      required: [documentType, contentType]
+      properties:
+        documentType: { type: string }
+        contentType: { type: string, enum: [image/jpeg, image/png, application/pdf] }
+        sizeBytes: { type: integer }
+    DocumentUpload:
+      type: object
+      required: [documentId, uploadUrl, uploadExpiresAt]
+      properties:
+        documentId: { type: string, format: uuid }
+        uploadUrl: { type: string, format: uri }
+        uploadExpiresAt: { type: string, format: date-time }
+    SendUploadLink:
+      type: object
+      required: [documentTypes, channel]
+      properties:
+        documentTypes:
+          type: array
+          items: { type: string }
+        channel: { type: string, enum: [SMS, EMAIL] }
+    UploadLinkSent:
+      type: object
+      required: [channel, sentTo, expiresAt]
+      properties:
+        channel: { type: string, enum: [SMS, EMAIL] }
+        sentTo: { type: string, description: Masked }
+        expiresAt: { type: string, format: date-time }
+    Check:
+      type: object
+      required: [check, outcome]
+      properties:
+        check: { type: string, enum: [REGISTER, KRA_PIN, SCREENING, PHOTO] }
+        outcome:
+          type: string
+          enum: [PENDING, RUNNING, PASSED, CORRECTION_NEEDED, REGISTER_UNAVAILABLE]
+          description: REGISTER_UNAVAILABLE means the register is down and identity is retrying (JN-01 §3 b)
+        field: { type: [string, 'null'], description: With CORRECTION_NEEDED, the field to key in again }
+        at: { type: [string, 'null'], format: date-time }
+    Verifications:
+      type: object
+      required: [clientId, state, checks, nextStep, fetchedAt]
+      properties:
+        clientId: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/ClientState' }
+        checks:
+          type: array
+          description: Empty when HELD
+          items: { $ref: '#/components/schemas/Check' }
+        nextStep:
+          type: string
+          enum: [WAIT, CORRECT_FIELD, NONE]
+          description: What the officer does next. A held client is always NONE
+    RevealRequest:
+      type: object
+      required: [fields, reason]
+      properties:
+        fields:
+          type: array
+          items: { type: string, enum: [idNumber, dateOfBirth, kraPin, phone, email, nextOfKin.phone] }
+        reason: { type: string, maxLength: 200 }
+    RevealedFields:
+      type: object
+      additionalProperties: { type: string }
+
+  examples:
+    CreateClient:
+      value:
+        leadRef: odoo-lead-1042
+        type: INDIVIDUAL
+        firstName: Amani
+        middleName: null
+        lastName: Otieno
+        idType: NATIONAL_ID
+        idNumber: '12345670'
+        dateOfBirth: '1990-04-12'
+        kraPin: A012345678Z
+        phone: '+254712345678'
+        consentToChecks: true
+    UpdateClient:
+      value:
+        email: amani.otieno@example.com
+        address: { county: Nairobi, town: Kasarani, street: Mwiki Road, landmark: Opposite the market }
+        nextOfKin: { name: Zawadi Otieno, relationship: Sister, phone: '+254722000111' }
+        business: { type: Grocery, location: { county: Nairobi, town: Kasarani, street: Mwiki Road, landmark: null } }
+    ClientDraft:
+      value:
+        id: 0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11
+        type: INDIVIDUAL
+        state: DRAFT
+        leadRef: odoo-lead-1042
+        firstName: Amani
+        middleName: null
+        lastName: Otieno
+        idType: NATIONAL_ID
+        idNumber: •••••670
+        dateOfBirth: ••••-••-••
+        kraPin: •••••78Z
+        phone: •••••678
+        phoneConfirmed: false
+        email: null
+        address: null
+        nextOfKin: null
+        business: null
+        tier: null
+        checklist:
+          - { item: consent_to_checks, required: true, done: true }
+          - { item: phone_confirmed, required: true, done: false }
+          - { item: 'document:ID_DOCUMENT', required: true, done: false }
+          - { item: 'document:CLIENT_PHOTO', required: true, done: false }
+          - { item: 'document:KRA_PIN_CERTIFICATE', required: true, done: false }
+        actions: [update, send_phone_code, request_document_upload, send_upload_link]
+        createdAt: '2026-11-24T07:15:02Z'
+        updatedAt: '2026-11-24T07:15:02Z'
+        fetchedAt: '2026-11-24T07:15:02Z'
+    ClientDraftUpdated:
+      value:
+        id: 0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11
+        type: INDIVIDUAL
+        state: DRAFT
+        leadRef: odoo-lead-1042
+        firstName: Amani
+        middleName: null
+        lastName: Otieno
+        idType: NATIONAL_ID
+        idNumber: •••••670
+        dateOfBirth: ••••-••-••
+        kraPin: •••••78Z
+        phone: •••••678
+        phoneConfirmed: true
+        email: a•••••@example.com
+        address: { county: Nairobi, town: Kasarani, street: Mwiki Road, landmark: Opposite the market }
+        nextOfKin: { name: Zawadi Otieno, relationship: Sister, phone: •••••111 }
+        business: { type: Grocery, location: { county: Nairobi, town: Kasarani, street: Mwiki Road, landmark: null } }
+        tier: null
+        checklist:
+          - { item: consent_to_checks, required: true, done: true }
+          - { item: phone_confirmed, required: true, done: true }
+          - { item: 'document:ID_DOCUMENT', required: true, done: true }
+          - { item: 'document:CLIENT_PHOTO', required: true, done: true }
+          - { item: 'document:KRA_PIN_CERTIFICATE', required: true, done: true }
+        actions: [update, send_phone_code, request_document_upload, send_upload_link, submit]
+        createdAt: '2026-11-24T07:15:02Z'
+        updatedAt: '2026-11-24T07:31:40Z'
+        fetchedAt: '2026-11-24T07:31:40Z'
+    ClientVerifying:
+      value:
+        id: 0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11
+        type: INDIVIDUAL
+        state: VERIFYING
+        leadRef: odoo-lead-1042
+        firstName: Amani
+        middleName: null
+        lastName: Otieno
+        idType: NATIONAL_ID
+        idNumber: •••••670
+        dateOfBirth: ••••-••-••
+        kraPin: •••••78Z
+        phone: •••••678
+        phoneConfirmed: true
+        email: a•••••@example.com
+        address: { county: Nairobi, town: Kasarani, street: Mwiki Road, landmark: Opposite the market }
+        nextOfKin: { name: Zawadi Otieno, relationship: Sister, phone: •••••111 }
+        business: { type: Grocery, location: { county: Nairobi, town: Kasarani, street: Mwiki Road, landmark: null } }
+        tier: null
+        checklist:
+          - { item: consent_to_checks, required: true, done: true }
+          - { item: phone_confirmed, required: true, done: true }
+          - { item: 'document:ID_DOCUMENT', required: true, done: true }
+          - { item: 'document:CLIENT_PHOTO', required: true, done: true }
+          - { item: 'document:KRA_PIN_CERTIFICATE', required: true, done: true }
+        actions: []
+        createdAt: '2026-11-24T07:15:02Z'
+        updatedAt: '2026-11-24T07:33:05Z'
+        fetchedAt: '2026-11-24T07:33:05Z'
+    ClientHeld:
+      summary: 'Held: the officer sees only that it is held'
+      value:
+        id: 3c9d1f7a-2b4e-4a6c-8d0e-5f1a2b3c4d5e
+        type: INDIVIDUAL
+        state: HELD
+        leadRef: odoo-lead-1057
+        firstName: Baraka
+        middleName: null
+        lastName: Mwangi
+        idType: NATIONAL_ID
+        idNumber: •••••671
+        dateOfBirth: ••••-••-••
+        kraPin: null
+        phone: •••••902
+        phoneConfirmed: true
+        email: null
+        address: null
+        nextOfKin: null
+        business: null
+        tier: null
+        checklist:
+          - { item: consent_to_checks, required: true, done: true }
+          - { item: phone_confirmed, required: true, done: true }
+          - { item: 'document:ID_DOCUMENT', required: true, done: true }
+          - { item: 'document:CLIENT_PHOTO', required: true, done: true }
+        actions: []
+        createdAt: '2026-11-23T09:02:11Z'
+        updatedAt: '2026-11-23T09:20:47Z'
+        fetchedAt: '2026-11-24T08:00:00Z'
+    ClientPage:
+      value:
+        items:
+          - { id: 0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11, state: DRAFT, leadRef: odoo-lead-1042, firstName: Amani, lastName: Otieno, idNumber: •••••670, phone: •••••678, createdAt: '2026-11-24T07:15:02Z' }
+          - { id: 3c9d1f7a-2b4e-4a6c-8d0e-5f1a2b3c4d5e, state: HELD, leadRef: odoo-lead-1057, firstName: Baraka, lastName: Mwangi, idNumber: •••••671, phone: •••••902, createdAt: '2026-11-23T09:02:11Z' }
+        nextCursor: eyJjIjoiMjAyNi0xMS0yM1QwOTowMjoxMVoifQ.c2lnbmF0dXJl
+        fetchedAt: '2026-11-24T08:00:00Z'
+    PhoneCodeSent:
+      value:
+        sentTo: •••••678
+        expiresAt: '2026-11-24T07:20:02Z'
+        resendAfter: '2026-11-24T07:16:02Z'
+    ConfirmPhoneCode:
+      value: { code: '123456' }
+    PhoneConfirmed:
+      value: { phoneConfirmed: true, confirmedAt: '2026-11-24T07:17:30Z' }
+    DocumentList:
+      value:
+        items:
+          - { id: 4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c, documentType: KRA_PIN_CERTIFICATE, state: STORED, rejectedReason: null, updatedAt: '2026-11-24T07:23:30Z' }
+          - { id: 5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d, documentType: ID_DOCUMENT, state: STORED, rejectedReason: null, updatedAt: '2026-11-24T07:22:10Z' }
+          - { id: 6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e, documentType: CLIENT_PHOTO, state: RECEIVED, rejectedReason: null, updatedAt: '2026-11-24T07:24:51Z' }
+        fetchedAt: '2026-11-24T07:25:00Z'
+    RequestDocumentUpload:
+      value: { documentType: ID_DOCUMENT, contentType: image/jpeg, sizeBytes: 482113 }
+    DocumentUpload:
+      value:
+        documentId: 5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d
+        uploadUrl: https://vault.example.invalid/uploads/5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d?token=example
+        uploadExpiresAt: '2026-11-24T07:35:00Z'
+    DocumentReceived:
+      value: { id: 5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d, documentType: ID_DOCUMENT, state: RECEIVED, rejectedReason: null, updatedAt: '2026-11-24T07:21:40Z' }
+    SendUploadLink:
+      value: { documentTypes: [ID_DOCUMENT, CLIENT_PHOTO], channel: SMS }
+    UploadLinkSent:
+      value: { channel: SMS, sentTo: •••••678, expiresAt: '2026-11-25T07:20:00Z' }
+    VerificationsRunning:
+      value:
+        clientId: 0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11
+        state: VERIFYING
+        checks:
+          - { check: REGISTER, outcome: RUNNING, field: null, at: '2026-11-24T07:33:05Z' }
+          - { check: KRA_PIN, outcome: PENDING, field: null, at: null }
+        nextStep: WAIT
+        fetchedAt: '2026-11-24T07:33:20Z'
+    VerificationsCorrection:
+      summary: 'A typed field didn''t match; the officer keys in that field again (proposal A2)'
+      value:
+        clientId: 0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11
+        state: DRAFT
+        checks:
+          - { check: REGISTER, outcome: CORRECTION_NEEDED, field: dateOfBirth, at: '2026-11-24T07:33:41Z' }
+          - { check: KRA_PIN, outcome: PASSED, field: null, at: '2026-11-24T07:33:44Z' }
+        nextStep: CORRECT_FIELD
+        fetchedAt: '2026-11-24T07:34:00Z'
+    VerificationsHeld:
+      summary: 'Held: no checks and no reason are shown (JN-01 §3 a)'
+      value:
+        clientId: 3c9d1f7a-2b4e-4a6c-8d0e-5f1a2b3c4d5e
+        state: HELD
+        checks: []
+        nextStep: NONE
+        fetchedAt: '2026-11-24T08:00:00Z'
+    RevealRequest:
+      value: { fields: [idNumber], reason: Checking the ID copy at the branch }
+    RevealedFields:
+      value: { idNumber: '12345670' }
+
+    Unauthenticated:
+      value: { type: 'urn:kapu:problem:unauthenticated', title: Not signed in, status: 401, detail: "The token is missing, expired, or not a staff-realm token for lending-service.", instance: /v1/clients, code: unauthenticated, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    NotPermitted:
+      value: { type: 'urn:kapu:problem:not_permitted', title: Not permitted, status: 403, detail: "This person's roles do not include the permission client.create.", instance: /v1/clients, code: not_permitted, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    NotFound:
+      value: { type: 'urn:kapu:problem:not_found', title: Not found, status: 404, detail: "No client with this id.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11, code: not_found, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    MissingField:
+      value: { type: 'urn:kapu:problem:missing_field', title: A required field is missing, status: 400, detail: "dateOfBirth is required.", instance: /v1/clients, code: missing_field, field: dateOfBirth, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    InvalidField:
+      value: { type: 'urn:kapu:problem:invalid_field', title: A field is invalid, status: 400, detail: "phone must be an E.164 number.", instance: /v1/clients, code: invalid_field, field: phone, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    IdempotencyKeyRequired:
+      value: { type: 'urn:kapu:problem:idempotency_key_required', title: Idempotency-Key required, status: 400, detail: "Every POST needs an Idempotency-Key header.", instance: /v1/clients, code: idempotency_key_required, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    InvalidCursor:
+      value: { type: 'urn:kapu:problem:invalid_cursor', title: Invalid cursor, status: 400, detail: "The cursor was not issued by this service; start from the first page.", instance: /v1/clients, code: invalid_cursor, field: cursor, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    ConsentRequired:
+      value: { type: 'urn:kapu:problem:consent_required', title: Consent to the checks required, status: 422, detail: "consentToChecks must be true before a client is created.", instance: /v1/clients, code: consent_required, field: consentToChecks, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    KraPinMissing:
+      value: { type: 'urn:kapu:problem:kra_pin_missing', title: KRA PIN not keyed in, status: 422, detail: "A KRA PIN certificate needs the client's KRA PIN, which is checked against it.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/documents, code: kra_pin_missing, field: kraPin, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    IdempotencyKeyReused:
+      value: { type: 'urn:kapu:problem:idempotency_key_reused', title: Idempotency-Key already used, status: 422, detail: "This key was used for a different request; choose a new key for a new action.", instance: /v1/clients, code: idempotency_key_reused, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    ClientAlreadyExists:
+      value: { type: 'urn:kapu:problem:client_already_exists', title: Client already exists, status: 409, detail: "A client with this ID or from this lead already exists.", instance: /v1/clients, code: client_already_exists, field: idNumber, traceId: 4bf92f3577b34da6a3ce929d0e0e4736, existingClientId: 0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11 }
+    RequestInProgress:
+      value: { type: 'urn:kapu:problem:request_in_progress', title: Request still running, status: 409, detail: "The first request with this key has not finished; retry shortly with the same key.", instance: /v1/clients, code: request_in_progress, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    WrongState:
+      value: { type: 'urn:kapu:problem:wrong_state', title: Not allowed in this state, status: 409, detail: "This command is not allowed while the client is VERIFYING.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit, code: wrong_state, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    PhoneNotConfirmed:
+      value: { type: 'urn:kapu:problem:phone_not_confirmed', title: Phone not confirmed, status: 409, detail: "Confirm the client's phone before submitting.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit, code: phone_not_confirmed, field: phone, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    DocumentsMissing:
+      value: { type: 'urn:kapu:problem:documents_missing', title: Documents missing, status: 409, detail: "Every required document must be stored before submitting.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit, code: documents_missing, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736, missingDocuments: [CLIENT_PHOTO] }
+    StaleVersion:
+      value: { type: 'urn:kapu:problem:stale_version', title: Changed since your last read, status: 412, detail: "Read the client again and show the person what changed.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11, code: stale_version, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    IfMatchRequired:
+      value: { type: 'urn:kapu:problem:if_match_required', title: If-Match required, status: 428, detail: "Send the ETag from your last read in If-Match.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11, code: if_match_required, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    CodeIncorrect:
+      value: { type: 'urn:kapu:problem:code_incorrect', title: Code incorrect, status: 422, detail: "The code does not match; ask the client to read it again.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/phone-verification/confirm, code: code_incorrect, field: code, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    CodeExpired:
+      value: { type: 'urn:kapu:problem:code_expired', title: Code expired, status: 422, detail: "The code has expired; send a new one.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/phone-verification/confirm, code: code_expired, field: code, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }
+    TooManyRequests:
+      value: { type: 'urn:kapu:problem:too_many_requests', title: Too many codes sent, status: 429, detail: "Wait before sending another code.", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/phone-verification, code: too_many_requests, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736, retryAfterSeconds: 60 }
+    NotImplemented:
+      value: { type: 'urn:kapu:problem:not_implemented', title: Not built yet, status: 501, detail: "Revealing fields needs step-up, which is not yet specified (plan question 3).", instance: /v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/reveal, code: not_implemented, field: null, traceId: 4bf92f3577b34da6a3ce929d0e0e4736 }

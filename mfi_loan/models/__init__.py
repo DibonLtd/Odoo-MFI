@@ -3,6 +3,7 @@ from . import mfi_product
 from . import mfi_fee
 from . import res_company
 from . import res_partner
+from . import res_partner_lending
 from . import mfi_loan
 from . import mfi_collection
 from . import mfi_payment

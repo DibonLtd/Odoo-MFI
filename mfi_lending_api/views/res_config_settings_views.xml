@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_mfi_lending" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.mfi.lending</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Kapu lending" string="Kapu lending" name="mfi_lending_api" groups="base.group_system">
+                    <block title="Lending service" name="mfi_lending_connection">
+                        <setting string="Connect to the lending service"
+                                 help="Clients are onboarded through the Kapu lending service's API. Secrets (the client secret, a static token) are set in odoo.conf as kapu_lending_client_secret and kapu_lending_static_token, never here.">
+                            <field name="mfi_lending_enabled"/>
+                            <div class="mt-2" invisible="not mfi_lending_enabled">
+                                <div class="row"><label for="mfi_lending_base_url" class="col-lg-4 o_light_label"/><field name="mfi_lending_base_url" placeholder="https://lending.example"/></div>
+                                <div class="row"><label for="mfi_lending_auth_mode" class="col-lg-4 o_light_label"/><field name="mfi_lending_auth_mode"/></div>
+                                <div class="row" invisible="mfi_lending_auth_mode == 'static'"><label for="mfi_lending_token_url" class="col-lg-4 o_light_label"/><field name="mfi_lending_token_url"/></div>
+                                <div class="row" invisible="mfi_lending_auth_mode == 'static'"><label for="mfi_lending_client_id" class="col-lg-4 o_light_label"/><field name="mfi_lending_client_id"/></div>
+                                <div class="row" invisible="mfi_lending_auth_mode == 'static'"><label for="mfi_lending_audience" class="col-lg-4 o_light_label"/><field name="mfi_lending_audience"/></div>
+                                <div class="row"><label for="mfi_lending_upload_hosts" class="col-lg-4 o_light_label"/><field name="mfi_lending_upload_hosts" placeholder="vault.roan.example"/></div>
+                                <div class="row"><label for="mfi_lending_connect_timeout" class="col-lg-4 o_light_label"/><field name="mfi_lending_connect_timeout"/></div>
+                                <div class="row"><label for="mfi_lending_read_timeout" class="col-lg-4 o_light_label"/><field name="mfi_lending_read_timeout"/></div>
+                                <div class="row" invisible="mfi_lending_auth_mode != 'static'"><label for="mfi_lending_stub_example" class="col-lg-4 o_light_label"/><field name="mfi_lending_stub_example" placeholder="phone_not_confirmed"/></div>
+                                <div class="row" invisible="mfi_lending_auth_mode != 'static'"><label for="mfi_lending_skip_upload_transfer" class="col-lg-4 o_light_label"/><field name="mfi_lending_skip_upload_transfer"/></div>
+                                <div class="mt-2 d-flex gap-2">
+                                    <button name="action_mfi_lending_test" type="object" string="Test connection" class="btn-secondary"/>
+                                    <button name="%(mfi_lending_api.action_mfi_lending_command)d" type="action" string="Command log" class="btn-link"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

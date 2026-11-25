@@ -1,0 +1,2 @@
+id,name,model_id,group_id/id,operation,domain
+access_mfi_lending_command_system,mfi.lending.command system,mfi.lending.command,base.group_system,r,

@@ -26,6 +26,12 @@
                 <header>
                     <button name="action_mfi_reveal" type="object" string="View personal details" icon="visibility"
                             invisible="not id"/>
+                    <button name="action_mfi_lending_push" type="object" string="Create in lending service"
+                            class="btn-secondary" invisible="not id or mfi_lending_client_id or mfi_client_type == 'business'"
+                            groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_loan_officer"
+                            confirm="Create this client in the Kapu lending service? Their details and documents are sent; afterwards they change only through the onboarding screen."/>
+                    <button name="action_mfi_lending_open" type="object" string="Onboarding" class="btn-secondary"
+                            invisible="not mfi_lending_client_id"/>
                     <button name="action_new_mfi_loan" type="object" string="New application" class="oe_highlight"
                             invisible="not id or mfi_blacklisted"
                             groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_loan_officer"/>
@@ -37,14 +43,32 @@
                         </button>
                     </div>
                     <widget name="web_ribbon" title="Blacklisted" bg_color="text-bg-danger" invisible="not mfi_blacklisted"/>
+                    <widget name="web_ribbon" title="In lending service" bg_color="text-bg-info"
+                            invisible="mfi_blacklisted or mfi_lending_sync != 'in_backend'"/>
+                    <field name="mfi_lending_client_id" invisible="1"/>
                     <field name="is_mfi_client" invisible="1"/>
                     <field name="is_company" invisible="1"/>
-                    <field name="mfi_client_type" widget="radio" options="{'horizontal': true}"/>
+                    <field name="mfi_client_type" widget="radio" options="{'horizontal': true}" readonly="mfi_lending_client_id"/>
                     <div class="oe_title">
                         <label for="name" string="Full name" invisible="mfi_client_type == 'business'"/>
                         <label for="name" string="Business name" invisible="mfi_client_type != 'business'"/>
-                        <h1><field name="name" required="1"/></h1>
+                        <h1 invisible="mfi_client_type != 'business'"><field name="name" required="mfi_client_type == 'business'"/></h1>
+                        <h1 invisible="mfi_client_type == 'business'" class="d-flex flex-wrap gap-2">
+                            <field name="mfi_first_name" placeholder="First name" required="mfi_client_type != 'business'"
+                                   readonly="mfi_lending_client_id"/>
+                            <field name="mfi_middle_name" placeholder="Middle name" readonly="mfi_lending_client_id"/>
+                            <field name="mfi_last_name" placeholder="Last name" required="mfi_client_type != 'business'"
+                                   readonly="mfi_lending_client_id"/>
+                        </h1>
                         <field name="mfi_client_no" class="text-muted"/>
+                    </div>
+                    <div class="alert alert-info d-flex align-items-center gap-2" role="status"
+                         invisible="not id or mfi_lending_client_id or mfi_client_type == 'business'">
+                        <span>Only in Odoo: not yet in the lending service.</span>
+                        <span invisible="mfi_consent_to_checks">Record the client's consent to checks before sending.</span>
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="mfi_lending_sync != 'push_failed'">
+                        Not sent to the lending service. Check the details and try again; the reason was shown, and is in the lending service command log.
                     </div>
                     <div class="alert alert-warning" role="alert" invisible="mfi_documents_complete or not id">
                         <strong>Missing documents:</strong> <field name="mfi_documents_missing" class="d-inline"/>
@@ -52,14 +76,21 @@
                     <field name="mfi_documents_complete" invisible="1"/>
                     <group>
                         <group>
+                            <field name="mfi_id_type" invisible="mfi_client_type == 'business'"
+                                   required="mfi_client_type != 'business'" readonly="mfi_lending_client_id"/>
                             <field name="mfi_id_number" string="ID / registration number" required="1"
                                    invisible="id" help="Individual: national ID. Business: registration number."/>
+                            <field name="mfi_date_of_birth" invisible="mfi_client_type == 'business'"
+                                   readonly="mfi_lending_client_id"/>
                             <field name="mfi_id_masked" string="ID / registration number" invisible="not id"/>
                             <field name="phone" widget="phone" required="1" placeholder="0712 345 678"
-                                   help="Used to match M-Pesa payments"/>
-                            <field name="email" widget="email" required="1"/>
+                                   help="Used to match M-Pesa payments" readonly="mfi_lending_client_id"/>
+                            <field name="email" widget="email" required="1" readonly="mfi_lending_client_id"/>
                             <field name="mfi_alt_phone" widget="phone" placeholder="0722 000 000"/>
-                            <field name="mfi_kra_pin" placeholder="A123456789B"/>
+                            <field name="mfi_kra_pin" placeholder="A123456789B" readonly="mfi_lending_client_id"/>
+                            <field name="mfi_consent_to_checks" invisible="mfi_client_type == 'business'"
+                                   readonly="mfi_lending_client_id"/>
+                            <field name="mfi_consent_at" invisible="not mfi_consent_to_checks"/>
                         </group>
                         <group>
                             <field name="mfi_business_type" placeholder="e.g. Mama mboga, Hardware"/>
@@ -71,6 +102,10 @@
                     <notebook>
                         <page string="Addresses" name="applicant" invisible="mfi_client_type == 'business'">
                             <group>
+                                <field name="mfi_county" readonly="mfi_lending_client_id"/>
+                                <field name="mfi_town" readonly="mfi_lending_client_id"/>
+                                <field name="mfi_street" readonly="mfi_lending_client_id"/>
+                                <field name="mfi_landmark" readonly="mfi_lending_client_id"/>
                                 <field name="mfi_residential_address"/>
                                 <field name="mfi_permanent_address"/>
                                 <field name="mfi_rural_home"/>
@@ -102,6 +137,7 @@
                         <page string="Next of kin" name="next_of_kin" invisible="mfi_client_type == 'business'">
                             <field name="mfi_next_of_kin_ids">
                                 <list editable="bottom">
+                                    <field name="is_primary" widget="boolean_toggle"/>
                                     <field name="full_name"/>
                                     <field name="relationship"/>
                                     <field name="id_number"/>
@@ -119,11 +155,24 @@
                             <field name="mfi_document_ids">
                                 <list editable="bottom">
                                     <field name="kind"/>
-                                    <field name="file" filename="file_name" widget="binary"/>
+                                    <field name="file" filename="file_name" widget="binary" required="not lending_stored"
+                                           readonly="lending_stored"/>
                                     <field name="file_name" column_invisible="True"/>
                                     <field name="note"/>
+                                    <field name="lending_stored" optional="show"/>
+                                    <field name="lending_document_id" optional="hide"/>
                                 </list>
                             </field>
+                        </page>
+                        <page string="Lending service" name="lending" invisible="mfi_client_type == 'business'">
+                            <group>
+                                <field name="mfi_lending_sync"/>
+                                <field name="mfi_lending_client_id" invisible="not mfi_lending_client_id"/>
+                                <field name="mfi_lending_pushed_at" invisible="not mfi_lending_pushed_at"/>
+                                <field name="mfi_lending_pushed_by" invisible="not mfi_lending_pushed_by"/>
+                                <field name="mfi_consent_by" invisible="not mfi_consent_by"/>
+                            </group>
+                            <p class="text-muted">The client's state, checks and documents in the lending service are read live in the onboarding screen; Odoo keeps only the reference.</p>
                         </page>
                         <page string="Status" name="status">
                             <group>
@@ -158,6 +207,8 @@
                 <field name="mfi_loans_taken" string="Loans" optional="show"/>
                 <field name="mfi_total_borrowed" string="Borrowed" optional="show"/>
                 <field name="mfi_documents_complete" string="Documents" optional="hide"/>
+                <field name="mfi_lending_sync" string="Lending service" optional="show" widget="badge"
+                       decoration-info="mfi_lending_sync == 'in_backend'" decoration-danger="mfi_lending_sync == 'push_failed'"/>
                 <field name="mfi_blacklisted" optional="show"/>
             </list>
         </field>
@@ -175,6 +226,10 @@
                 <filter name="business" string="Businesses" domain="[('mfi_client_type', '=', 'business')]"/>
                 <separator/>
                 <filter name="blacklisted" string="Blacklisted" domain="[('mfi_blacklisted', '=', True)]"/>
+                <separator/>
+                <filter name="lending_local" string="Only in Odoo" domain="[('mfi_lending_sync', '=', 'local')]"/>
+                <filter name="lending_in" string="In lending service" domain="[('mfi_lending_sync', '=', 'in_backend')]"/>
+                <filter name="lending_failed" string="Not sent" domain="[('mfi_lending_sync', '=', 'push_failed')]"/>
             </search>
         </field>
     </record>
@@ -197,5 +252,20 @@
         <field name="view_mode">form</field>
         <field name="view_id" ref="mfi_client_view_form"/>
         <field name="context">{'default_is_mfi_client': True, 'default_mfi_client_type': 'individual'}</field>
+    </record>
+
+    <record id="action_server_mfi_lending_push" model="ir.actions.server">
+        <field name="name">Create in lending service</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="binding_model_id" ref="base.model_res_partner"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="group_ids" eval="[Command.set([ref('mfi_loan.group_mfi_admin'), ref('mfi_loan.group_mfi_head_office'), ref('mfi_loan.group_mfi_credit_manager'), ref('mfi_loan.group_mfi_loan_officer')])]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.with_context(active_ids=env.context.get('active_ids', [])).action_mfi_lending_push_selected()</field>
+    </record>
+
+    <record id="action_mfi_lending_clients" model="ir.actions.client">
+        <field name="name">Lending service clients</field>
+        <field name="tag">mfi_loan.lending_clients</field>
     </record>
 </odoo>

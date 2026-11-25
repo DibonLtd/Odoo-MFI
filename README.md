@@ -9,12 +9,21 @@ Dibon's Odoo 20 Enterprise add-ons for microfinance, deployed on Odoo.sh.
 | `server-auth/` | OCA server-auth, branch 20.0, as a git submodule. Provides `auth_oidc` (Keycloak sign-in) |
 | `requirements.txt` | Python packages Odoo.sh installs on build (`python-jose` for `auth_oidc`) |
 | `mfi_loan/` | Microfinance Loans (prototype): clients, loan applications, approvals, disbursement, repayments |
+| `mfi_lending_api/` | Kapu lending connector: calls the lending service's staff API (settings, sign-in, errors, command log with idempotency keys) |
 | `mfi_loan_demo/` | Kenyan sample data for `mfi_loan`; install to load it, uninstall to remove it |
+| `Requirements/` | The lending service's API contract (`kapu-lending.v1.yaml`) and its WireMock stub (`lending.json`) |
+| `docs/lending-api/` | Moving to the lending service: [TASKLIST](docs/lending-api/TASKLIST.md), [DECISIONS](docs/lending-api/DECISIONS.md), [HANDOFF](docs/lending-api/HANDOFF.md) |
 | `tools/sso_setup.py` | Sets up the Keycloak provider and links users, per database |
 
 Custom modules go at the repository root, beside `server-auth/`.
 
 ## Microfinance Loans (`mfi_loan`), prototype
+
+> **Moving to the Kapu lending service.** Clients are onboarded through the
+> lending service's API: captured in Odoo, then *Create in lending service*,
+> then the onboarding screen (phone, documents, submit, checks). Everything
+> else below is still local Odoo records until its API slice ships. See
+> [docs/lending-api/HANDOFF.md](docs/lending-api/HANDOFF.md).
 
 Replaces the Roan Capital loan portal (roan-loan-app.vercel.app) with screens
 inside Odoo, following the portal's rules as its code has them. **Prototype:**

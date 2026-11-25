@@ -13,6 +13,9 @@
               sequence="20"
               groups="mfi_loan.group_mfi_admin,mfi_loan.group_mfi_head_office,mfi_loan.group_mfi_credit_manager,mfi_loan.group_mfi_loan_officer"/>
 
+    <menuitem id="menu_mfi_lending_clients" name="Lending service clients" parent="menu_mfi_clients_root"
+              action="action_mfi_lending_clients" sequence="30"/>
+
     <menuitem id="menu_mfi_lending" name="Lending" parent="menu_mfi_root" sequence="20"/>
     <menuitem id="menu_mfi_loans" name="All loans" parent="menu_mfi_lending" action="action_mfi_loan" sequence="10"/>
     <menuitem id="menu_mfi_my_tasks" name="Approvals" parent="menu_mfi_lending" action="action_mfi_loan_my_tasks"

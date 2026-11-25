@@ -26,6 +26,8 @@ PERMISSIONS = {
     "payments.reverse": (SA, CEO, HO, FIN),
     "collections.write": (SA, HO, CM, COL, LO),
     "audit.read": (SA, CEO, HO, AUD),
+    # Onboard a client through the lending service (it checks the person's own roles too).
+    "lending.push": (SA, HO, CM, LO),
 }
 
 # Who decides each approval stage, in order; a Super Admin may decide any stage.

@@ -1,0 +1,256 @@
+# Swahili translation of the Kapu lending connector.
+# To be reviewed by Roan Capital (staff-workspace rule 10; TASKLIST LA-52).
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo 20.0\n"
+"Language: sw\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service did not accept your sign-in. Sign in again; if it persists, ask an administrator to check the connection."
+msgstr "Huduma ya mikopo haikukubali kuingia kwako. Ingia tena; tatizo likiendelea, mwombe msimamizi aangalie muunganisho."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Your role in the lending service does not allow this."
+msgstr "Jukumu lako katika huduma ya mikopo haliruhusu hili."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service has no such record."
+msgstr "Huduma ya mikopo haina rekodi hiyo."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service refused a field as invalid."
+msgstr "Huduma ya mikopo imekataa sehemu moja kwa kuwa si sahihi."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service needs a field that is missing."
+msgstr "Huduma ya mikopo inahitaji sehemu ambayo haijajazwa."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The request was sent without its safety key. This is a fault in Odoo: report it with the reference."
+msgstr "Ombi lilitumwa bila ufunguo wake wa usalama. Hii ni hitilafu ya Odoo: iripoti pamoja na kumbukumbu."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The list moved on. Start again from the first page."
+msgstr "Orodha imebadilika. Anza tena kutoka ukurasa wa kwanza."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The client's consent to checks is required."
+msgstr "Idhini ya mteja kwa ukaguzi inahitajika."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "A KRA PIN certificate needs the client's KRA PIN keyed in first."
+msgstr "Cheti cha KRA PIN kinahitaji KRA PIN ya mteja iingizwe kwanza."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "This action was already sent with different details. Start it again."
+msgstr "Kitendo hiki kilishatumwa kwa maelezo tofauti. Kianze upya."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service already has a client with this ID number or from this lead."
+msgstr "Huduma ya mikopo tayari ina mteja mwenye nambari hii ya kitambulisho au kutoka kwa mwongozo huu."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The client's state in the lending service does not allow this now. Refresh to see what can be done."
+msgstr "Hali ya mteja katika huduma ya mikopo hairuhusu hili sasa. Onyesha upya uone kinachowezekana."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Confirm the client's phone before submitting."
+msgstr "Thibitisha simu ya mteja kabla ya kuwasilisha."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Required documents are not yet stored."
+msgstr "Hati zinazohitajika bado hazijahifadhiwa."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The same request is still being processed. Try again in a moment."
+msgstr "Ombi hilo hilo bado linashughulikiwa. Jaribu tena baada ya muda mfupi."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The code is incorrect. Ask the client to read it again."
+msgstr "Msimbo si sahihi. Mwombe mteja ausome tena."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The code has expired. Send a new one."
+msgstr "Msimbo umeisha muda wake. Tuma mpya."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Someone changed this client since you opened it. It has been refreshed: check the changes and try again."
+msgstr "Mtu amebadilisha mteja huyu tangu ulipomfungua. Ameonyeshwa upya: angalia mabadiliko na ujaribu tena."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The request was sent without its version. This is a fault in Odoo: report it with the reference."
+msgstr "Ombi lilitumwa bila toleo lake. Hii ni hitilafu ya Odoo: iripoti pamoja na kumbukumbu."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Too many codes have been sent. Wait before sending another."
+msgstr "Misimbo mingi mno imetumwa. Subiri kabla ya kutuma mwingine."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service does not offer this yet."
+msgstr "Huduma ya mikopo bado haitoi hili."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service refused the request."
+msgstr "Huduma ya mikopo imekataa ombi."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "The lending service could not be reached. Nothing was lost: try again shortly."
+msgstr "Huduma ya mikopo haikupatikana. Hakuna kilichopotea: jaribu tena baada ya muda mfupi."
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+#, python-format
+msgid "Reference: %s"
+msgstr "Kumbukumbu: %s"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "First name"
+msgstr "Jina la kwanza"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Middle name"
+msgstr "Jina la kati"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Last name"
+msgstr "Jina la mwisho"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "ID type"
+msgstr "Aina ya kitambulisho"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "ID number"
+msgstr "Nambari ya kitambulisho"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Date of birth"
+msgstr "Tarehe ya kuzaliwa"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "KRA PIN"
+msgstr "KRA PIN"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Phone"
+msgstr "Simu"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Email"
+msgstr "Barua pepe"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Consent to checks"
+msgstr "Idhini ya ukaguzi"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Code"
+msgstr "Msimbo"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Address"
+msgstr "Anwani"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Next of kin"
+msgstr "Ndugu wa karibu"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Business"
+msgstr "Biashara"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Document type"
+msgstr "Aina ya hati"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "File type"
+msgstr "Aina ya faili"
+
+#. module: mfi_lending_api
+#. odoo-python
+#: code:addons/mfi_lending_api/services/errors.py:0
+msgid "Page"
+msgstr "Ukurasa"

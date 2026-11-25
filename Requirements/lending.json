@@ -1,0 +1,3563 @@
+{
+  "mappings" : [ {
+    "name" : "listClients: page",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "page"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "items" : [ {
+          "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+          "state" : "DRAFT",
+          "leadRef" : "odoo-lead-1042",
+          "firstName" : "Amani",
+          "lastName" : "Otieno",
+          "idNumber" : "•••••670",
+          "phone" : "•••••678",
+          "createdAt" : "2026-11-24T07:15:02Z"
+        }, {
+          "id" : "3c9d1f7a-2b4e-4a6c-8d0e-5f1a2b3c4d5e",
+          "state" : "HELD",
+          "leadRef" : "odoo-lead-1057",
+          "firstName" : "Baraka",
+          "lastName" : "Mwangi",
+          "idNumber" : "•••••671",
+          "phone" : "•••••902",
+          "createdAt" : "2026-11-23T09:02:11Z"
+        } ],
+        "nextCursor" : "eyJjIjoiMjAyNi0xMS0yM1QwOTowMjoxMVoifQ.c2lnbmF0dXJl",
+        "fetchedAt" : "2026-11-24T08:00:00Z"
+      }
+    }
+  }, {
+    "name" : "listClients: invalid_cursor",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "invalid_cursor"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:invalid_cursor",
+        "title" : "Invalid cursor",
+        "status" : 400,
+        "detail" : "The cursor was not issued by this service; start from the first page.",
+        "instance" : "/v1/clients",
+        "code" : "invalid_cursor",
+        "field" : "cursor",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "listClients: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "listClients: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "listClients: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "items" : [ {
+          "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+          "state" : "DRAFT",
+          "leadRef" : "odoo-lead-1042",
+          "firstName" : "Amani",
+          "lastName" : "Otieno",
+          "idNumber" : "•••••670",
+          "phone" : "•••••678",
+          "createdAt" : "2026-11-24T07:15:02Z"
+        }, {
+          "id" : "3c9d1f7a-2b4e-4a6c-8d0e-5f1a2b3c4d5e",
+          "state" : "HELD",
+          "leadRef" : "odoo-lead-1057",
+          "firstName" : "Baraka",
+          "lastName" : "Mwangi",
+          "idNumber" : "•••••671",
+          "phone" : "•••••902",
+          "createdAt" : "2026-11-23T09:02:11Z"
+        } ],
+        "nextCursor" : "eyJjIjoiMjAyNi0xMS0yM1QwOTowMjoxMVoifQ.c2lnbmF0dXJl",
+        "fetchedAt" : "2026-11-24T08:00:00Z"
+      }
+    }
+  }, {
+    "name" : "createClient: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: draft",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "draft"
+        }
+      }
+    },
+    "response" : {
+      "status" : 201,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\"",
+        "Location" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11"
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "DRAFT",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : false,
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : false
+        } ],
+        "actions" : [ "update", "send_phone_code", "request_document_upload", "send_upload_link" ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:15:02Z",
+        "fetchedAt" : "2026-11-24T07:15:02Z"
+      }
+    }
+  }, {
+    "name" : "createClient: missing_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "missing_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:missing_field",
+        "title" : "A required field is missing",
+        "status" : 400,
+        "detail" : "dateOfBirth is required.",
+        "instance" : "/v1/clients",
+        "code" : "missing_field",
+        "field" : "dateOfBirth",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: invalid_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "invalid_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:invalid_field",
+        "title" : "A field is invalid",
+        "status" : 400,
+        "detail" : "phone must be an E.164 number.",
+        "instance" : "/v1/clients",
+        "code" : "invalid_field",
+        "field" : "phone",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: client_already_exists",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "client_already_exists"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:client_already_exists",
+        "title" : "Client already exists",
+        "status" : 409,
+        "detail" : "A client with this ID or from this lead already exists.",
+        "instance" : "/v1/clients",
+        "code" : "client_already_exists",
+        "field" : "idNumber",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736",
+        "existingClientId" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11"
+      }
+    }
+  }, {
+    "name" : "createClient: request_in_progress",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "request_in_progress"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:request_in_progress",
+        "title" : "Request still running",
+        "status" : 409,
+        "detail" : "The first request with this key has not finished; retry shortly with the same key.",
+        "instance" : "/v1/clients",
+        "code" : "request_in_progress",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: consent_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "consent_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 422,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:consent_required",
+        "title" : "Consent to the checks required",
+        "status" : 422,
+        "detail" : "consentToChecks must be true before a client is created.",
+        "instance" : "/v1/clients",
+        "code" : "consent_required",
+        "field" : "consentToChecks",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: idempotency_key_reused",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_reused"
+        }
+      }
+    },
+    "response" : {
+      "status" : 422,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_reused",
+        "title" : "Idempotency-Key already used",
+        "status" : 422,
+        "detail" : "This key was used for a different request; choose a new key for a new action.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_reused",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "createClient: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients"
+    },
+    "response" : {
+      "status" : 201,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\"",
+        "Location" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11"
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "DRAFT",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : false,
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : false
+        } ],
+        "actions" : [ "update", "send_phone_code", "request_document_upload", "send_upload_link" ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:15:02Z",
+        "fetchedAt" : "2026-11-24T07:15:02Z"
+      }
+    }
+  }, {
+    "name" : "getClient: draft",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "draft"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "DRAFT",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : false,
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : false
+        } ],
+        "actions" : [ "update", "send_phone_code", "request_document_upload", "send_upload_link" ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:15:02Z",
+        "fetchedAt" : "2026-11-24T07:15:02Z"
+      }
+    }
+  }, {
+    "name" : "getClient: verifying",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "verifying"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "VERIFYING",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : true,
+        "email" : "a•••••@example.com",
+        "address" : {
+          "county" : "Nairobi",
+          "town" : "Kasarani",
+          "street" : "Mwiki Road",
+          "landmark" : "Opposite the market"
+        },
+        "nextOfKin" : {
+          "name" : "Zawadi Otieno",
+          "relationship" : "Sister",
+          "phone" : "•••••111"
+        },
+        "business" : {
+          "type" : "Grocery",
+          "location" : {
+            "county" : "Nairobi",
+            "town" : "Kasarani",
+            "street" : "Mwiki Road"
+          }
+        },
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : true
+        } ],
+        "actions" : [ ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:33:05Z",
+        "fetchedAt" : "2026-11-24T07:33:05Z"
+      }
+    }
+  }, {
+    "name" : "getClient: held",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "held"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "3c9d1f7a-2b4e-4a6c-8d0e-5f1a2b3c4d5e",
+        "type" : "INDIVIDUAL",
+        "state" : "HELD",
+        "leadRef" : "odoo-lead-1057",
+        "firstName" : "Baraka",
+        "lastName" : "Mwangi",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••671",
+        "dateOfBirth" : "••••-••-••",
+        "phone" : "•••••902",
+        "phoneConfirmed" : true,
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : true
+        } ],
+        "actions" : [ ],
+        "createdAt" : "2026-11-23T09:02:11Z",
+        "updatedAt" : "2026-11-23T09:20:47Z",
+        "fetchedAt" : "2026-11-24T08:00:00Z"
+      }
+    }
+  }, {
+    "name" : "getClient: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "getClient: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "getClient: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "getClient: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "DRAFT",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : false,
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : false
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : false
+        } ],
+        "actions" : [ "update", "send_phone_code", "request_document_upload", "send_upload_link" ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:15:02Z",
+        "fetchedAt" : "2026-11-24T07:15:02Z"
+      }
+    }
+  }, {
+    "name" : "updateClient: no If-Match",
+    "priority" : 1,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "If-Match" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 428,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:if_match_required",
+        "title" : "If-Match required",
+        "status" : 428,
+        "detail" : "Send the ETag from your last read in If-Match.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "if_match_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: draft",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "draft"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "DRAFT",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : true,
+        "email" : "a•••••@example.com",
+        "address" : {
+          "county" : "Nairobi",
+          "town" : "Kasarani",
+          "street" : "Mwiki Road",
+          "landmark" : "Opposite the market"
+        },
+        "nextOfKin" : {
+          "name" : "Zawadi Otieno",
+          "relationship" : "Sister",
+          "phone" : "•••••111"
+        },
+        "business" : {
+          "type" : "Grocery",
+          "location" : {
+            "county" : "Nairobi",
+            "town" : "Kasarani",
+            "street" : "Mwiki Road"
+          }
+        },
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : true
+        } ],
+        "actions" : [ "update", "send_phone_code", "request_document_upload", "send_upload_link", "submit" ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:31:40Z",
+        "fetchedAt" : "2026-11-24T07:31:40Z"
+      }
+    }
+  }, {
+    "name" : "updateClient: missing_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "missing_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:missing_field",
+        "title" : "A required field is missing",
+        "status" : 400,
+        "detail" : "dateOfBirth is required.",
+        "instance" : "/v1/clients",
+        "code" : "missing_field",
+        "field" : "dateOfBirth",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: invalid_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "invalid_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:invalid_field",
+        "title" : "A field is invalid",
+        "status" : 400,
+        "detail" : "phone must be an E.164 number.",
+        "instance" : "/v1/clients",
+        "code" : "invalid_field",
+        "field" : "phone",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: wrong_state",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "wrong_state"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:wrong_state",
+        "title" : "Not allowed in this state",
+        "status" : 409,
+        "detail" : "This command is not allowed while the client is VERIFYING.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "wrong_state",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: stale_version",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "stale_version"
+        }
+      }
+    },
+    "response" : {
+      "status" : 412,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:stale_version",
+        "title" : "Changed since your last read",
+        "status" : 412,
+        "detail" : "Read the client again and show the person what changed.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "stale_version",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: if_match_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "if_match_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 428,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:if_match_required",
+        "title" : "If-Match required",
+        "status" : 428,
+        "detail" : "Send the ETag from your last read in If-Match.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "if_match_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "updateClient: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "PATCH",
+      "urlPathPattern" : "/v1/clients/[^/]+"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "DRAFT",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : true,
+        "email" : "a•••••@example.com",
+        "address" : {
+          "county" : "Nairobi",
+          "town" : "Kasarani",
+          "street" : "Mwiki Road",
+          "landmark" : "Opposite the market"
+        },
+        "nextOfKin" : {
+          "name" : "Zawadi Otieno",
+          "relationship" : "Sister",
+          "phone" : "•••••111"
+        },
+        "business" : {
+          "type" : "Grocery",
+          "location" : {
+            "county" : "Nairobi",
+            "town" : "Kasarani",
+            "street" : "Mwiki Road"
+          }
+        },
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : true
+        } ],
+        "actions" : [ "update", "send_phone_code", "request_document_upload", "send_upload_link", "submit" ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:31:40Z",
+        "fetchedAt" : "2026-11-24T07:31:40Z"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: sent",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "sent"
+        }
+      }
+    },
+    "response" : {
+      "status" : 202,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "sentTo" : "•••••678",
+        "expiresAt" : "2026-11-24T07:20:02Z",
+        "resendAfter" : "2026-11-24T07:16:02Z"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: wrong_state",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "wrong_state"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:wrong_state",
+        "title" : "Not allowed in this state",
+        "status" : 409,
+        "detail" : "This command is not allowed while the client is VERIFYING.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "wrong_state",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: too_many_requests",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "too_many_requests"
+        }
+      }
+    },
+    "response" : {
+      "status" : 429,
+      "headers" : {
+        "Content-Type" : "application/problem+json",
+        "Retry-After" : "60"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:too_many_requests",
+        "title" : "Too many codes sent",
+        "status" : 429,
+        "detail" : "Wait before sending another code.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/phone-verification",
+        "code" : "too_many_requests",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736",
+        "retryAfterSeconds" : 60
+      }
+    }
+  }, {
+    "name" : "sendPhoneCode: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification"
+    },
+    "response" : {
+      "status" : 202,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "sentTo" : "•••••678",
+        "expiresAt" : "2026-11-24T07:20:02Z",
+        "resendAfter" : "2026-11-24T07:16:02Z"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: confirmed",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "confirmed"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "phoneConfirmed" : true,
+        "confirmedAt" : "2026-11-24T07:17:30Z"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: missing_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "missing_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:missing_field",
+        "title" : "A required field is missing",
+        "status" : 400,
+        "detail" : "dateOfBirth is required.",
+        "instance" : "/v1/clients",
+        "code" : "missing_field",
+        "field" : "dateOfBirth",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: invalid_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "invalid_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:invalid_field",
+        "title" : "A field is invalid",
+        "status" : 400,
+        "detail" : "phone must be an E.164 number.",
+        "instance" : "/v1/clients",
+        "code" : "invalid_field",
+        "field" : "phone",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: wrong_state",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "wrong_state"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:wrong_state",
+        "title" : "Not allowed in this state",
+        "status" : 409,
+        "detail" : "This command is not allowed while the client is VERIFYING.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "wrong_state",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: code_incorrect",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "code_incorrect"
+        }
+      }
+    },
+    "response" : {
+      "status" : 422,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:code_incorrect",
+        "title" : "Code incorrect",
+        "status" : 422,
+        "detail" : "The code does not match; ask the client to read it again.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/phone-verification/confirm",
+        "code" : "code_incorrect",
+        "field" : "code",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: code_expired",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "code_expired"
+        }
+      }
+    },
+    "response" : {
+      "status" : 422,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:code_expired",
+        "title" : "Code expired",
+        "status" : 422,
+        "detail" : "The code has expired; send a new one.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/phone-verification/confirm",
+        "code" : "code_expired",
+        "field" : "code",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "confirmPhoneCode: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/phone-verification/confirm"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "phoneConfirmed" : true,
+        "confirmedAt" : "2026-11-24T07:17:30Z"
+      }
+    }
+  }, {
+    "name" : "listDocuments: documents",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "documents"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "items" : [ {
+          "id" : "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+          "documentType" : "KRA_PIN_CERTIFICATE",
+          "state" : "STORED",
+          "updatedAt" : "2026-11-24T07:23:30Z"
+        }, {
+          "id" : "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+          "documentType" : "ID_DOCUMENT",
+          "state" : "STORED",
+          "updatedAt" : "2026-11-24T07:22:10Z"
+        }, {
+          "id" : "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
+          "documentType" : "CLIENT_PHOTO",
+          "state" : "RECEIVED",
+          "updatedAt" : "2026-11-24T07:24:51Z"
+        } ],
+        "fetchedAt" : "2026-11-24T07:25:00Z"
+      }
+    }
+  }, {
+    "name" : "listDocuments: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "listDocuments: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "listDocuments: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "listDocuments: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "items" : [ {
+          "id" : "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+          "documentType" : "KRA_PIN_CERTIFICATE",
+          "state" : "STORED",
+          "updatedAt" : "2026-11-24T07:23:30Z"
+        }, {
+          "id" : "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+          "documentType" : "ID_DOCUMENT",
+          "state" : "STORED",
+          "updatedAt" : "2026-11-24T07:22:10Z"
+        }, {
+          "id" : "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
+          "documentType" : "CLIENT_PHOTO",
+          "state" : "RECEIVED",
+          "updatedAt" : "2026-11-24T07:24:51Z"
+        } ],
+        "fetchedAt" : "2026-11-24T07:25:00Z"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: upload",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "upload"
+        }
+      }
+    },
+    "response" : {
+      "status" : 201,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "documentId" : "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+        "uploadUrl" : "https://vault.example.invalid/uploads/5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d?token=example",
+        "uploadExpiresAt" : "2026-11-24T07:35:00Z"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: missing_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "missing_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:missing_field",
+        "title" : "A required field is missing",
+        "status" : 400,
+        "detail" : "dateOfBirth is required.",
+        "instance" : "/v1/clients",
+        "code" : "missing_field",
+        "field" : "dateOfBirth",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: invalid_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "invalid_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:invalid_field",
+        "title" : "A field is invalid",
+        "status" : 400,
+        "detail" : "phone must be an E.164 number.",
+        "instance" : "/v1/clients",
+        "code" : "invalid_field",
+        "field" : "phone",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: wrong_state",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "wrong_state"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:wrong_state",
+        "title" : "Not allowed in this state",
+        "status" : 409,
+        "detail" : "This command is not allowed while the client is VERIFYING.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "wrong_state",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: kra_pin_missing",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "kra_pin_missing"
+        }
+      }
+    },
+    "response" : {
+      "status" : 422,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:kra_pin_missing",
+        "title" : "KRA PIN not keyed in",
+        "status" : 422,
+        "detail" : "A KRA PIN certificate needs the client's KRA PIN, which is checked against it.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/documents",
+        "code" : "kra_pin_missing",
+        "field" : "kraPin",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "requestDocumentUpload: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents"
+    },
+    "response" : {
+      "status" : 201,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "documentId" : "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+        "uploadUrl" : "https://vault.example.invalid/uploads/5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d?token=example",
+        "uploadExpiresAt" : "2026-11-24T07:35:00Z"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: received",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "received"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "id" : "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+        "documentType" : "ID_DOCUMENT",
+        "state" : "RECEIVED",
+        "updatedAt" : "2026-11-24T07:21:40Z"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: wrong_state",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "wrong_state"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:wrong_state",
+        "title" : "Not allowed in this state",
+        "status" : 409,
+        "detail" : "This command is not allowed while the client is VERIFYING.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "wrong_state",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "completeDocumentUpload: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/documents/[^/]+/complete"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "id" : "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+        "documentType" : "ID_DOCUMENT",
+        "state" : "RECEIVED",
+        "updatedAt" : "2026-11-24T07:21:40Z"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: sent",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "sent"
+        }
+      }
+    },
+    "response" : {
+      "status" : 202,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "channel" : "SMS",
+        "sentTo" : "•••••678",
+        "expiresAt" : "2026-11-25T07:20:00Z"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: missing_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "missing_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:missing_field",
+        "title" : "A required field is missing",
+        "status" : 400,
+        "detail" : "dateOfBirth is required.",
+        "instance" : "/v1/clients",
+        "code" : "missing_field",
+        "field" : "dateOfBirth",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: invalid_field",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "invalid_field"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:invalid_field",
+        "title" : "A field is invalid",
+        "status" : 400,
+        "detail" : "phone must be an E.164 number.",
+        "instance" : "/v1/clients",
+        "code" : "invalid_field",
+        "field" : "phone",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: wrong_state",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "wrong_state"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:wrong_state",
+        "title" : "Not allowed in this state",
+        "status" : 409,
+        "detail" : "This command is not allowed while the client is VERIFYING.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "wrong_state",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "sendUploadLink: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/upload-links"
+    },
+    "response" : {
+      "status" : 202,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "channel" : "SMS",
+        "sentTo" : "•••••678",
+        "expiresAt" : "2026-11-25T07:20:00Z"
+      }
+    }
+  }, {
+    "name" : "submitClient: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: no If-Match",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "If-Match" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 428,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:if_match_required",
+        "title" : "If-Match required",
+        "status" : 428,
+        "detail" : "Send the ETag from your last read in If-Match.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "if_match_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: verifying",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "verifying"
+        }
+      }
+    },
+    "response" : {
+      "status" : 202,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "VERIFYING",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : true,
+        "email" : "a•••••@example.com",
+        "address" : {
+          "county" : "Nairobi",
+          "town" : "Kasarani",
+          "street" : "Mwiki Road",
+          "landmark" : "Opposite the market"
+        },
+        "nextOfKin" : {
+          "name" : "Zawadi Otieno",
+          "relationship" : "Sister",
+          "phone" : "•••••111"
+        },
+        "business" : {
+          "type" : "Grocery",
+          "location" : {
+            "county" : "Nairobi",
+            "town" : "Kasarani",
+            "street" : "Mwiki Road"
+          }
+        },
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : true
+        } ],
+        "actions" : [ ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:33:05Z",
+        "fetchedAt" : "2026-11-24T07:33:05Z"
+      }
+    }
+  }, {
+    "name" : "submitClient: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: phone_not_confirmed",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "phone_not_confirmed"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:phone_not_confirmed",
+        "title" : "Phone not confirmed",
+        "status" : 409,
+        "detail" : "Confirm the client's phone before submitting.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "phone_not_confirmed",
+        "field" : "phone",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: documents_missing",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "documents_missing"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:documents_missing",
+        "title" : "Documents missing",
+        "status" : 409,
+        "detail" : "Every required document must be stored before submitting.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "documents_missing",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736",
+        "missingDocuments" : [ "CLIENT_PHOTO" ]
+      }
+    }
+  }, {
+    "name" : "submitClient: wrong_state",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "wrong_state"
+        }
+      }
+    },
+    "response" : {
+      "status" : 409,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:wrong_state",
+        "title" : "Not allowed in this state",
+        "status" : 409,
+        "detail" : "This command is not allowed while the client is VERIFYING.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/submit",
+        "code" : "wrong_state",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: stale_version",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "stale_version"
+        }
+      }
+    },
+    "response" : {
+      "status" : 412,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:stale_version",
+        "title" : "Changed since your last read",
+        "status" : 412,
+        "detail" : "Read the client again and show the person what changed.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "stale_version",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: if_match_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "if_match_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 428,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:if_match_required",
+        "title" : "If-Match required",
+        "status" : 428,
+        "detail" : "Send the ETag from your last read in If-Match.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "if_match_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "submitClient: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/submit"
+    },
+    "response" : {
+      "status" : 202,
+      "headers" : {
+        "Content-Type" : "application/json",
+        "ETag" : "\"1\""
+      },
+      "jsonBody" : {
+        "id" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "type" : "INDIVIDUAL",
+        "state" : "VERIFYING",
+        "leadRef" : "odoo-lead-1042",
+        "firstName" : "Amani",
+        "lastName" : "Otieno",
+        "idType" : "NATIONAL_ID",
+        "idNumber" : "•••••670",
+        "dateOfBirth" : "••••-••-••",
+        "kraPin" : "•••••78Z",
+        "phone" : "•••••678",
+        "phoneConfirmed" : true,
+        "email" : "a•••••@example.com",
+        "address" : {
+          "county" : "Nairobi",
+          "town" : "Kasarani",
+          "street" : "Mwiki Road",
+          "landmark" : "Opposite the market"
+        },
+        "nextOfKin" : {
+          "name" : "Zawadi Otieno",
+          "relationship" : "Sister",
+          "phone" : "•••••111"
+        },
+        "business" : {
+          "type" : "Grocery",
+          "location" : {
+            "county" : "Nairobi",
+            "town" : "Kasarani",
+            "street" : "Mwiki Road"
+          }
+        },
+        "checklist" : [ {
+          "item" : "consent_to_checks",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "phone_confirmed",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:ID_DOCUMENT",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:CLIENT_PHOTO",
+          "required" : true,
+          "done" : true
+        }, {
+          "item" : "document:KRA_PIN_CERTIFICATE",
+          "required" : true,
+          "done" : true
+        } ],
+        "actions" : [ ],
+        "createdAt" : "2026-11-24T07:15:02Z",
+        "updatedAt" : "2026-11-24T07:33:05Z",
+        "fetchedAt" : "2026-11-24T07:33:05Z"
+      }
+    }
+  }, {
+    "name" : "getVerifications: running",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/verifications",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "running"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "clientId" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "state" : "VERIFYING",
+        "checks" : [ {
+          "check" : "REGISTER",
+          "outcome" : "RUNNING",
+          "at" : "2026-11-24T07:33:05Z"
+        }, {
+          "check" : "KRA_PIN",
+          "outcome" : "PENDING"
+        } ],
+        "nextStep" : "WAIT",
+        "fetchedAt" : "2026-11-24T07:33:20Z"
+      }
+    }
+  }, {
+    "name" : "getVerifications: correction",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/verifications",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "correction"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "clientId" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "state" : "DRAFT",
+        "checks" : [ {
+          "check" : "REGISTER",
+          "outcome" : "CORRECTION_NEEDED",
+          "field" : "dateOfBirth",
+          "at" : "2026-11-24T07:33:41Z"
+        }, {
+          "check" : "KRA_PIN",
+          "outcome" : "PASSED",
+          "at" : "2026-11-24T07:33:44Z"
+        } ],
+        "nextStep" : "CORRECT_FIELD",
+        "fetchedAt" : "2026-11-24T07:34:00Z"
+      }
+    }
+  }, {
+    "name" : "getVerifications: held",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/verifications",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "held"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "clientId" : "3c9d1f7a-2b4e-4a6c-8d0e-5f1a2b3c4d5e",
+        "state" : "HELD",
+        "checks" : [ ],
+        "nextStep" : "NONE",
+        "fetchedAt" : "2026-11-24T08:00:00Z"
+      }
+    }
+  }, {
+    "name" : "getVerifications: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/verifications",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "getVerifications: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/verifications",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "getVerifications: not_found",
+    "priority" : 2,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/verifications",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_found"
+        }
+      }
+    },
+    "response" : {
+      "status" : 404,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_found",
+        "title" : "Not found",
+        "status" : 404,
+        "detail" : "No client with this id.",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "code" : "not_found",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "getVerifications: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "GET",
+      "urlPathPattern" : "/v1/clients/[^/]+/verifications"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "clientId" : "0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11",
+        "state" : "VERIFYING",
+        "checks" : [ {
+          "check" : "REGISTER",
+          "outcome" : "RUNNING",
+          "at" : "2026-11-24T07:33:05Z"
+        }, {
+          "check" : "KRA_PIN",
+          "outcome" : "PENDING"
+        } ],
+        "nextStep" : "WAIT",
+        "fetchedAt" : "2026-11-24T07:33:20Z"
+      }
+    }
+  }, {
+    "name" : "revealClientFields: no Idempotency-Key",
+    "priority" : 1,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/reveal",
+      "headers" : {
+        "Idempotency-Key" : {
+          "absent" : true
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "revealClientFields: revealed",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/reveal",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "revealed"
+        }
+      }
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "idNumber" : "12345670"
+      }
+    }
+  }, {
+    "name" : "revealClientFields: idempotency_key_required",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/reveal",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "idempotency_key_required"
+        }
+      }
+    },
+    "response" : {
+      "status" : 400,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:idempotency_key_required",
+        "title" : "Idempotency-Key required",
+        "status" : 400,
+        "detail" : "Every POST needs an Idempotency-Key header.",
+        "instance" : "/v1/clients",
+        "code" : "idempotency_key_required",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "revealClientFields: unauthenticated",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/reveal",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "unauthenticated"
+        }
+      }
+    },
+    "response" : {
+      "status" : 401,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:unauthenticated",
+        "title" : "Not signed in",
+        "status" : 401,
+        "detail" : "The token is missing, expired, or not a staff-realm token for lending-service.",
+        "instance" : "/v1/clients",
+        "code" : "unauthenticated",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "revealClientFields: not_permitted",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/reveal",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_permitted"
+        }
+      }
+    },
+    "response" : {
+      "status" : 403,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_permitted",
+        "title" : "Not permitted",
+        "status" : 403,
+        "detail" : "This person's roles do not include the permission client.create.",
+        "instance" : "/v1/clients",
+        "code" : "not_permitted",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "revealClientFields: not_implemented",
+    "priority" : 2,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/reveal",
+      "headers" : {
+        "X-Stub-Example" : {
+          "equalTo" : "not_implemented"
+        }
+      }
+    },
+    "response" : {
+      "status" : 501,
+      "headers" : {
+        "Content-Type" : "application/problem+json"
+      },
+      "jsonBody" : {
+        "type" : "urn:kapu:problem:not_implemented",
+        "title" : "Not built yet",
+        "status" : 501,
+        "detail" : "Revealing fields needs step-up, which is not yet specified (plan question 3).",
+        "instance" : "/v1/clients/0b7e5a52-6f0c-4d8e-9c1a-3f2b7d9e4a11/reveal",
+        "code" : "not_implemented",
+        "traceId" : "4bf92f3577b34da6a3ce929d0e0e4736"
+      }
+    }
+  }, {
+    "name" : "revealClientFields: default",
+    "priority" : 5,
+    "request" : {
+      "method" : "POST",
+      "urlPathPattern" : "/v1/clients/[^/]+/reveal"
+    },
+    "response" : {
+      "status" : 200,
+      "headers" : {
+        "Content-Type" : "application/json"
+      },
+      "jsonBody" : {
+        "idNumber" : "12345670"
+      }
+    }
+  } ]
+}

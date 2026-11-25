@@ -12,7 +12,7 @@ Odoo SMS; WhatsApp opens a wa.me link. Sample data: the mfi_loan_demo module.
     "category": "Accounting/Microfinance",
     "author": "Dibon",
     "license": "LGPL-3",
-    "depends": ["mail", "contacts", "sms", "auth_totp_mail"],
+    "depends": ["mail", "contacts", "sms", "auth_totp_mail", "mfi_lending_api"],
     "data": [
         "security/mfi_security.xml",
         "security/ir.access.csv",

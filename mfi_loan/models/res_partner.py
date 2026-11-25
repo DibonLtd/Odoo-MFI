@@ -26,7 +26,15 @@ LOAN_DOCUMENT_KINDS = [
 ]
 # Fields the onboarding rules check.
 CLIENT_RULE_FIELDS = ("is_mfi_client", "name", "mfi_client_type", "email", "phone",
-                      "mfi_kra_pin", "mfi_id_number", "mfi_contact_name")
+                      "mfi_kra_pin", "mfi_id_number", "mfi_contact_name", "mfi_date_of_birth")
+NAME_PARTS = ("mfi_first_name", "mfi_middle_name", "mfi_last_name")
+# Once a client is in the lending service, these change only through it
+# (the onboarding screen), never on the local copy (DECISIONS D-004).
+LOCKED_AFTER_PUSH = {
+    "name", *NAME_PARTS, "mfi_client_type", "mfi_id_type", "mfi_id_number", "mfi_date_of_birth",
+    "mfi_kra_pin", "phone", "email", "mfi_county", "mfi_town", "mfi_street", "mfi_landmark",
+    "mfi_consent_to_checks", "is_mfi_client",
+}
 
 
 # Changes to these are recorded in the audit log (which fields, not their values).
@@ -34,7 +42,19 @@ AUDITED_CLIENT_FIELDS = {
     "name", "mfi_client_type", "mfi_id_number", "phone", "email", "mfi_alt_phone", "mfi_kra_pin",
     "mfi_bank_account_name", "mfi_bank_account_number", "mfi_contact_name", "mfi_contact_id_number",
     "mfi_contact_phone", "mfi_residential_address", "mfi_business_location",
+    *NAME_PARTS, "mfi_id_type", "mfi_date_of_birth", "mfi_consent_to_checks",
+    "mfi_county", "mfi_town", "mfi_street", "mfi_landmark",
 }
+
+
+def _differs(record, name, value):
+    """Whether writing ``value`` would change the field (forms resend unchanged values)."""
+    current = record._fields[name].convert_to_write(record[name], record)
+    return str(current or "") != str(value or "")
+
+
+def compose_name(first, middle, last):
+    return " ".join(part.strip() for part in (first, middle, last) if part and part.strip())
 
 
 def mask_phone(phone):
@@ -51,9 +71,18 @@ class MfiClientDocument(models.Model):
     loan_id = fields.Many2one("mfi.loan", ondelete="cascade", index=True,
                               help="Set for a document that belongs to one application.")
     kind = fields.Selection(CLIENT_DOCUMENT_KINDS + LOAN_DOCUMENT_KINDS, required=True)
-    file = fields.Binary(attachment=True, required=True)
+    file = fields.Binary(attachment=True)
     file_name = fields.Char()
     note = fields.Char()
+    lending_document_id = fields.Char("Lending service document", readonly=True, copy=False, index=True)
+    lending_stored = fields.Boolean("Stored in the lending service", readonly=True, copy=False,
+                                    help="The lending service has this document; the file was removed from Odoo.")
+
+    @api.constrains("file", "lending_stored")
+    def _check_file(self):
+        for document in self:
+            if not document.file and not document.lending_stored:
+                raise ValidationError(self.env._("Attach the file."))
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -84,6 +113,7 @@ class MfiNextOfKin(models.Model):
     permanent_address = fields.Char()
     business_type = fields.Char()
     business_location = fields.Char()
+    is_primary = fields.Boolean("Primary", help="The next of kin sent to the lending service.")
 
 
 class ResPartner(models.Model):
@@ -96,6 +126,36 @@ class ResPartner(models.Model):
         help="Individual: a person borrowing in their own name, with a national ID. "
         "Business: a registered company or business borrowing in its own name.",
     )
+    mfi_first_name = fields.Char("First name")
+    mfi_middle_name = fields.Char("Middle name")
+    mfi_last_name = fields.Char("Last name")
+    mfi_id_type = fields.Selection(
+        [("national_id", "National ID"), ("alien_id", "Alien ID"), ("passport", "Passport")],
+        "ID type", default="national_id")
+    mfi_date_of_birth = fields.Date("Date of birth")
+    mfi_consent_to_checks = fields.Boolean(
+        "Consent to checks", copy=False, tracking=True,
+        help="The client agrees to the identity, KRA PIN and screening checks. Record it only when they have.")
+    mfi_consent_at = fields.Datetime("Consent recorded at", readonly=True, copy=False)
+    mfi_consent_by = fields.Many2one("res.users", "Consent recorded by", readonly=True, copy=False)
+    mfi_county = fields.Char("County")
+    mfi_town = fields.Char("Town")
+    mfi_street = fields.Char("Street or road")
+    mfi_landmark = fields.Char("Landmark")
+    # The lending service: a reference only (DECISIONS D-004).
+    mfi_lending_client_id = fields.Char("Lending service id", readonly=True, copy=False, index=True)
+    mfi_lending_sync = fields.Selection(
+        [("local", "Only in Odoo"), ("in_backend", "In the lending service"), ("push_failed", "Not sent: see the log")],
+        "Lending service", default="local", readonly=True, copy=False, index=True,
+        help="Whether this client has been created in the lending service. Its state there is read live.")
+    mfi_lending_pushed_at = fields.Datetime("Sent at", readonly=True, copy=False)
+    mfi_lending_pushed_by = fields.Many2one("res.users", "Sent by", readonly=True, copy=False)
+
+    _mfi_lending_client_unique = models.Constraint(
+        "unique(mfi_lending_client_id)",
+        "Another client is already linked to this lending service client.",
+    )
+
     mfi_id_number = fields.Char(
         "ID / registration number",
         groups="mfi_loan.group_mfi_loan_officer,mfi_loan.group_mfi_credit_manager,"
@@ -206,6 +266,8 @@ class ResPartner(models.Model):
                 raise ValidationError(self.env._("A valid email address is required."))
             if partner.mfi_kra_pin and not re.match(r"^[AP]\d{9}[A-Z]$", partner.mfi_kra_pin.strip(), re.I):
                 raise ValidationError(self.env._("KRA PIN looks like A123456789B."))
+            if partner.mfi_date_of_birth and partner.mfi_date_of_birth >= fields.Date.context_today(partner):
+                raise ValidationError(self.env._("The date of birth must be in the past."))
             if self.sudo().search_count([
                 ("is_mfi_client", "=", True), ("mfi_id_number", "=", id_number), ("id", "!=", partner.id),
             ]):
@@ -220,6 +282,11 @@ class ResPartner(models.Model):
     def create(self, vals_list):
         if any(vals.get("is_mfi_client") for vals in vals_list):
             rules.check(self.env, "clients.write")
+        for vals in vals_list:
+            if vals.get("is_mfi_client") and any(vals.get(f) for f in NAME_PARTS):
+                vals["name"] = compose_name(*(vals.get(f) for f in NAME_PARTS)) or vals.get("name")
+            if vals.get("mfi_consent_to_checks"):
+                vals.update(mfi_consent_at=fields.Datetime.now(), mfi_consent_by=self.env.uid)
         partners = super().create(vals_list)
         partners._assign_mfi_client_no()
         rules.audit(self.env, "client.created", partners.filtered("is_mfi_client"))
@@ -232,7 +299,23 @@ class ResPartner(models.Model):
                 reason = vals.get("mfi_blacklist_reason")
                 if not (reason or "").strip() and not all(p.mfi_blacklist_reason for p in self):
                     raise UserError(self.env._("A reason is required to blacklist a client."))
+        locked = LOCKED_AFTER_PUSH & vals.keys()
+        if locked and not self.env.context.get("mfi_lending_sync"):
+            pushed = self.filtered("mfi_lending_client_id")
+            if pushed and any(_differs(partner, f, vals[f]) for partner in pushed for f in locked):
+                raise UserError(self.env._(
+                    "%(client)s is in the lending service: change these details in its onboarding screen.",
+                    client=pushed[0].display_name))
+        if vals.get("mfi_consent_to_checks"):
+            vals = dict(vals, mfi_consent_at=fields.Datetime.now(), mfi_consent_by=self.env.uid)
+        elif "mfi_consent_to_checks" in vals:
+            vals = dict(vals, mfi_consent_at=False, mfi_consent_by=False)
         result = super().write(vals)
+        if NAME_PARTS & vals.keys():
+            for partner in self.filtered(lambda p: p.is_mfi_client and p.mfi_client_type != "business"):
+                name = compose_name(partner.mfi_first_name, partner.mfi_middle_name, partner.mfi_last_name)
+                if name and name != partner.name:
+                    super(ResPartner, partner).write({"name": name})
         if vals.get("is_mfi_client"):
             self._assign_mfi_client_no()
         clients = self.filtered("is_mfi_client")

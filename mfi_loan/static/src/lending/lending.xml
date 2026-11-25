@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- A refusal or an outage, in staff's words, with the reference to quote -->
+    <t t-name="mfi_loan.LendingError">
+        <div t-if="error" class="alert alert-danger d-flex gap-2 align-items-start o_mfi_lending_error" role="alert">
+            <i class="oi fs-5" data-icon="error" aria-hidden="true"/>
+            <div t-out="error.message"/>
+        </div>
+    </t>
+
+    <!-- Bulk push dialog -->
+    <t t-name="mfi_loan.LendingPush">
+        <div class="o_mfi_lending_push p-3">
+            <p class="mb-2">
+                Each client is created in the lending service as you, one at a time. Phone confirmation and
+                submitting happen afterwards, in each client's onboarding screen, with the client present.
+            </p>
+            <div class="progress mb-3" role="progressbar" t-att-aria-valuenow="this.progress" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar" t-attf-style="width: {{ this.progress }}%"/>
+            </div>
+            <table class="table table-sm align-middle mb-3">
+                <thead><tr><th>Client</th><th>Result</th></tr></thead>
+                <tbody>
+                    <tr t-foreach="this.state.rows" t-as="row" t-key="row.id">
+                        <td><t t-out="row.clientNo or ''"/> <t t-out="row.name or ('#' + row.id)"/></td>
+                        <td>
+                            <span t-if="row.status === 'waiting'" class="text-muted">Waiting</span>
+                            <span t-elif="row.status === 'sending'" class="text-info">
+                                <i class="oi oi-spin" data-icon="progress_activity" aria-hidden="true"/> Sending
+                            </span>
+                            <span t-elif="row.status === 'ok'" class="text-success">
+                                <i class="oi" data-icon="check_circle" aria-hidden="true"/> In the lending service
+                            </span>
+                            <span t-else="" class="text-danger" t-out="row.message"/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="d-flex gap-2 justify-content-end align-items-center">
+                <span class="me-auto text-muted"><t t-out="this.succeeded"/> of <t t-out="this.state.rows.length"/> sent</span>
+                <button type="button" class="btn btn-secondary" t-att-disabled="this.state.running"
+                        t-on-click="() => this.run()">Try the others again</button>
+                <button type="button" class="btn btn-primary" t-on-click="() => this.close()">Close</button>
+            </div>
+        </div>
+    </t>
+
+    <!-- One client's onboarding -->
+    <t t-name="mfi_loan.LendingOnboarding">
+        <div class="o_action o_mfi_lending">
+            <div class="o_content o_mfi_lending_content p-3 p-lg-4">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <button type="button" class="btn btn-link px-0" t-on-click="() => this.openClient()">
+                        <i class="oi" data-icon="arrow_back" aria-hidden="true"/> Client in Odoo
+                    </button>
+                    <h2 class="mb-0 ms-2">
+                        <t t-out="this.fullName or this.partnerName"/>
+                        <small class="text-muted ms-2" t-out="this.partnerNo"/>
+                    </h2>
+                    <span t-if="this.client" t-attf-class="badge text-bg-{{ this.labels.STATE_TONES[this.client.state] or 'secondary' }} fs-6"
+                          t-out="this.labels.STATE_LABELS[this.client.state] or this.client.state"/>
+                    <span class="ms-auto text-muted small" t-if="this.client">
+                        Fetched <t t-out="this.fetchedAt"/>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" t-on-click="() => this.load()"
+                            t-att-disabled="this.state.loading or this.state.busy" title="Read again" aria-label="Read again">
+                        <i t-attf-class="oi {{ this.state.loading ? 'oi-spin' : '' }}" data-icon="refresh" aria-hidden="true"/>
+                    </button>
+                </div>
+
+                <t t-call="mfi_loan.LendingError" error="this.state.error"/>
+
+                <div t-if="this.state.loading and !this.client" class="text-muted">Reading from the lending service…</div>
+
+                <!-- Under compliance review: nothing more is shown (no tipping off) -->
+                <div t-if="this.held" class="alert alert-warning" role="status">
+                    This client is under review. Nothing more can be shown or done here; do not discuss the review
+                    with the client. You will see the outcome when it ends.
+                </div>
+
+                <div t-if="this.client and !this.held" class="row g-3">
+                    <!-- Left: what the service holds, and the checklist -->
+                    <div class="col-lg-4">
+                        <div class="card mb-3">
+                            <div class="card-header fw-bold">Checklist</div>
+                            <ul class="list-group list-group-flush">
+                                <li t-foreach="this.checklist" t-as="item" t-key="item.item"
+                                    class="list-group-item d-flex align-items-center gap-2">
+                                    <i t-if="item.done" class="oi oi-filled text-success" data-icon="check_circle" aria-hidden="true"/>
+                                    <i t-else="" class="oi text-muted" data-icon="radio_button_unchecked" aria-hidden="true"/>
+                                    <span t-out="item.label"/>
+                                    <small t-if="!item.required" class="text-muted ms-auto">optional</small>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <div class="card-header fw-bold d-flex align-items-center">
+                                Details <small class="text-muted ms-2 fw-normal">masked by the lending service</small>
+                                <button t-if="this.can('update') and !this.state.editing" type="button"
+                                        class="btn btn-link btn-sm ms-auto" t-on-click="() => this.startEditing()">Change</button>
+                            </div>
+                            <div class="card-body small" t-if="!this.state.editing">
+                                <dl class="row mb-0">
+                                    <dt class="col-5">ID number</dt><dd class="col-7" t-out="this.client.idNumber or '—'"/>
+                                    <dt class="col-5">Date of birth</dt><dd class="col-7" t-out="this.client.dateOfBirth or '—'"/>
+                                    <dt class="col-5">KRA PIN</dt><dd class="col-7" t-out="this.client.kraPin or '—'"/>
+                                    <dt class="col-5">Phone</dt>
+                                    <dd class="col-7"><t t-out="this.client.phone or '—'"/>
+                                        <span t-if="this.client.phoneConfirmed" class="badge text-bg-success ms-1">confirmed</span></dd>
+                                    <dt class="col-5">Email</dt><dd class="col-7" t-out="this.client.email or '—'"/>
+                                    <dt class="col-5">Address</dt>
+                                    <dd class="col-7" t-out="this.client.address ? [this.client.address.street, this.client.address.town, this.client.address.county].filter(Boolean).join(', ') : '—'"/>
+                                    <dt class="col-5">Tier</dt><dd class="col-7" t-out="this.client.tier or '—'"/>
+                                </dl>
+                            </div>
+                            <div class="card-body" t-else="">
+                                <p class="small text-muted">Fill in only what changes. A new phone must be confirmed again.</p>
+                                <div class="mb-2"><label class="form-label small" for="mfi_lending_phone">Phone</label>
+                                    <input id="mfi_lending_phone" class="form-control form-control-sm" placeholder="0712 345 678"
+                                           t-att-value="this.state.contact.phone" t-on-input="(ev) => this.state.contact.phone = ev.target.value"/></div>
+                                <div class="mb-2"><label class="form-label small" for="mfi_lending_email">Email</label>
+                                    <input id="mfi_lending_email" type="email" class="form-control form-control-sm"
+                                           t-att-value="this.state.contact.email" t-on-input="(ev) => this.state.contact.email = ev.target.value"/></div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6"><label class="form-label small" for="mfi_lending_county">County</label>
+                                        <input id="mfi_lending_county" class="form-control form-control-sm"
+                                               t-att-value="this.state.contact.county" t-on-input="(ev) => this.state.contact.county = ev.target.value"/></div>
+                                    <div class="col-6"><label class="form-label small" for="mfi_lending_town">Town</label>
+                                        <input id="mfi_lending_town" class="form-control form-control-sm"
+                                               t-att-value="this.state.contact.town" t-on-input="(ev) => this.state.contact.town = ev.target.value"/></div>
+                                    <div class="col-6"><label class="form-label small" for="mfi_lending_street">Street or road</label>
+                                        <input id="mfi_lending_street" class="form-control form-control-sm"
+                                               t-att-value="this.state.contact.street" t-on-input="(ev) => this.state.contact.street = ev.target.value"/></div>
+                                    <div class="col-6"><label class="form-label small" for="mfi_lending_landmark">Landmark</label>
+                                        <input id="mfi_lending_landmark" class="form-control form-control-sm"
+                                               t-att-value="this.state.contact.landmark" t-on-input="(ev) => this.state.contact.landmark = ev.target.value"/></div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary btn-sm" t-att-disabled="this.state.busy"
+                                            t-on-click="() => this.saveContact()">Save</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" t-on-click="() => this.state.editing = false">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: the steps -->
+                    <div class="col-lg-8">
+                        <!-- Phone -->
+                        <div class="card mb-3" t-if="!this.client.phoneConfirmed and (this.can('send_phone_code') or this.can('confirm_phone'))">
+                            <div class="card-header fw-bold"><i class="oi me-1" data-icon="smartphone" aria-hidden="true"/> Confirm the phone</div>
+                            <div class="card-body">
+                                <p class="small">A 6-digit code goes to <b t-out="this.sentTo"/>. Ask the client to read it out.</p>
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <button t-if="this.can('send_phone_code')" type="button" class="btn btn-secondary"
+                                            t-att-disabled="this.state.busy or this.resendIn > 0" t-on-click="() => this.sendCode()">
+                                        <t t-if="this.resendIn > 0">Send again in <t t-out="this.resendIn"/>s</t>
+                                        <t t-elif="this.state.codeSent">Send again</t>
+                                        <t t-else="">Send code</t>
+                                    </button>
+                                    <input inputmode="numeric" maxlength="6" placeholder="123456"
+                                           aria-label="Code" t-att-value="this.state.code"
+                                           t-attf-class="form-control w-auto {{ this.codeInvalid ? 'is-invalid' : '' }}"
+                                           t-on-input="(ev) => this.state.code = ev.target.value"
+                                           t-on-keydown="(ev) => ev.key === 'Enter' and this.confirmCode()"/>
+                                    <button type="button" class="btn btn-primary" t-att-disabled="this.state.busy"
+                                            t-on-click="() => this.confirmCode()">Confirm</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Documents -->
+                        <div class="card mb-3">
+                            <div class="card-header fw-bold"><i class="oi me-1" data-icon="description" aria-hidden="true"/> Documents</div>
+                            <div class="card-body">
+                                <table class="table table-sm align-middle" t-if="this.documents.length">
+                                    <thead><tr><th>Document</th><th>State</th><th>Updated</th></tr></thead>
+                                    <tbody>
+                                        <tr t-foreach="this.documents" t-as="doc" t-key="doc.id">
+                                            <td t-out="doc.label"/>
+                                            <td>
+                                                <span t-attf-class="badge text-bg-{{ doc.state === 'STORED' ? 'success' : doc.state === 'REJECTED' ? 'danger' : 'secondary' }}"
+                                                      t-out="doc.stateLabel"/>
+                                                <div t-if="doc.rejectedReason" class="small text-danger" t-out="doc.rejectedReason"/>
+                                            </td>
+                                            <td class="small text-muted" t-out="doc.updated"/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <p t-else="" class="text-muted small">No documents yet.</p>
+
+                                <div t-if="this.can('request_document_upload')" class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                                    <select class="form-select w-auto" aria-label="Document type"
+                                            t-on-change="(ev) => this.state.uploadType = ev.target.value">
+                                        <option t-foreach="this.uploadTypes" t-as="type" t-key="type" t-att-value="type"
+                                                t-att-selected="type === this.state.uploadType" t-out="this.documentLabel(type)"/>
+                                    </select>
+                                    <label class="btn btn-secondary mb-0" t-att-class="{ 'disabled': this.state.busy }">
+                                        <i class="oi me-1" data-icon="upload" aria-hidden="true"/> Upload a file
+                                        <input type="file" class="d-none" t-att-accept="this.acceptedFiles"
+                                               t-on-change="(ev) => this.upload(ev)"/>
+                                    </label>
+                                    <small class="text-muted">JPEG, PNG or PDF. The file goes to the lending service and is not kept in Odoo.</small>
+                                </div>
+
+                                <div t-if="this.can('send_upload_link')" class="border-top pt-3">
+                                    <div class="small mb-2">Or send the client a link to upload from their phone:</div>
+                                    <div class="d-flex flex-wrap gap-3 align-items-center">
+                                        <div t-foreach="this.uploadTypes" t-as="type" t-key="type" class="form-check mb-0">
+                                            <input type="checkbox" class="form-check-input" t-att-id="'mfi_link_' + type"
+                                                   t-att-checked="this.state.linkTypes.includes(type)"
+                                                   t-on-change="() => this.toggleLinkType(type)"/>
+                                            <label class="form-check-label" t-att-for="'mfi_link_' + type" t-out="this.documentLabel(type)"/>
+                                        </div>
+                                        <select class="form-select w-auto" aria-label="Channel"
+                                                t-on-change="(ev) => this.state.linkChannel = ev.target.value">
+                                            <option value="SMS" t-att-selected="this.state.linkChannel === 'SMS'">SMS</option>
+                                            <option value="EMAIL" t-att-selected="this.state.linkChannel === 'EMAIL'">Email</option>
+                                        </select>
+                                        <button type="button" class="btn btn-secondary" t-att-disabled="this.state.busy"
+                                                t-on-click="() => this.sendLink()">
+                                            <i class="oi me-1" data-icon="send" aria-hidden="true"/> Send link
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="card mb-3" t-if="this.client.state === 'DRAFT'">
+                            <div class="card-body d-flex flex-wrap gap-3 align-items-center">
+                                <div>
+                                    <div class="fw-bold">Submit for checks</div>
+                                    <div class="small text-muted">The identity register, the KRA PIN and screening are checked. Possible once every required item is done.</div>
+                                </div>
+                                <button type="button" class="btn btn-primary ms-auto" t-att-disabled="this.state.busy or !this.can('submit')"
+                                        t-on-click="() => this.submit()">Submit</button>
+                            </div>
+                        </div>
+
+                        <!-- Verifications -->
+                        <div class="card" t-if="this.state.verifications">
+                            <div class="card-header fw-bold d-flex align-items-center">
+                                <i class="oi me-1" data-icon="verified" aria-hidden="true"/> Checks
+                                <small t-if="this.client.state === 'VERIFYING'" class="ms-auto text-muted fw-normal">
+                                    <i class="oi oi-spin" data-icon="progress_activity" aria-hidden="true"/> Updating every few seconds
+                                </small>
+                            </div>
+                            <ul class="list-group list-group-flush">
+                                <li t-foreach="this.checks" t-as="check" t-key="check.check" class="list-group-item d-flex gap-2 align-items-center">
+                                    <span t-out="check.label"/>
+                                    <span t-if="check.fieldLabel" class="small text-warning">: <t t-out="check.fieldLabel"/> to key in again</span>
+                                    <span t-attf-class="badge text-bg-{{ check.tone }} ms-auto" t-out="check.outcomeLabel"/>
+                                </li>
+                            </ul>
+                            <div t-if="this.state.verifications.nextStep === 'CORRECT_FIELD'" class="card-footer small">
+                                A detail needs correcting. It was keyed from the ID document: check it with the client, correct it, then submit again.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+    <!-- The lending service's clients, live -->
+    <t t-name="mfi_loan.LendingClients">
+        <div class="o_action o_mfi_lending">
+            <div class="o_content p-3 p-lg-4">
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                    <h2 class="mb-0">Lending service clients</h2>
+                    <select class="form-select w-auto ms-3" aria-label="State"
+                            t-on-change="(ev) => this.setFilter(ev.target.value)">
+                        <option value="">All states</option>
+                        <option t-foreach="this.states" t-as="entry" t-key="entry[0]" t-att-value="entry[0]"
+                                t-att-selected="entry[0] === this.state.filter" t-out="entry[1]"/>
+                    </select>
+                    <span class="ms-auto text-muted small" t-if="this.state.fetchedAt">Fetched <t t-out="this.state.fetchedAt"/></span>
+                    <button type="button" class="btn btn-secondary btn-sm" t-on-click="() => this.load()" title="Read again" aria-label="Read again">
+                        <i t-attf-class="oi {{ this.state.loading ? 'oi-spin' : '' }}" data-icon="refresh" aria-hidden="true"/>
+                    </button>
+                </div>
+                <t t-call="mfi_loan.LendingError" error="this.state.error"/>
+                <p class="small text-muted">Read live from the lending service, personal details masked. Clients created in Odoo open their onboarding.</p>
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Name</th><th>ID</th><th>Phone</th><th>State</th><th>Created</th><th>In Odoo</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="this.state.items" t-as="item" t-key="item.id"
+                            t-att-class="{ 'cursor-pointer': item.odoo }" t-on-click="() => this.open(item)">
+                            <td><t t-out="item.firstName or ''"/> <t t-out="item.lastName or ''"/></td>
+                            <td t-out="item.idNumber or ''"/>
+                            <td t-out="item.phone or ''"/>
+                            <td><span t-attf-class="badge text-bg-{{ this.tones[item.state] or 'secondary' }}" t-out="this.stateLabel(item.state)"/></td>
+                            <td class="small text-muted" t-out="this.created(item)"/>
+                            <td><t t-if="item.odoo" t-out="item.odoo.clientNo"/><span t-else="" class="text-muted">—</span></td>
+                        </tr>
+                        <tr t-if="!this.state.items.length and !this.state.loading"><td colspan="6" class="text-muted">No clients.</td></tr>
+                    </tbody>
+                </table>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm" t-att-disabled="!this.state.page" t-on-click="() => this.previousPage()">Previous</button>
+                    <button type="button" class="btn btn-secondary btn-sm" t-att-disabled="!this.state.next" t-on-click="() => this.nextPage()">Next</button>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>
