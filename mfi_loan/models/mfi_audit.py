@@ -12,6 +12,7 @@ import time
 from odoo import api, fields, models
 from odoo.exceptions import AccessDenied, UserError
 from odoo.http import request
+from odoo.http.session import logout
 
 from . import rules
 
@@ -164,7 +165,7 @@ class IrHttp(models.AbstractModel):
         started, seen = session.get("mfi_started"), session.get("mfi_seen")
         expired = (idle and seen and now - seen > idle * 60) or (hours and started and now - started > hours * 3600)
         if expired:
-            session.logout(keep_db=True)
+            logout(session, keep_db=True)  # Odoo 20: a function, no longer a session method
             request.env = api.Environment(request.env.cr, None, session.context)
             return
         if not started:
