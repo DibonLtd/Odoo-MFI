@@ -16,10 +16,6 @@
                 <t t-call="web.external_layout">
                     <div class="page">
                         <h2>Loan agreement <span t-field="loan.name"/></h2>
-                        <p class="text-muted">
-                            Prototype wording: the agreement text is to be adopted by the lender
-                            with its counsel before use.
-                        </p>
                         <table class="table table-sm">
                             <tr><th>Borrower</th><td><span t-field="loan.partner_id"/></td></tr>
                             <tr><th>Loan type</th><td><span t-field="loan.product_id"/></td></tr>

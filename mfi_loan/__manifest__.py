@@ -1,13 +1,14 @@
 {
-    "name": "Microfinance Loans (prototype)",
+    "name": "Microfinance Loans",
     "version": "20.0.0.6.0",
     "summary": "Clients, loan applications, approvals, disbursement and repayments for a lender",
     "description": """
-Prototype that replaces the Roan Capital loan portal with screens inside Odoo.
-Loans are stored in Odoo for now; the target design keeps them in Kapu Core
-(Fineract) behind the lending service, with Odoo as the interface only.
-Bank and M-Pesa are placeholders: references are typed in. SMS goes through
-Odoo SMS; WhatsApp opens a wa.me link. Sample data: the mfi_loan_demo module.
+Roan Capital's lending in Odoo: clients, loan applications, approvals,
+disbursement, repayments and collections. Clients are onboarded through the
+Kapu lending service; loans are booked in Odoo Accounting (loan invoices with
+daily instalments, payments, default interest, follow-up reminders) until they
+move to the lending service. SMS goes through Odoo SMS; WhatsApp opens a wa.me
+link. Sample data: the mfi_loan_demo module.
 """,
     "category": "Accounting/Microfinance",
     "author": "Dibon",

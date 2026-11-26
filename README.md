@@ -8,7 +8,7 @@ Dibon's Odoo 20 Enterprise add-ons for microfinance, deployed on Odoo.sh.
 |---|---|
 | `server-auth/` | OCA server-auth, branch 20.0, as a git submodule. Provides `auth_oidc` (Keycloak sign-in) |
 | `requirements.txt` | Python packages Odoo.sh installs on build (`python-jose` for `auth_oidc`) |
-| `mfi_loan/` | Microfinance Loans (prototype): clients, loan applications, approvals, disbursement, repayments |
+| `mfi_loan/` | Microfinance Loans: clients, loan applications, approvals, disbursement, repayments |
 | `mfi_lending_api/` | Kapu lending connector: calls the lending service's staff API (settings, sign-in, errors, command log with idempotency keys) |
 | `mfi_loan_demo/` | Kenyan sample data for `mfi_loan`; install to load it, uninstall to remove it |
 | `Requirements/` | The lending service's API contract (`kapu-lending.v1.yaml`) and its WireMock stub (`lending.json`) |
@@ -17,7 +17,7 @@ Dibon's Odoo 20 Enterprise add-ons for microfinance, deployed on Odoo.sh.
 
 Custom modules go at the repository root, beside `server-auth/`.
 
-## Microfinance Loans (`mfi_loan`), prototype
+## Microfinance Loans (`mfi_loan`)
 
 > **Moving to the Kapu lending service.** Clients are onboarded through the
 > lending service's API: captured in Odoo, then *Create in lending service*,
@@ -26,10 +26,10 @@ Custom modules go at the repository root, beside `server-auth/`.
 > [docs/lending-api/HANDOFF.md](docs/lending-api/HANDOFF.md).
 
 Replaces the Roan Capital loan portal (roan-loan-app.vercel.app) with screens
-inside Odoo, following the portal's rules as its code has them. **Prototype:**
-loans are stored in Odoo; the target design keeps them in Kapu Core
+inside Odoo, following the portal's rules as its code has them. Loans are
+booked in Odoo Accounting for now; the target design keeps them in Kapu Core
 (Fineract) behind the lending service, with Odoo as the interface only, so
-moving to it is a migration.
+moving to it is a migration (docs/lending-api/DECISIONS.md, D-017).
 
 **Roles** (Settings → Users → Microfinance; one person may hold several),
 with the portal's permissions (`mfi_loan/models/rules.py`):
@@ -97,8 +97,8 @@ address, sent by WhatsApp (the officer attaches the PDF), or marked as handed
 over.
 
 **Placeholders:** M-Pesa and the bank (references typed in); the agreement
-has prototype wording and is signed on paper until Odoo Sign; Keycloak
-sign-in is set up separately (below).
+is signed on paper until Odoo Sign; Keycloak sign-in is set up separately
+(below).
 
 **Sample data** (`mfi_loan_demo`, any database, live ones included): install
 the app *Microfinance Loans: sample data* to load 30 Kenyan clients (26
@@ -188,7 +188,7 @@ employees.
 
 Loans are numbered RC-L-000001.
 
-**Not in the prototype yet:** M-Pesa and bank feeds (payments are typed in);
+**Not built yet:** M-Pesa and bank feeds (payments are typed in);
 e-signature (Odoo Sign).
 
 **Tests:** `mfi_loan/tests`, run by Odoo.sh on development and staging builds.
