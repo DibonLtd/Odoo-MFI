@@ -6,7 +6,7 @@ Dibon's Odoo 20 Enterprise add-ons for microfinance, deployed on Odoo.sh.
 
 | Path | What |
 |---|---|
-| `server-auth/` | OCA server-auth, branch 20.0, as a git submodule. Provides `auth_oidc` (Keycloak sign-in) |
+| `auth_oidc/` | OCA's `auth_oidc` (Keycloak sign-in), ported from 19.0 to Odoo 20 until OCA publishes 20.0; tokens kept in the session only (docs/lending-api/DECISIONS.md D-021) |
 | `requirements.txt` | Python packages Odoo.sh installs on build (`python-jose` for `auth_oidc`) |
 | `mfi_loan/` | Microfinance Loans: clients, loan applications, approvals, disbursement, repayments |
 | `mfi_lending_api/` | Kapu lending connector: calls the lending service's staff API (settings, sign-in, errors, command log with idempotency keys) |
@@ -15,7 +15,8 @@ Dibon's Odoo 20 Enterprise add-ons for microfinance, deployed on Odoo.sh.
 | `docs/lending-api/` | Moving to the lending service: [TASKLIST](docs/lending-api/TASKLIST.md), [DECISIONS](docs/lending-api/DECISIONS.md), [HANDOFF](docs/lending-api/HANDOFF.md) |
 | `tools/sso_setup.py` | Sets up the Keycloak provider and links users, per database |
 
-Custom modules go at the repository root, beside `server-auth/`.
+Custom modules go at the repository root. What Odoo needs from the Keycloak
+administrator and the MFI team: [docs/lending-api/KEYCLOAK.md](docs/lending-api/KEYCLOAK.md).
 
 ## Microfinance Loans (`mfi_loan`)
 
@@ -227,7 +228,10 @@ an Odoo user.
 - `auth_oidc` has no discovery URL support; `sso_setup.py` sets the
   endpoints from the issuer.
 - With the code flow, identity comes from the ID token; the UserInfo
-  endpoint is not called.
+  endpoint is not called. PKCE and the nonce are new for each sign-in.
+- Keycloak's tokens stay in the person's Odoo session, never on the user
+  record; the Kapu lending connector uses them to call the MFI API as that
+  person (token exchange).
 - An unlinked Keycloak user is refused with Odoo's standard "You do not have
   access to this database" message, and no user is created.
 - Logging out of Odoo does not end the Keycloak session.

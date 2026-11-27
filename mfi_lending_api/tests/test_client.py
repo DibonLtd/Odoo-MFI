@@ -235,7 +235,7 @@ class TestLendingConfig(LendingCase):
             auth.token_provider(cfg, None).token()  # a background job has no person
         with self.assertRaises(LendingRefusal):
             auth.token_provider(cfg, {}).token()  # signed in without Keycloak
-        session = {auth.SUBJECT_TOKEN_KEY: "person-token"}
+        session = {auth.SUBJECT_TOKEN_KEY: "person-token", auth.SUBJECT_EXPIRES_KEY: __import__("time").time() + 300}
         answer = type("R", (), {"status_code": 200, "json": lambda self: {"access_token": "x1", "expires_in": 300}})()
         with patch.object(auth, "secret", return_value="s3cret"), \
                 patch.object(auth.requests, "post", return_value=answer) as post:
@@ -255,3 +255,36 @@ class TestLendingConfig(LendingCase):
         self.stub(listClients="unauthenticated")
         with self.assertRaisesRegex(UserError, "sign-in"):
             settings.action_mfi_lending_test()
+
+    def test_token_exchange_renews_the_person_token(self):
+        """Keycloak access tokens last minutes: the refresh token renews it, in the session only."""
+        import time  # noqa: PLC0415
+
+        cfg = self._cfg(auth_mode="token_exchange", base_url="https://lending.test",
+                        token_url="https://kc.test/token", client_id="odoo")
+        session = {auth.SUBJECT_TOKEN_KEY: "old", auth.SUBJECT_REFRESH_KEY: "refresh-1",
+                   auth.SUBJECT_EXPIRES_KEY: time.time() - 10}
+        answers = iter([
+            {"access_token": "fresh", "refresh_token": "refresh-2", "expires_in": 300},  # refresh
+            {"access_token": "exchanged", "expires_in": 300},  # exchange
+        ])
+
+        def answer(*args, **kwargs):
+            return type("R", (), {"status_code": 200, "json": lambda self, a=next(answers): a})()
+
+        with patch.object(auth, "secret", return_value="s3cret"), \
+                patch.object(auth.requests, "post", side_effect=answer) as post:
+            self.assertEqual(auth.token_provider(cfg, session).token(), "exchanged")
+        refresh_call, exchange_call = post.call_args_list
+        self.assertEqual(refresh_call.kwargs["data"]["grant_type"], "refresh_token")
+        self.assertEqual(refresh_call.kwargs["data"]["refresh_token"], "refresh-1")
+        self.assertEqual(exchange_call.kwargs["data"]["subject_token"], "fresh")
+        self.assertEqual(session[auth.SUBJECT_REFRESH_KEY], "refresh-2")
+        # Keycloak session over: refused, and the person signs in again
+        session = {auth.SUBJECT_TOKEN_KEY: "old", auth.SUBJECT_REFRESH_KEY: "dead",
+                   auth.SUBJECT_EXPIRES_KEY: time.time() - 10}
+        denied = type("R", (), {"status_code": 400, "json": lambda self: {"error": "invalid_grant"}})()
+        with patch.object(auth, "secret", return_value="s3cret"), \
+                patch.object(auth.requests, "post", return_value=denied), self.assertRaises(LendingRefusal):
+            auth.token_provider(cfg, session).token()
+        self.assertNotIn(auth.SUBJECT_TOKEN_KEY, session)

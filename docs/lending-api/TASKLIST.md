@@ -121,8 +121,12 @@ number.
 
 ## Phase 4 · Production authentication (D-005)
 
-- [ ] **LA-40** Keycloak sign-in to Odoo through OCA `auth_oidc` on Odoo 20, unmodified (access K10). **Blocked by:** OCA `server-auth` 20.0; Keycloak `odoo` client.
-- [ ] **LA-41** Token exchange: the person's token taken from the session (never from the user record, K15) and exchanged for audience `lending-service`; the exchanged token is held in the session until it expires. **Blocked by:** LA-40; Keycloak exchange permission for `odoo`.
+- [ ] **LA-40** Keycloak sign-in to Odoo through OCA `auth_oidc` on Odoo 20 (access K10).
+  - *Progress:* ported from OCA 19.0 and kept in this repository, with 14 tests, including a full HTTP sign-in against a mocked Keycloak (D-021; uncommitted, 2026-11-27).
+  - **Blocked by:** the Keycloak `odoo` client and staff accounts ([KEYCLOAK.md](KEYCLOAK.md) A), and a real sign-in on staging.
+- [ ] **LA-41** Token exchange: the person's token taken from the session (never from the user record, K15) and exchanged for audience `lending-service`; the exchanged token is held in the session until it expires.
+  - *Progress:* sign-in puts the access and refresh tokens in the session; the connector renews them and exchanges them; tested with mocks (uncommitted, 2026-11-27).
+  - **Blocked by:** Keycloak standard token exchange on `odoo` and the `lending-service` audience (KEYCLOAK.md A3–A4); the MFI team accepting exchanged tokens (B3).
 - [ ] **LA-42** Odoo roles from Keycloak groups, Roan Capital's eight positions (staff-workspace §4, FS-979). **Blocked by:** LA-40; Roan Capital's role list (open answer 7).
 - [ ] **LA-43** No local passwords for staff once sign-in through Keycloak is live (staff-workspace §6). **Blocked by:** LA-40.
 - [ ] **LA-44** Service account by signed client assertion, with the key from OpenBao, instead of a client secret (access-keycloak §4, D-016). **Blocked by:** OpenBao in the instance.

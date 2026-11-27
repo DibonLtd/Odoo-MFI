@@ -38,6 +38,7 @@ old one *Superseded by D-xxx*.
 | D-018 | Enterprise apps are used: Accounting, Follow-up (Documents and Sign next) | Accepted, deviation |
 | D-019 | Three of the portal's rules changed to fit Accounting | Accepted, Roan Capital to confirm |
 | D-020 | One posting function per event, so a sync from the lending service reuses it | Accepted |
+| D-021 | OCA `auth_oidc` 19.0 ported to Odoo 20 and kept in this repository; tokens in the session only | Accepted, until OCA 20.0 |
 
 ---
 
@@ -347,3 +348,29 @@ Screens, wizards and the sample data call only these.
 
 **Consequences.** When the sync arrives, the local workflow's checks are bypassed
 for fetched loans (the service has already decided). The postings stay the same.
+
+## D-021 · OCA `auth_oidc` 19.0 ported to Odoo 20 and kept in this repository; tokens in the session only
+
+**Decision.** Keycloak sign-in uses OCA's `auth_oidc`
+(OCA/server-auth 19.0, commit 357c210), ported to Odoo 20 and kept at the root
+of this repository until OCA publishes 20.0. It is a generic OpenID Connect
+client, and Keycloak is its provider. The port changes:
+
+- **Imports.** `werkzeug.urls` is gone in Werkzeug 3 and is replaced by `urllib.parse`; `tools.ormcache` becomes `api.ormcache`. The Font Awesome classes on the two Azure presets are removed.
+- **PKCE and nonce per sign-in.** The verifier and the nonce are made for each sign-in and kept in the session. Upstream had one fixed verifier per provider, and its nonce was never checked. The ID token's nonce is now checked.
+- **No provider token in the database (access-keycloak K15).** Odoo's own sign-in still compares a secret stored on the user (`oauth_access_token`) right after the redirect. That secret is now a random one-time value. Keycloak's access and refresh tokens go into the person's session (`auth_oidc/session.py`).
+- **No secrets on the login page.** The client secret and verifier are removed from the providers handed to it.
+- **No demo provider.** The demo provider (it linked users by username) is dropped.
+
+`mfi_lending_api` reads the session keys, renews the access token with the
+refresh token, and exchanges it for the lending service's audience. It does not
+depend on `auth_oidc`: the session keys are the contract.
+
+**Why.**
+- Odoo 20's own `auth_oauth` uses the implicit flow and stores the access token on the user, which access-keycloak §4 and K15 forbid.
+- OCA had no 20.0 release (2026-11-27).
+- The product owner chose to port it.
+
+**Consequences.**
+- When OCA publishes 20.0, compare it with this port, keep the session-token change (or contribute it upstream), and remove the copy.
+- Keycloak access tokens last minutes, so the refresh token is what keeps MFI calls working through a working day. It lasts as long as the Keycloak session.

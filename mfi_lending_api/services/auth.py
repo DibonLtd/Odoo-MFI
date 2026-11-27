@@ -6,9 +6,10 @@
   shortly before they expire. The service, not the person, is the actor in the
   lending service's records; Odoo's audit log still names the person.
 * ``token_exchange``: the signed-in person's Keycloak token (put in the HTTP
-  session at sign-in, never on the user record: access-keycloak K15), exchanged
-  for one addressed to the lending service. The exchanged token is kept in the
-  session until it expires. No token is ever written to the database.
+  session by the auth_oidc sign-in, never on the user record: access-keycloak
+  K15), renewed with their refresh token when it expires, and exchanged for one
+  addressed to the lending service. The exchanged token is kept in the session
+  until it expires. No token is ever written to the database.
 """
 
 import threading
@@ -19,8 +20,11 @@ import requests
 from .config import secret
 from .errors import LendingNotConfigured, LendingRefusal, LendingUnavailable
 
-# Session key where the sign-in (TASKLIST LA-41) leaves the person's own token.
-SUBJECT_TOKEN_KEY = "mfi_lending_subject_token"
+# Where Keycloak sign-in (auth_oidc, its session.py) leaves the person's tokens.
+# The names are that module's contract; this module does not depend on it.
+SUBJECT_TOKEN_KEY = "auth_oidc.access_token"
+SUBJECT_REFRESH_KEY = "auth_oidc.refresh_token"
+SUBJECT_EXPIRES_KEY = "auth_oidc.expires_at"
 EXCHANGED_TOKEN_KEY = "mfi_lending_exchanged_token"
 EXPIRY_MARGIN = 30  # seconds: renew a token this long before it expires
 
@@ -29,6 +33,11 @@ _service_tokens_lock = threading.Lock()
 
 
 def _post_token(cfg, data):
+    body = _post_token_body(cfg, data)
+    return body["access_token"], time.time() + int(body.get("expires_in") or 60)
+
+
+def _post_token_body(cfg, data):
     try:
         response = requests.post(cfg.token_url, data=data,
                                  timeout=(cfg.connect_timeout, cfg.read_timeout))
@@ -44,10 +53,9 @@ def _post_token(cfg, data):
             error_code = "token_refused"
         raise LendingRefusal(401, {"code": "unauthenticated", "detail": error_code})
     body = response.json()
-    token = body.get("access_token")
-    if not token:
+    if not body.get("access_token"):
         raise LendingUnavailable("token endpoint answered without a token")
-    return token, time.time() + int(body.get("expires_in") or 60)
+    return body
 
 
 class StaticToken:
@@ -96,12 +104,12 @@ class TokenExchange:
         cached = self.session.get(EXCHANGED_TOKEN_KEY)
         if cached and cached.get("expires", 0) - EXPIRY_MARGIN > time.time():
             return cached["token"]
-        subject = self.session.get(SUBJECT_TOKEN_KEY)
-        if not subject:
+        if not self.session.get(SUBJECT_TOKEN_KEY):
             raise LendingRefusal(401, {"code": "unauthenticated", "detail": "no Keycloak sign-in in this session"})
         client_secret = secret("client_secret")
         if not client_secret:
             raise LendingNotConfigured("the client secret (kapu_lending_client_secret in odoo.conf)")
+        subject = self._subject_token(client_secret)
         token, expires = _post_token(self.cfg, {
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "client_id": self.cfg.client_id,
@@ -113,6 +121,34 @@ class TokenExchange:
         })
         self.session[EXCHANGED_TOKEN_KEY] = {"token": token, "expires": expires}
         return token
+
+    def _subject_token(self, client_secret):
+        """The person's own access token, renewed with their refresh token when it
+        is about to expire (Keycloak's are short-lived: access-keycloak S22)."""
+        subject = self.session.get(SUBJECT_TOKEN_KEY)
+        if not subject:
+            raise LendingRefusal(401, {"code": "unauthenticated", "detail": "no Keycloak sign-in in this session"})
+        if self.session.get(SUBJECT_EXPIRES_KEY, 0) - EXPIRY_MARGIN > time.time():
+            return subject
+        refresh = self.session.get(SUBJECT_REFRESH_KEY)
+        if not refresh:
+            raise LendingRefusal(401, {"code": "unauthenticated", "detail": "Keycloak sign-in expired"})
+        try:
+            body = _post_token_body(self.cfg, {
+                "grant_type": "refresh_token",
+                "client_id": self.cfg.client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh,
+            })
+        except LendingRefusal:
+            # The Keycloak session has ended: the person signs in again.
+            for key in (SUBJECT_TOKEN_KEY, SUBJECT_REFRESH_KEY, SUBJECT_EXPIRES_KEY):
+                self.session.pop(key, None)
+            raise
+        self.session[SUBJECT_TOKEN_KEY] = body["access_token"]
+        self.session[SUBJECT_REFRESH_KEY] = body.get("refresh_token") or refresh
+        self.session[SUBJECT_EXPIRES_KEY] = time.time() + int(body.get("expires_in") or 60)
+        return body["access_token"]
 
 
 def token_provider(cfg, session=None):
